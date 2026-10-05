@@ -2,27 +2,23 @@
 // CẤU HÌNH KẾT NỐI SUPABASE
 // ==========================================
 const SUPABASE_URL = 'https://vbhtgkvmwfztswxlvnl.supabase.co'; 
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZiaHRna3Z2bXdmenRzd3hsdm5sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEwMjE2MzgsImV4cCI6MjEwNjU5NzYzOH0.CqsEoBOVB4CS9UphogsIRtR1syY82kx5uzvcz_K_luo'; // Nhớ điền key thực tế từ Supabase Dashboard
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZiaHRna3Z2bXdmenRzd3hsdm5sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEwMjE2MzgsImV4cCI6MjEwNjU5NzYzOH0.CqsEoBOVB4CS9UphogsIRtR1syY82kx5uzvcz_K_luo'; 
 
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // ==========================================
-// XỬ LÝ CHUYỂN TAB VÀ ĐIỀU HƯỚNG SỰ KIỆN
+// CHUYỂN TAB GIAO DIỆN
 // ==========================================
 function switchTab(tabIndex) {
-    // 1. Ẩn tất cả các Tab Content
     document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
     document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
 
-    // 2. Hiển thị Tab chọn
     const activeTab = document.getElementById(`tab-${tabIndex}`);
     if (activeTab) activeTab.classList.add('active');
 
-    // Active button style
     const activeBtn = document.querySelectorAll('.nav-btn')[tabIndex - 1];
     if (activeBtn) activeBtn.classList.add('active');
 
-    // 3. Khởi tạo dữ liệu riêng từng Tab khi được mở
     switch (tabIndex) {
         case 1: if (typeof initTab1QR === 'function') initTab1QR(); break;
         case 2: if (typeof initTab2BaoVang === 'function') initTab2BaoVang(); break;
@@ -65,46 +61,76 @@ function getTodayDDMMYYYY(withSlash = true) {
 }
 
 // ==========================================
-// ĐĂNG NHẬP & PHIÊN LÀM VIỆC
+// XỬ LÝ ĐĂNG NHẬP (CHỈ TRUY VẤN BẢNG CAN_BO)
 // ==========================================
 async function handleLogin() {
-    const ma_cb = document.getElementById('login-macb').value;
-    const mat_khau = document.getElementById('login-matkhau').value;
+    const maInput = document.getElementById('login-macb');
+    const passInput = document.getElementById('login-matkhau');
 
-    if (!ma_cb || !mat_khau) {
-        alert('Vui lòng nhập đầy đủ Mã cán bộ và Mật khẩu');
+    if (!maInput || !passInput) return;
+
+    const username = maInput.value.trim();
+    const password = passInput.value.trim();
+
+    if (!username || !password) {
+        alert('Vui lòng nhập đầy đủ Mã cán bộ và Mật khẩu!');
         return;
     }
 
-    const user = await loginCanBo(ma_cb, mat_khau);
-    if (user) {
-        const modalEl = document.getElementById('loginModal');
-        const modal = bootstrap.Modal.getInstance(modalEl);
-        if (modal) modal.hide();
+    const btnLogin = document.querySelector('#loginModal .btn-primary');
+    if (btnLogin) {
+        btnLogin.disabled = true;
+        btnLogin.textContent = 'Đang kiểm tra...';
     }
-}
 
-async function loginCanBo(ma_cb, mat_khau) {
     try {
-        const { data, error } = await supabase
+        // Chỉ truy vấn bảng can_bo theo các trường: ma_cb và mat_khau
+        const { data: canBoData, error } = await supabase
             .from('can_bo')
-            .select('*')
-            .eq('ma_cb', ma_cb.trim())
-            .eq('mat_khau', mat_khau.trim())
-            .single();
+            .select('ma_cb, ho_ten, vai_tro, lop_quan_ly')
+            .eq('ma_cb', username)
+            .eq('mat_khau', password)
+            .maybeSingle();
 
-        if (error || !data) {
-            alert('Mã cán bộ hoặc mật khẩu không chính xác!');
-            return null;
+        if (error) {
+            console.error('Lỗi truy vấn CSDL:', error);
+            alert('Lỗi truy vấn CSDL: ' + error.message);
+            return;
         }
 
-        localStorage.setItem('current_user', JSON.stringify(data));
-        updateHeaderUserUI(data);
-        return data;
+        if (!canBoData) {
+            alert('Mã cán bộ hoặc mật khẩu không chính xác!');
+            return;
+        }
+
+        const userResult = {
+            ma_cb: canBoData.ma_cb,
+            ho_ten: canBoData.ho_ten,
+            vai_tro: canBoData.vai_tro || 'Cán bộ',
+            lop_quan_ly: canBoData.lop_quan_ly || ''
+        };
+
+        // Lưu thông tin phiên làm việc
+        localStorage.setItem('current_user', JSON.stringify(userResult));
+        updateHeaderUserUI(userResult);
+
+        // Ẩn modal đăng nhập
+        const modalEl = document.getElementById('loginModal');
+        if (modalEl) {
+            const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+            modal.hide();
+        }
+
+        alert(`Đăng nhập thành công! Chào mừng ${userResult.ho_ten}`);
+
     } catch (err) {
-        console.error('Lỗi đăng nhập:', err);
-        alert('Không thể kết nối CSDL Supabase!');
-        return null;
+        console.error('Lỗi hệ thống:', err);
+        alert('Đã xảy ra lỗi không xác định: ' + err.message);
+    } finally {
+        if (btnLogin) {
+            btnLogin.disabled = false;
+            btnLogin.textContent = 'Đăng Nhập';
+        }
     }
 }
 
@@ -116,7 +142,7 @@ function updateHeaderUserUI(user) {
 
     if (user) {
         if (elUser) elUser.textContent = `${user.ho_ten} (${user.ma_cb})`;
-        if (elRole) elRole.textContent = user.vai_tro || 'Cán bộ';
+        if (elRole) elRole.textContent = user.vai_tro;
         if (btnLogin) btnLogin.classList.add('d-none');
         if (btnLogout) btnLogout.classList.remove('d-none');
     } else {
@@ -141,5 +167,5 @@ function logout() {
 document.addEventListener('DOMContentLoaded', () => {
     const user = getCurrentUser();
     updateHeaderUserUI(user);
-    switchTab(1); // Mặc định mở Tab 1 khi tải trang
+    switchTab(1);
 });
