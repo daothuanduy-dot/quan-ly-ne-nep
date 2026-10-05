@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quản Lý Nề Nếp & Thi Đua - THPT LHP</title>
+
+  <!-- THƯ VIỆN BẮT BUỘC -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
+  <!-- FILE CSS CỦA DỰ ÁN -->
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="p-3 md:p-6 min-h-screen">
+
+  <!-- MÀN HÌNH ĐĂNG NHẬP -->
+  <div id="login-overlay" class="fixed inset-0 bg-slate-900/90 backdrop-blur-md z-[100] flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 border border-gray-100">
+      <div class="text-center border-b pb-3">
+        <h2 class="text-xl font-bold text-blue-700 uppercase"><i class="fa-solid fa-shield-halved"></i> Đăng Nhập Hệ Thống</h2>
+        <p class="text-xs text-gray-500 font-semibold mt-1">Quản lý Nề nếp & Thi đua - THPT LHP (v3.5.0)</p>
+      </div>
+      <div class="space-y-3 text-sm">
+        <div>
+          <label class="block text-xs font-bold text-gray-700 mb-1">Mã Cán Bộ / Tên Đăng Nhập:</label>
+          <input type="text" id="login-user-input" value="ADMIN" class="w-full border p-2.5 rounded-lg bg-gray-50 font-bold text-gray-800 outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-gray-700 mb-1">Mật Khẩu:</label>
+          <input type="password" id="login-password-input" value="admin123" class="w-full border p-2.5 rounded-lg bg-gray-50 font-bold text-gray-800 outline-none">
+        </div>
+      </div>
+      <button onclick="performCanBoLogin()" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 uppercase">
+        <i class="fa-solid fa-right-to-bracket"></i> ĐĂNG NHẬP
+      </button>
+    </div>
+  </div>
+
+  <div class="max-w-7xl mx-auto space-y-4">
+    <!-- HEADER -->
+    <header class="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+      <div>
+        <h1 class="text-2xl font-bold text-blue-600 uppercase">QUẢN LÝ NỀN NẾP & THI ĐƯA</h1>
+        <div class="text-sm text-gray-600 mt-1 flex flex-wrap items-center gap-2">
+          <span>Người dùng: <strong id="user-name" class="text-blue-800">Đào Thuận Duy</strong></span> | 
+          <span>Vai trò: <span id="user-role" class="bg-gray-500 text-white text-xs px-2.5 py-0.5 rounded-full font-bold">Admin</span></span>
+          <span id="network-status-badge" class="text-xs px-2.5 py-0.5 rounded-full font-bold bg-emerald-100 text-emerald-800"><i class="fa-solid fa-wifi"></i> Online</span>
+        </div>
+      </div>
+      <button onclick="handleLogout()" class="border border-red-500 text-red-500 text-sm px-3.5 py-1.5 rounded-lg font-semibold hover:bg-red-50">
+        <i class="fa-solid fa-power-off"></i> Đăng Xuất
+      </button>
+    </header>
+
+    <!-- NAVIGATION TABS -->
+    <nav class="grid grid-cols-2 md:grid-cols-6 gap-2">
+      <button id="btn-tab-0" onclick="switchTab(0)" class="tab-btn active py-2.5 px-2 rounded-lg text-center text-xs md:text-sm">0. QUÉT MÃ QR</button>
+      <button id="btn-tab-1" onclick="switchTab(1)" class="tab-btn py-2.5 px-2 rounded-lg text-center text-xs md:text-sm">1. BÁO VẮNG</button>
+      <button id="btn-tab-2" onclick="switchTab(2)" class="tab-btn py-2.5 px-2 rounded-lg text-center text-xs md:text-sm">2. CHẤM ĐIỂM THI ĐƯA</button>
+      <button id="btn-tab-3" onclick="switchTab(3)" class="tab-btn py-2.5 px-2 rounded-lg text-center text-xs md:text-sm">3. THỐNG KÊ & XẾP HẠNG</button>
+      <button id="btn-tab-4" onclick="switchTab(4)" class="tab-btn py-2.5 px-2 rounded-lg text-center text-xs md:text-sm">4. XẾP LOẠI & DANH HIỆU</button>
+      <button id="btn-tab-5" onclick="switchTab(5)" class="tab-btn py-2.5 px-2 rounded-lg text-center text-xs md:text-sm bg-purple-50 border-purple-600 text-purple-700">5. QUẢN TRỊ</button>
+    </nav>
+
+    <!-- CONTENT AREA -->
+    <main class="bg-white rounded-xl p-4 md:p-6 shadow-sm border border-gray-100 min-h-[460px]">
+      
+      <!-- TAB 0: QUÉT QR -->
+      <section id="content-tab-0" class="tab-content space-y-4">
+        <h2 class="text-lg font-bold text-blue-700 uppercase flex items-center gap-2"><i class="fa-solid fa-qrcode"></i> 0. Quét Mã QR Nề Nếp Học Sinh Tốc Độ Cao</h2>
+        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+          <label class="block font-bold text-gray-700 mb-2">Chọn hình thức ghi nhận khi quét QR:</label>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+            <label class="flex items-center gap-2 bg-white p-3 rounded-lg border cursor-pointer">
+              <input type="radio" name="qr-action" value="muon_co_phep" class="w-4 h-4 text-blue-600">
+              <span class="text-sm font-semibold text-amber-600">Đi muộn (Có phép)</span>
+            </label>
+            <label class="flex items-center gap-2 bg-white p-3 rounded-lg border cursor-pointer">
+              <input type="radio" name="qr-action" value="muon_khong_phep" checked class="w-4 h-4 text-blue-600">
+              <span class="text-sm font-semibold text-red-600">Đi muộn (Không phép)</span>
+            </label>
+            <label class="flex items-center gap-2 bg-white p-3 rounded-lg border cursor-pointer">
+              <input type="radio" name="qr-action" value="diem_thuong" class="w-4 h-4 text-blue-600">
+              <span class="text-sm font-semibold text-green-600">Khen thưởng (+ Điểm)</span>
+            </label>
+            <label class="flex items-center gap-2 bg-white p-3 rounded-lg border cursor-pointer">
+              <input type="radio" name="qr-action" value="diem_tru" class="w-4 h-4 text-blue-600">
+              <span class="text-sm font-semibold text-red-700">Vi phạm (- Điểm)</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="flex flex-col items-center">
+            <div id="reader" class="w-full max-w-sm bg-black rounded-xl overflow-hidden min-h-[260px]"></div>
+            <div class="mt-3 flex gap-2">
+              <button onclick="startQRScanner()" class="bg-blue-600 text-white text-sm px-4 py-2 rounded-lg font-semibold"><i class="fa-solid fa-camera"></i> Bật Camera</button>
+              <button onclick="stopQRScanner()" class="bg-gray-500 text-white text-sm px-4 py-2 rounded-lg font-semibold">Tắt Camera</button>
+            </div>
+          </div>
+
+          <div class="space-y-4">
+            <div class="bg-gray-50 p-3 rounded-xl border border-gray-200">
+              <label class="block text-xs font-bold text-gray-600 mb-1">HOẶC NHẬP MÃ / NỘI DUNG QR TẠI ĐÂY:</label>
+              <div class="flex gap-2">
+                <input type="text" id="manual-ma-hs" placeholder="Nhập Mã HS hoặc dán chuỗi QR..." class="flex-1 border p-2 rounded-lg text-sm">
+                <button onclick="processManualQR()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-bold">Xác nhận</button>
+              </div>
+            </div>
+
+            <div class="space-y-2">
+              <div class="flex justify-between items-center">
+                <h3 class="font-bold text-sm text-gray-700">Lịch Sử Quét Trực Tiếp:</h3>
+                <button onclick="triggerManualSync()" class="bg-amber-500 text-white text-xs px-3 py-1.5 rounded-lg font-bold flex items-center gap-1">
+                  <i class="fa-solid fa-rotate"></i> Gửi Đồng Bộ Lại (<span id="pending-count-badge">0</span>)
+                </button>
+              </div>
+              <div id="qr-log-list" class="space-y-2 max-h-[260px] overflow-y-auto border p-2 rounded-xl bg-slate-50"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 1: BÁO VẮNG -->
+      <section id="content-tab-1" class="tab-content hidden space-y-4">
+        <h2 class="text-lg font-bold text-blue-700 uppercase flex items-center gap-2"><i class="fa-solid fa-user-slash"></i> 1. Báo Học Sinh Vắng Trong Ngày</h2>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
+          <div>
+            <label class="block text-xs font-bold text-gray-700 mb-1">Chọn Khối:</label>
+            <select id="bv-khoi" onchange="onBaoVangKhoiChange()" class="w-full border p-2.5 rounded-lg text-sm bg-white"><option value="">-- Tất cả Khối --</option><option value="10">Khối 10</option><option value="11">Khối 11</option><option value="12">Khối 12</option></select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-gray-700 mb-1">Chọn Lớp:</label>
+            <select id="bv-lop" onchange="onBaoVangLopChange()" class="w-full border p-2.5 rounded-lg text-sm bg-white"><option value="">-- Chọn Lớp --</option></select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-gray-700 mb-1">Buổi ghi nhận:</label>
+            <input type="text" id="bv-buoi-auto" readonly class="w-full border p-2.5 rounded-lg text-sm bg-gray-100 font-bold text-blue-700">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-gray-700 mb-1">Số lượng vắng:</label>
+            <input type="number" id="bv-soluong" value="1" min="1" max="30" onchange="renderBaoVangRows()" oninput="renderBaoVangRows()" class="w-full border p-2.5 rounded-lg text-sm font-bold text-center bg-white text-blue-600">
+          </div>
+        </div>
+        <div class="space-y-3">
+          <label class="block font-bold text-gray-700 text-sm">Danh sách học sinh vắng:</label>
+          <div id="bv-student-rows" class="space-y-3"></div>
+        </div>
+        <button onclick="submitBaoVang()" class="w-full btn-coral py-3 rounded-xl font-bold uppercase shadow-md"><i class="fa-solid fa-floppy-disk"></i> LƯU THÔNG TIN BÁO VẮNG</button>
+      </section>
+
+      <!-- TAB 2: CHẤM ĐIỂM THI ĐƯA & SỔ ĐẦU BÀI -->
+      <section id="content-tab-2" class="tab-content hidden space-y-4">
+        <div class="flex flex-wrap gap-2 border-b pb-3">
+          <button onclick="switchTab2Mode('tieu-chi')" id="btn-mode-tc" class="px-4 py-2 rounded-lg font-bold text-sm bg-blue-600 text-white">1. Chấm Tiêu Chí Nề Nếp & Linh Hoạt</button>
+          <button onclick="switchTab2Mode('sdb-diem-mieng')" id="btn-mode-sdb" class="px-4 py-2 rounded-lg font-bold text-sm bg-gray-100 text-gray-700">📖 2. Sổ Đầu Bài Lớp & Điểm Miệng</button>
+        </div>
+
+        <div id="tab2-mode-tieu-chi" class="space-y-4">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3 bg-slate-50 p-4 rounded-xl border">
+            <div>
+              <label class="block text-xs font-bold text-gray-700 mb-1">Chọn Khối:</label>
+              <select id="cd-khoi" onchange="onChamDiemKhoiChange()" class="w-full border p-2.5 rounded-lg text-sm bg-white"><option value="">Tất cả các Khối</option><option value="10">Khối 10</option><option value="11">Khối 11</option><option value="12">Khối 12</option></select>
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-gray-700 mb-1">Chọn Lớp:</label>
+              <select id="cd-lop" onchange="onChamDiemLopChange()" class="w-full border p-2.5 rounded-lg text-sm bg-white"><option value="">-- Chọn Lớp --</option></select>
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-gray-700 mb-1">Cá Nhân Học Sinh (Gõ tên / Initials):</label>
+              <div class="search-select-container">
+                <input type="text" id="cd-hs-input" readonly onclick="toggleSearchSelect('cd-hs-dropdown')" placeholder="-- Chọn Lớp trước --" class="search-select-input font-medium text-gray-800">
+                <div id="cd-hs-dropdown" class="search-select-dropdown">
+                  <div class="p-2 border-b bg-gray-50"><input type="text" id="cd-hs-search" oninput="filterSearchSelectItems('cd-hs-dropdown', 'cd-hs-search')" placeholder="🔍 Gõ tên hoặc viết tắt initials (VD: dtd)..." class="w-full border p-1.5 rounded text-xs"></div>
+                  <div id="cd-hs-list"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-gray-700 mb-2">Loại Điểm Thi Đua:</label>
+            <div class="grid grid-cols-2 gap-3">
+              <label class="flex items-center justify-center gap-2 border border-red-300 bg-red-50 text-red-600 p-3 rounded-xl cursor-pointer font-bold text-sm"><input type="radio" name="loai-diem" value="tru" checked onchange="filterDanhMucDiem()"> Điểm Trừ Vi Phạm</label>
+              <label class="flex items-center justify-center gap-2 border border-green-300 bg-green-50 text-green-600 p-3 rounded-xl cursor-pointer font-bold text-sm"><input type="radio" name="loai-diem" value="cong" onchange="filterDanhMucDiem()"> Điểm Cộng Khen Thưởng</label>
+            </div>
+          </div>
+
+          <div class="bg-slate-50 p-4 rounded-xl border space-y-3">
+            <select id="list-danh-muc-diem" onchange="toggleCustomPointInput()" class="w-full border p-2.5 rounded-lg text-sm bg-white font-medium"><option value="">-- Đang tải danh mục... --</option></select>
+          </div>
+
+          <div id="custom-point-box" class="hidden bg-amber-50 p-4 rounded-xl border space-y-3">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div class="md:col-span-2"><input type="text" id="custom-ten-hd" placeholder="Nội dung vi phạm/khen thưởng..." class="w-full border p-2 rounded text-sm"></div>
+              <div><input type="number" step="0.25" id="custom-diem" placeholder="Số điểm (-1 hoặc 2)" class="w-full border p-2 rounded text-sm text-center font-bold"></div>
+            </div>
+          </div>
+
+          <div><label class="block text-xs font-bold text-gray-700 mb-1">Ghi Chú Chi Tiết:</label><input type="text" id="cd-ghichu" placeholder="Ghi chú thêm..." class="w-full border p-2.5 rounded-lg text-sm"></div>
+          <button onclick="submitChamDiem()" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold uppercase"><i class="fa-solid fa-floppy-disk"></i> LƯU KẾT QUẢ CHẤM ĐIỂM</button>
+        </div>
+
+        <div id="tab2-mode-sdb-diem-mieng" class="hidden space-y-4">
+          <div class="bg-indigo-50 p-4 rounded-xl border space-y-3">
+            <h3 class="font-bold text-sm uppercase text-indigo-900">PHẦN 1: SỔ ĐẦU BÀI LỚP CUỐI TUẦN</h3>
+            <select id="sdb-lop" onchange="onSdbLopChange()" class="w-full border p-2.5 rounded-lg text-sm bg-white font-bold text-indigo-700"><option value="">-- Chọn Lớp --</option></select>
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-3 bg-white p-3 rounded-lg border">
+              <div class="bg-green-50 p-2 rounded text-center"><label class="block text-[11px] font-bold text-green-800">Số Tiết 10 (+2đ)</label><input type="number" min="0" value="0" id="sdb-sl-tiet10" oninput="calcSdbTotalPreview()" class="w-full border p-1 text-center font-bold text-sm"></div>
+              <div class="bg-blue-50 p-2 rounded text-center"><label class="block text-[11px] font-bold text-blue-800">Số Tiết 9 (+1đ)</label><input type="number" min="0" value="0" id="sdb-sl-tiet9" oninput="calcSdbTotalPreview()" class="w-full border p-1 text-center font-bold text-sm"></div>
+              <div class="bg-gray-50 p-2 rounded text-center"><label class="block text-[11px] font-bold text-gray-700">Số Tiết 8 (0đ)</label><input type="number" min="0" value="0" id="sdb-sl-tiet8" oninput="calcSdbTotalPreview()" class="w-full border p-1 text-center font-bold text-sm"></div>
+              <div class="bg-amber-50 p-2 rounded text-center"><label class="block text-[11px] font-bold text-amber-800">Số Tiết 7 (-2đ)</label><input type="number" min="0" value="0" id="sdb-sl-tiet7" oninput="calcSdbTotalPreview()" class="w-full border p-1 text-center font-bold text-sm"></div>
+              <div class="bg-red-50 p-2 rounded text-center"><label class="block text-[11px] font-bold text-red-800">Tiết Yếu (-5đ)</label><input type="number" min="0" value="0" id="sdb-sl-tietyeu" oninput="calcSdbTotalPreview()" class="w-full border p-1 text-center font-bold text-sm"></div>
+            </div>
+            <div class="flex justify-between items-center text-xs font-bold"><span>Tổng điểm SĐB:</span><span id="sdb-total-preview" class="text-sm text-indigo-700 bg-indigo-100 px-3 py-1 rounded-full">+0.0 điểm</span></div>
+          </div>
+
+          <div class="bg-emerald-50 p-4 rounded-xl border space-y-3">
+            <h3 class="font-bold text-sm uppercase text-emerald-900">PHẦN 2: ĐIỂM MIỆNG HỌC SINH</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div><input type="number" step="0.5" id="sdb-diem-hs-val" value="10" min="0" max="10" class="w-full border p-2 rounded text-sm font-bold text-center text-emerald-700"></div>
+              <div class="md:col-span-2"><input type="text" id="sdb-mon-danh-gia" placeholder="Nội dung đánh giá bài cũ..." class="w-full border p-2 rounded text-sm bg-white"></div>
+            </div>
+            <div id="sdb-student-grid" class="grid grid-cols-2 md:grid-cols-4 gap-2 max-h-[200px] overflow-y-auto p-2 bg-white rounded-lg border"></div>
+          </div>
+          <button onclick="submitSoDauBaiDiemMieng()" class="w-full bg-indigo-700 text-white py-3 rounded-xl font-bold uppercase"><i class="fa-solid fa-floppy-disk"></i> LƯU SỔ ĐẦU BÀI & ĐIỂM MIỆNG</button>
+        </div>
+      </section>
+
+      <!-- TAB 3: THỐNG KÊ & XẾP HẠNG -->
+      <section id="content-tab-3" class="tab-content hidden space-y-6">
+        <h2 class="text-lg font-bold text-blue-800 uppercase flex items-center gap-2"><i class="fa-solid fa-chart-line"></i> 3. Báo Cáo Thống Kê & Xếp Hạng Nề Nếp</h2>
+        <div class="bg-slate-50 p-4 rounded-xl border space-y-3">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <select id="tk-doituong" onchange="onThongKeScopeChange()" class="border p-2 rounded-lg text-sm bg-white font-semibold text-blue-700"><option value="toan_truong">Toàn Trường</option><option value="theo_khoi">Theo Khối</option><option value="theo_lop">Theo Lớp</option></select>
+            <div id="box-tk-khoi" class="hidden"><select id="tk-khoi" class="w-full border p-2 rounded-lg text-sm bg-white"><option value="10">Khối 10</option><option value="11">Khối 11</option><option value="12">Khối 12</option></select></div>
+            <div id="box-tk-lop" class="hidden"><select id="tk-lop" class="w-full border p-2 rounded-lg text-sm bg-white"><option value="">-- Chọn Lớp --</option></select></div>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2 border-t">
+            <select id="tk-time-type" onchange="onThongKeTimeTypeChange()" class="border p-2 rounded-lg text-sm bg-white font-semibold text-emerald-700"><option value="tuan">Theo Tuần</option><option value="thang">Theo Tháng</option></select>
+            <div id="box-time-tuan"><input type="date" id="tk-date-tuan" class="w-full border p-2 rounded-lg text-sm bg-white"></div>
+            <button onclick="renderFullStatistics()" class="bg-blue-600 text-white p-2.5 rounded-lg text-sm font-bold"><i class="fa-solid fa-magnifying-glass"></i> LỌC & THỐNG KÊ</button>
+          </div>
+        </div>
+
+        <div id="time-scope-banner" class="bg-blue-50 border border-blue-200 p-2.5 rounded-xl text-center font-bold text-blue-800 text-sm">Đang xem thống kê</div>
+
+        <div id="tk-summary" class="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div class="bg-blue-50 border p-3 rounded-xl text-center"><div class="text-xl font-bold text-blue-700" id="tk-stat-tong-vp">0</div><div class="text-[11px] font-semibold text-gray-600 uppercase">Vi Phạm / Muộn</div></div>
+          <div class="bg-green-50 border p-3 rounded-xl text-center"><div class="text-xl font-bold text-green-700" id="tk-stat-tong-cong">+0</div><div class="text-[11px] font-semibold text-gray-600 uppercase">Điểm Cộng</div></div>
+          <div class="bg-red-50 border p-3 rounded-xl text-center"><div class="text-xl font-bold text-red-700" id="tk-stat-tong-tru">-0</div><div class="text-[11px] font-semibold text-gray-600 uppercase">Điểm Trừ</div></div>
+          <div class="bg-amber-50 border p-3 rounded-xl text-center"><div class="text-xl font-bold text-amber-700" id="tk-stat-tong-vang">0</div><div class="text-[11px] font-semibold text-gray-600 uppercase">Lượt Vắng</div></div>
+        </div>
+
+        <!-- BẢNG XẾP HẠNG LỚP -->
+        <div class="space-y-2">
+          <h3 class="font-bold text-blue-700 text-sm uppercase"><i class="fa-solid fa-trophy text-amber-500"></i> Xếp Hạng Thi Đua Các Lớp</h3>
+          <div class="overflow-x-auto border rounded-xl shadow-sm">
+            <table class="w-full text-sm text-left">
+              <thead class="bg-blue-600 text-white uppercase text-xs">
+                <tr><th class="p-2.5 text-center">Hạng</th><th class="p-2.5">Tên Lớp</th><th class="p-2.5 text-center">Khối</th><th class="p-2.5 text-center">Gốc</th><th class="p-2.5 text-center">Cộng</th><th class="p-2.5 text-center">Trừ</th><th class="p-2.5 text-center">Tổng Điểm</th><th class="p-2.5 text-center">Xếp Loại</th><th class="p-2.5 text-center">Chi Tiết</th></tr>
+              </thead>
+              <tbody id="lop-rank-table-body"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- BẢNG XẾP HẠNG HỌC SINH -->
+        <div class="space-y-2">
+          <h3 class="font-bold text-emerald-800 text-sm uppercase"><i class="fa-solid fa-graduation-cap"></i> Xếp Hạng Học Sinh (Sắp xếp Tên → Đệm → Họ A-Z)</h3>
+          <div class="overflow-x-auto border rounded-xl shadow-sm max-h-[300px] overflow-y-auto">
+            <table class="w-full text-sm text-left">
+              <thead class="bg-emerald-700 text-white uppercase text-xs sticky top-0">
+                <tr><th class="p-2.5 text-center">Hạng</th><th class="p-2.5 text-center">Mã HS</th><th class="p-2.5">Họ và Tên</th><th class="p-2.5 text-center">Lớp</th><th class="p-2.5 text-center">Vắng</th><th class="p-2.5 text-center">Muộn</th><th class="p-2.5 text-center">Cộng</th><th class="p-2.5 text-center">Trừ</th><th class="p-2.5 text-center">Tổng Điểm</th><th class="p-2.5 text-center">Chi Tiết</th></tr>
+              </thead>
+              <tbody id="hs-rank-table-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 4: XẾP LOẠI THI ĐƯA -->
+      <section id="content-tab-4" class="tab-content hidden space-y-4">
+        <h2 class="text-lg font-bold text-red-600 uppercase flex items-center gap-2"><i class="fa-solid fa-trophy text-amber-500"></i> 4. Xếp Loại & Danh Hiệu Thi Đua Tập Thể</h2>
+        <div class="bg-slate-50 p-4 rounded-xl border flex gap-3">
+          <button onclick="renderXepLoai()" class="bg-red-600 text-white p-2.5 rounded-lg text-sm font-bold"><i class="fa-solid fa-trophy"></i> TỔNG HỢP DANH HIỆU THI ĐƯA</button>
+        </div>
+        <div class="overflow-x-auto border rounded-xl shadow-sm">
+          <table class="w-full text-sm text-left">
+            <thead class="bg-gray-800 text-white uppercase text-xs">
+              <tr><th class="p-3 text-center">Xếp Hạng</th><th class="p-3">Tên Lớp</th><th class="p-3 text-center">Khối</th><th class="p-3 text-center">Tổng Điểm</th><th class="p-3">Danh Hiệu Thi Đua</th></tr>
+            </thead>
+            <tbody id="xl-table-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- TAB 5: QUẢN TRỊ -->
+      <section id="content-tab-5" class="tab-content hidden space-y-6">
+        <h2 class="text-lg font-bold text-purple-800 uppercase"><i class="fa-solid fa-user-gear"></i> 5. Quản Trị Hệ Thống</h2>
+        <div class="flex gap-2 border-b pb-3">
+          <button onclick="switchAdminSubTab('sua-ban-ghi')" class="admin-sub-btn active bg-purple-600 text-white text-xs px-3 py-2 rounded-lg font-bold">1. Sửa/Xóa Bản Ghi Sai</button>
+        </div>
+        <div id="admin-sub-sua-ban-ghi" class="admin-sub-content space-y-4">
+          <div class="bg-purple-50 p-4 rounded-xl border flex gap-3">
+            <input type="date" id="admin-edit-date" class="border p-2 rounded text-sm bg-white">
+            <button onclick="fetchAdminRecordsToEdit()" class="bg-purple-700 text-white p-2 rounded text-sm font-bold">Tìm Bản Ghi</button>
+          </div>
+          <div class="overflow-x-auto border rounded-xl">
+            <table class="w-full text-xs text-left">
+              <thead class="bg-purple-800 text-white uppercase">
+                <tr><th class="p-2.5 text-center">ID</th><th class="p-2.5">Ngày</th><th class="p-2.5">Họ Tên / Lớp</th><th class="p-2.5">Tiêu Chí</th><th class="p-2.5 text-center">Điểm</th><th class="p-2.5 text-center">Thao Tác</th></tr>
+              </thead>
+              <tbody id="admin-edit-table-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- POPUP XÁC NHẬN MÃ QR -->
+  <div id="qr-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 border">
+      <div class="flex justify-between items-center border-b pb-3">
+        <h3 class="text-lg font-bold text-blue-700"><i class="fa-solid fa-qrcode"></i> Xác Nhận Thông Tin QR</h3>
+        <button onclick="closeQRModal()" class="text-gray-400 hover:text-red-500 font-bold text-lg">&times;</button>
+      </div>
+      <div class="space-y-3 text-sm">
+        <div class="bg-blue-50 p-3 rounded-xl border">
+          <span class="text-xs font-bold text-blue-600 block">Mã Định Danh QR:</span>
+          <strong id="modal-ma-hs" class="text-blue-900 font-mono text-lg break-all">---</strong>
+        </div>
+        <div class="flex justify-between border-b pb-1.5"><span class="text-gray-500">Họ và Tên:</span><strong id="modal-ho-ten" class="text-gray-900 font-bold">---</strong></div>
+        <div class="flex justify-between border-b pb-1.5"><span class="text-gray-500">Lớp / Khối:</span><strong id="modal-lop" class="text-amber-700 font-bold">---</strong></div>
+        <div class="flex justify-between border-b pb-1.5"><span class="text-gray-500">Hình thức:</span><strong id="modal-hinh-thuc" class="text-red-600 font-bold">---</strong></div>
+      </div>
+      <div class="pt-2 flex gap-3">
+        <button onclick="confirmSaveQR()" class="flex-1 bg-emerald-600 text-white py-3 rounded-xl font-bold hover:bg-emerald-700"><i class="fa-solid fa-check"></i> LƯU THÔNG TIN</button>
+        <button onclick="closeQRModal()" class="flex-1 bg-gray-200 text-gray-700 py-3 rounded-xl font-bold">HỦY BỎ</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- POPUP DRILLDOWN XEM LỊCH SỬ ĐIỂM CHI TIẾT -->
+  <div id="modal-drilldown-detail" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-3 md:p-6">
+    <div class="bg-white rounded-2xl max-w-4xl w-full p-5 shadow-2xl space-y-4 border max-h-[90vh] flex flex-col">
+      <div class="flex justify-between items-center border-b pb-3 shrink-0">
+        <h3 id="modal-detail-title" class="text-lg font-bold text-blue-700">Chi Tiết Điểm</h3>
+        <button onclick="closeDrilldownModal()" class="text-gray-400 hover:text-red-500 font-bold text-xl">&times;</button>
+      </div>
+      <div class="overflow-x-auto border rounded-xl flex-1 max-h-[400px]">
+        <table class="w-full text-xs md:text-sm text-left">
+          <thead class="bg-slate-800 text-white uppercase text-xs sticky top-0">
+            <tr><th class="p-2.5 text-center">STT</th><th class="p-2.5 text-center">Ngày</th><th class="p-2.5">Nội Dung Tiêu Chí</th><th class="p-2.5 text-center">Số Điểm</th></tr>
+          </thead>
+          <tbody id="modal-detail-table-body"></tbody>
+        </table>
+      </div>
+      <button onclick="closeDrilldownModal()" class="w-full bg-gray-200 text-gray-700 py-2.5 rounded-xl font-bold">ĐÓNG</button>
+    </div>
+  </div>
+
+  <!-- LOAD CÁC MODULE JAVASCRIPT THEO THỨ TỰ -->
+  <script src="js/config.js"></script>
+  <script src="js/qr-sync.js"></script>
+  <script src="js/attendance.js"></script>
+  <script src="js/discipline.js"></script>
+  <script src="js/statistics.js"></script>
+</body>
+</html>
