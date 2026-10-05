@@ -1,7 +1,8 @@
 // ==========================================
 // CẤU HÌNH KẾT NỐI SUPABASE
 // ==========================================
-const SUPABASE_URL = 'https://vbhtgkvmwfztswxlvnl.supabase.co'; 
+// Địa chỉ URL đã khớp chính xác với mã ref trong ANON_KEY
+const SUPABASE_URL = 'https://vbhtgkvvwfztswxlvnl.supabase.co'; 
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZiaHRna3Z2bXdmenRzd3hsdm5sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEwMjE2MzgsImV4cCI6MjEwNjU5NzYzOH0.CqsEoBOVB4CS9UphogsIRtR1syY82kx5uzvcz_K_luo'; 
 
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -61,13 +62,16 @@ function getTodayDDMMYYYY(withSlash = true) {
 }
 
 // ==========================================
-// XỬ LÝ ĐĂNG NHẬP (CHỈ TRUY VẤN BẢNG CAN_BO)
+// XỬ LÝ ĐĂNG NHẬP (KIỂM TRA BẢNG CAN_BO)
 // ==========================================
 async function handleLogin() {
     const maInput = document.getElementById('login-macb');
     const passInput = document.getElementById('login-matkhau');
 
-    if (!maInput || !passInput) return;
+    if (!maInput || !passInput) {
+        alert('Lỗi: Không tìm thấy ô nhập liệu!');
+        return;
+    }
 
     const username = maInput.value.trim();
     const password = passInput.value.trim();
@@ -84,37 +88,43 @@ async function handleLogin() {
     }
 
     try {
-        // Chỉ truy vấn bảng can_bo theo các trường: ma_cb và mat_khau
-        const { data: canBoData, error } = await supabase
+        // Truy vấn dữ liệu từ bảng can_bo
+        const { data: canBoList, error } = await supabase
             .from('can_bo')
-            .select('ma_cb, ho_ten, vai_tro, lop_quan_ly')
-            .eq('ma_cb', username)
-            .eq('mat_khau', password)
-            .maybeSingle();
+            .select('*')
+            .eq('ma_cb', username);
 
         if (error) {
-            console.error('Lỗi truy vấn CSDL:', error);
+            console.error('Lỗi kết nối Supabase:', error);
             alert('Lỗi truy vấn CSDL: ' + error.message);
             return;
         }
 
-        if (!canBoData) {
-            alert('Mã cán bộ hoặc mật khẩu không chính xác!');
+        if (!canBoList || canBoList.length === 0) {
+            alert(`Mã cán bộ "${username}" KHÔNG TỒN TẠI trong bảng can_bo!\n(Lưu ý: Bảng can_bo hiện chỉ có 3 tài khoản).`);
             return;
         }
 
+        // Kiểm tra mật khẩu (loại bỏ khoảng trắng dư thừa)
+        const user = canBoList.find(u => String(u.mat_khau).trim() === password);
+
+        if (!user) {
+            alert('Mã cán bộ chính xác nhưng MẬT KHẨU KHÔNG ĐÚNG!');
+            return;
+        }
+
+        // Lưu thông tin người dùng
         const userResult = {
-            ma_cb: canBoData.ma_cb,
-            ho_ten: canBoData.ho_ten,
-            vai_tro: canBoData.vai_tro || 'Cán bộ',
-            lop_quan_ly: canBoData.lop_quan_ly || ''
+            ma_cb: user.ma_cb,
+            ho_ten: user.ho_ten,
+            vai_tro: user.vai_tro || 'Cán bộ',
+            lop_quan_ly: user.lop_quan_ly || ''
         };
 
-        // Lưu thông tin phiên làm việc
         localStorage.setItem('current_user', JSON.stringify(userResult));
         updateHeaderUserUI(userResult);
 
-        // Ẩn modal đăng nhập
+        // Ẩn Modal đăng nhập
         const modalEl = document.getElementById('loginModal');
         if (modalEl) {
             const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
@@ -124,8 +134,8 @@ async function handleLogin() {
         alert(`Đăng nhập thành công! Chào mừng ${userResult.ho_ten}`);
 
     } catch (err) {
-        console.error('Lỗi hệ thống:', err);
-        alert('Đã xảy ra lỗi không xác định: ' + err.message);
+        console.error('Lỗi ngoại lệ:', err);
+        alert('Đã xảy ra lỗi: ' + err.message);
     } finally {
         if (btnLogin) {
             btnLogin.disabled = false;
