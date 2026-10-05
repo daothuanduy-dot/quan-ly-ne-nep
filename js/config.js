@@ -1,6 +1,12 @@
-// ==========================================
+/*
+  ==================================================
+  DỰ ÁN: QUẢN LÝ NỀN NẾP & THI ĐƯA - THPT LÊ HỒNG PHONG
+  FILE: js/config.js
+  VERSION: v1.2
+  ==================================================
+*/
+
 // CẤU HÌNH KẾT NỐI SUPABASE
-// ==========================================
 const SUPABASE_URL = 'https://vbhtgkvvmwfztswxlvnl.supabase.co'; 
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZiaHRna3Z2bXdmenRzd3hsdm5sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEwMjE2MzgsImV4cCI6MjEwNjU5NzYzOH0.CqsEoBOVB4CS9UphogsIRtR1syY82kx5uzvcz_K_luo'; 
 
@@ -12,13 +18,11 @@ function getSupabase() {
         _supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         return _supabaseClient;
     }
-    console.error("Thư viện Supabase chưa được tải xong từ CDN!");
+    console.error("Thư viện Supabase CDN chưa sẵn sàng!");
     return null;
 }
 
-// ==========================================
-// ĐIỀU HƯỚNG TAB GIAO DIỆN
-// ==========================================
+// CHUYỂN TAB GIAO DIỆN CHÍNH
 function switchTab(tabIndex) {
     document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
     document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
@@ -39,9 +43,7 @@ function switchTab(tabIndex) {
     }
 }
 
-// ==========================================
-// ĐỊNH DẠNG NGÀY THÁNG (DDMMYYYY)
-// ==========================================
+// TIỆN ÍCH THỜI GIAN (DDMMYYYY)
 function formatDateDDMMYYYY(dateInput, withSlash = true) {
     if (!dateInput) return '';
     const d = new Date(dateInput);
@@ -70,13 +72,7 @@ function getTodayDDMMYYYY(withSlash = true) {
     return formatDateDDMMYYYY(new Date(), withSlash);
 }
 
-// ==========================================
-// TIỆN ÍCH FORM ĐĂNG NHẬP (HIỆN MẬT KHẨU & NHỚ TÀI KHOẢN)
-// ==========================================
-
-/**
- * Hiện / Ẩn mật khẩu khi bấm nút mắt
- */
+// TIỆN ÍCH GIAO DIỆN ĐĂNG NHẬP
 function toggleShowPassword() {
     const passInput = document.getElementById('login-matkhau');
     const btnToggle = document.getElementById('btn-toggle-password');
@@ -91,9 +87,6 @@ function toggleShowPassword() {
     }
 }
 
-/**
- * Nạp thông tin tài khoản đã lưu nếu người dùng từng tích "Nhớ đăng nhập"
- */
 function loadRememberedUser() {
     hideLoginError();
     const saved = localStorage.getItem('remembered_login');
@@ -108,7 +101,7 @@ function loadRememberedUser() {
             if (passInput) passInput.value = mat_khau || '';
             if (rememberCheck) rememberCheck.checked = true;
         } catch (e) {
-            console.error('Lỗi đọc tài khoản nhớ đăng nhập:', e);
+            console.error('Lỗi đọc dữ liệu nhớ đăng nhập:', e);
         }
     }
 }
@@ -123,14 +116,10 @@ function showLoginError(message) {
 
 function hideLoginError() {
     const errDiv = document.getElementById('login-error-msg');
-    if (errDiv) {
-        errDiv.classList.add('d-none');
-    }
+    if (errDiv) errDiv.classList.add('d-none');
 }
 
-// ==========================================
-// XỬ LÝ ĐĂNG NHẬP
-// ==========================================
+// XỬ LÝ XÁC THỰC ĐĂNG NHẬP
 async function handleLogin() {
     hideLoginError();
 
@@ -156,18 +145,17 @@ async function handleLogin() {
     try {
         const client = getSupabase();
         if (!client) {
-            showLoginError('Không thể kết nối thư viện Supabase CDN. Vui lòng kiểm tra lại mạng!');
+            showLoginError('Không thể kết nối Supabase! Vui lòng kiểm tra mạng.');
             return;
         }
 
-        // Truy vấn toàn bộ bảng can_bo
         const { data: accounts, error } = await client
             .from('can_bo')
             .select('*');
 
         if (error) {
             console.error('Lỗi Supabase:', error);
-            showLoginError('Lỗi kết nối CSDL Supabase: ' + error.message);
+            showLoginError('Lỗi CSDL: ' + error.message);
             return;
         }
 
@@ -176,7 +164,6 @@ async function handleLogin() {
             return;
         }
 
-        // Tìm tài khoản khớp mã cán bộ và mật khẩu (ép kiểu về Chuỗi và loại bỏ khoảng trắng)
         const user = accounts.find(a => 
             String(a.ma_cb).trim() === username && 
             String(a.mat_khau).trim() === password
@@ -187,7 +174,7 @@ async function handleLogin() {
             return;
         }
 
-        // Xử lý "Nhớ đăng nhập"
+        // Nhớ đăng nhập
         const rememberCheck = document.getElementById('remember-me');
         if (rememberCheck && rememberCheck.checked) {
             localStorage.setItem('remembered_login', JSON.stringify({ ma_cb: username, mat_khau: password }));
@@ -195,7 +182,7 @@ async function handleLogin() {
             localStorage.removeItem('remembered_login');
         }
 
-        // Lưu phiên đăng nhập người dùng hiện tại
+        // Phiên làm việc
         const currentUserData = {
             ma_cb: user.ma_cb,
             ho_ten: user.ho_ten,
@@ -206,7 +193,6 @@ async function handleLogin() {
         localStorage.setItem('current_user', JSON.stringify(currentUserData));
         updateHeaderUserUI(currentUserData);
 
-        // Đóng Modal
         const modalEl = document.getElementById('loginModal');
         if (modalEl) {
             const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
