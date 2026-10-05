@@ -1,0 +1,18 @@
+body { background-color: #f4f6f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+.tab-btn { border: 1.5px solid #0066ff; color: #0066ff; background: #fff; transition: all 0.2s; font-weight: 700; }
+.tab-btn.active { background-color: #0066ff; color: #fff; }
+.btn-red { background-color: #e53935; color: white; }
+.btn-coral { background-color: #f07178; color: white; }
+.btn-warning { background-color: #ffc107; color: #212529; }
+#reader video { border-radius: 12px; object-fit: cover; }
+tr.clickable-row { cursor: pointer; transition: background-color 0.15s; }
+tr.clickable-row:hover { background-color: #eef6ff !important; }
+optgroup { font-weight: bold; color: #1e40af; background-color: #f1f5f9; }
+
+/* DROPDOWN TÌM KIẾM CHỮ CÁI ĐẦU */
+.search-select-container { position: relative; width: 100%; }
+.search-select-input { width: 100%; border: 1px solid #cbd5e1; padding: 10px 12px; border-radius: 8px; font-size: 14px; background-color: #fff; cursor: pointer; }
+.search-select-dropdown { position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; max-height: 260px; overflow-y: auto; z-index: 100; display: none; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+.search-select-dropdown.show { display: block; }
+.search-select-item { padding: 8px 12px; cursor: pointer; font-size: 13.5px; border-bottom: 1px solid #f1f5f9; }
+.search-select-item:hover { background-color: #eff6ff; color: #0066ff; font-weight: 600; }
