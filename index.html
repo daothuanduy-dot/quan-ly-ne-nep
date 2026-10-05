@@ -4,11 +4,349 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>QUẢN LÝ NỀN NẾP & THI ĐƯA - THPT</title>
-    <link rel="stylesheet" href="style.css">
-    <!-- Html5-QRCode Library -->
+    
+    <!-- Thư viện Quét mã QR & Excel CDN -->
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
-    <!-- SheetJS Excel Library -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+    <style>
+        /* ==================== TOÀN BỘ CSS GIAO DIỆN ==================== */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f4f6f9;
+            color: #333;
+            padding: 15px;
+        }
+
+        .app-container {
+            max-width: 1100px;
+            margin: 0 auto;
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .app-header {
+            background-color: #1b365d;
+            color: #ffffff;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 3px solid #0056b3;
+        }
+
+        .app-header h2 {
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .academic-year-badge {
+            background-color: #28a745;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .main-nav {
+            display: flex;
+            background-color: #e9ecef;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .nav-btn {
+            flex: 1;
+            padding: 14px 10px;
+            border: none;
+            background: transparent;
+            font-size: 15px;
+            font-weight: 600;
+            color: #495057;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .nav-btn.active {
+            background-color: #ffffff;
+            color: #0056b3;
+            border-bottom: 3px solid #0056b3;
+        }
+
+        .content-body {
+            padding: 20px;
+        }
+
+        .tab-panel {
+            display: none;
+        }
+
+        .tab-panel.active {
+            display: block;
+        }
+
+        .sub-nav {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .sub-btn {
+            padding: 8px 16px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            background-color: #f8f9fa;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .sub-btn.active {
+            background-color: #0056b3;
+            color: #fff;
+            border-color: #0056b3;
+        }
+
+        .sub-panel {
+            display: none;
+        }
+
+        .sub-panel.active {
+            display: block;
+        }
+
+        .card {
+            background-color: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            padding: 20px;
+        }
+
+        .card h3 {
+            margin-bottom: 15px;
+            color: #1b365d;
+        }
+
+        .description {
+            font-size: 14px;
+            color: #6c757d;
+            margin-bottom: 15px;
+        }
+
+        .qr-options {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+
+        .section-label {
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 20px;
+        }
+
+        .radio-label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .dot.yellow { background-color: #ffc107; }
+        .dot.red { background-color: #dc3545; }
+
+        #qr-reader-container {
+            max-width: 450px;
+            margin: 0 auto;
+        }
+
+        .scan-result-box {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 6px;
+            font-size: 15px;
+            line-height: 1.5;
+        }
+
+        .scan-result-box.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .scan-result-box.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .btn {
+            padding: 9px 16px;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .btn-primary { background-color: #0056b3; color: #fff; }
+        .btn-success { background-color: #28a745; color: #fff; }
+        .btn-secondary { background-color: #6c757d; color: #fff; }
+        .btn-info { background-color: #17a2b8; color: #fff; }
+        .btn-warning { background-color: #ffc107; color: #212529; }
+        .btn-danger { background-color: #dc3545; color: #fff; }
+
+        .card-header-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .filter-bar {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+        }
+
+        .filter-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .filter-item select, .filter-item input {
+            padding: 6px 10px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+        }
+
+        .table-responsive {
+            overflow-x: auto;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        .data-table th, .data-table td {
+            border: 1px solid #dee2e6;
+            padding: 10px 12px;
+            text-align: left;
+            font-size: 14px;
+        }
+
+        .data-table th {
+            background-color: #f1f3f5;
+            color: #495057;
+        }
+
+        .status-badge {
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .status-badge.active { background-color: #d4edda; color: #155724; }
+        .status-badge.graduated { background-color: #e2e3e5; color: #383d41; }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .modal-content {
+            background-color: #fff;
+            width: 100%;
+            max-width: 500px;
+            padding: 25px;
+            border-radius: 6px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-content h3 {
+            margin-bottom: 15px;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+    </style>
 </head>
 <body>
     <div class="app-container">
@@ -22,9 +360,9 @@
 
         <!-- Navigation Tabs -->
         <nav class="main-nav">
-            <button class="nav-btn active" onclick="switchTab('qr-tab')">1. Quét QR Học Sinh</button>
-            <button class="nav-btn" onclick="switchTab('config-tab')">2. Thời Gian Học & Chuyển Lớp</button>
-            <button class="nav-btn" onclick="switchTab('student-tab')">3. Quản Lý Học Sinh</button>
+            <button class="nav-btn active" onclick="switchTab(event, 'qr-tab')">1. Quét QR Học Sinh</button>
+            <button class="nav-btn" onclick="switchTab(event, 'config-tab')">2. Thời Gian Học & Chuyển Lớp</button>
+            <button class="nav-btn" onclick="switchTab(event, 'student-tab')">3. Quản Lý Học Sinh</button>
         </nav>
 
         <!-- Main Content Area -->
@@ -62,8 +400,8 @@
             <!-- TAB 2: THỜI GIAN HỌC & CHUYỂN LỚP -->
             <section id="config-tab" class="tab-panel">
                 <div class="sub-nav">
-                    <button class="sub-btn active" onclick="switchSubTab('sub-session')">Cấu Hình Thời Gian Học</button>
-                    <button class="sub-btn" onclick="switchSubTab('sub-transfer')">Chuyển Lớp Học Sinh</button>
+                    <button class="sub-btn active" onclick="switchSubTab(event, 'sub-session')">Cấu Hình Thời Gian Học</button>
+                    <button class="sub-btn" onclick="switchSubTab(event, 'sub-transfer')">Chuyển Lớp Học Sinh</button>
                 </div>
 
                 <!-- Subtab 2.1: Thời gian học -->
@@ -130,7 +468,7 @@
                         <div class="button-group">
                             <button class="btn btn-success" onclick="openAddStudentModal()">+ Thêm Học Sinh</button>
                             <button class="btn btn-secondary" onclick="downloadTemplateExcel()">📥 Tải File Mẫu Excel</button>
-                            <label for="importExcelInput" class="btn btn-info">
+                            <label for="importExcelInput" class="btn btn-info" style="cursor: pointer;">
                                 📤 Import Danh Sách
                             </label>
                             <input type="file" id="importExcelInput" accept=".xlsx, .xls" style="display:none;" onchange="importStudentExcel(event)">
@@ -227,6 +565,517 @@
         </div>
     </div>
 
-    <script src="app.js"></script>
+    <!-- ==================== TOÀN BỘ LOGIC JAVASCRIPT ==================== -->
+    <script>
+        let academicYear = "";
+        let dsHocSinh = [];
+        let dsLop = [
+            { id: "10A1", tenLop: "10A1", khoi: "10" },
+            { id: "10A2", tenLop: "10A2", khoi: "10" },
+            { id: "11A1", tenLop: "11A1", khoi: "11" },
+            { id: "11A2", tenLop: "11A2", khoi: "11" },
+            { id: "12A1", tenLop: "12A1", khoi: "12" },
+            { id: "12A2", tenLop: "12A2", khoi: "12" }
+        ];
+
+        let caHocTheoKhoi = {
+            "10": { sang: true, chieu: false },
+            "11": { sang: false, chieu: true },
+            "12": { sang: true, chieu: true }
+        };
+
+        let html5QrcodeScanner = null;
+
+        // Khởi chạy hệ thống khi tải xong giao diện
+        document.addEventListener("DOMContentLoaded", function () {
+            initAcademicYear();
+            loadLocalStorageData();
+            renderSessionConfigTable();
+            renderStudentList();
+            initQRScanner();
+        });
+
+        // 1. Tự động cấu hình năm học
+        function initAcademicYear() {
+            const storedYear = localStorage.getItem("academicYear");
+            if (storedYear) {
+                academicYear = storedYear;
+            } else {
+                const now = new Date();
+                const year = now.getFullYear();
+                const month = now.getMonth() + 1;
+                if (month >= 8) {
+                    academicYear = `${year}-${year + 1}`;
+                } else {
+                    academicYear = `${year - 1}-${year}`;
+                }
+                localStorage.setItem("academicYear", academicYear);
+            }
+            document.getElementById("currentAcademicYearDisplay").innerText = academicYear;
+        }
+
+        // 2. Quản lý Bộ nhớ LocalStorage
+        function loadLocalStorageData() {
+            const savedStudents = localStorage.getItem("dsHocSinh");
+            if (savedStudents) {
+                dsHocSinh = JSON.parse(savedStudents);
+            } else {
+                dsHocSinh = [
+                    { id: "1", maHS: "3160986684", hoTen: "Nguyễn Mai Lan", ngaySinh: "19/06/2010", khoi: "10", tenLop: "10A1", trangThai: "Đang học" },
+                    { id: "2", maHS: "3160986685", hoTen: "Trần Văn An", ngaySinh: "15/08/2010", khoi: "10", tenLop: "10A1", trangThai: "Đang học" },
+                    { id: "3", maHS: "3160986686", hoTen: "Lê Hoàng Nam", ngaySinh: "02/03/2009", khoi: "11", tenLop: "11A1", trangThai: "Đang học" },
+                    { id: "4", maHS: "3160986687", hoTen: "Phạm Minh Tuấn", ngaySinh: "11/11/2008", khoi: "12", tenLop: "12A1", trangThai: "Đang học" }
+                ];
+                saveStudentsToStorage();
+            }
+
+            const savedCaHoc = localStorage.getItem("caHocTheoKhoi");
+            if (savedCaHoc) {
+                caHocTheoKhoi = JSON.parse(savedCaHoc);
+            }
+        }
+
+        function saveStudentsToStorage() {
+            localStorage.setItem("dsHocSinh", JSON.stringify(dsHocSinh));
+        }
+
+        function saveCaHocToStorage() {
+            localStorage.setItem("caHocTheoKhoi", JSON.stringify(caHocTheoKhoi));
+        }
+
+        // 3. Tách chuỗi bóc tách Mã HS từ QR Code
+        function parseQRCodeData(qrData) {
+            if (!qrData) return "";
+            const maHSMatch = qrData.match(/Mã HS:\s*([A-Za-z0-9_-]+)/i);
+            if (maHSMatch && maHSMatch[1]) {
+                return maHSMatch[1].trim();
+            }
+            return qrData.trim();
+        }
+
+        function initQRScanner() {
+            html5QrcodeScanner = new Html5QrcodeScanner("reader", {
+                fps: 10,
+                qrbox: { width: 250, height: 250 }
+            });
+
+            html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+        }
+
+        function onScanSuccess(decodedText) {
+            const maHS = parseQRCodeData(decodedText);
+            const resultBox = document.getElementById("scanResult");
+            resultBox.classList.remove("hidden", "success", "error");
+
+            const student = dsHocSinh.find(s => s.maHS === maHS && s.trangThai === "Đang học");
+            const absentTypeRadio = document.querySelector('input[name="absentType"]:checked');
+            const absentText = absentTypeRadio.value === "COPHEP" ? "Có phép" : "Không phép";
+
+            if (student) {
+                resultBox.classList.add("success");
+                resultBox.innerHTML = `
+                    <strong>✅ ĐÃ GHI NHẬN BÁO VẮNG THÀNH CÔNG:</strong><br>
+                    - Học sinh: <strong>${student.hoTen}</strong> (Mã HS: ${student.maHS})<br>
+                    - Lớp: ${student.tenLop} (Khối ${student.khoi})<br>
+                    - Trạng thái: <span style="color:red; font-weight:bold;">Vắng ${absentText}</span>
+                `;
+            } else {
+                resultBox.classList.add("error");
+                resultBox.innerHTML = `
+                    <strong>❌ KHÔNG TÌM THẤY HỌC SINH!</strong><br>
+                    - Mã HS trích xuất: <strong>"${maHS}"</strong><br>
+                    - Chuỗi QR gốc: "${decodedText}"<br>
+                    <em>Vui lòng kiểm tra lại thông tin học sinh trong cơ sở dữ liệu.</em>
+                `;
+            }
+        }
+
+        function onScanFailure(error) {
+            // Không log lỗi liên tục khi quét chưa trúng
+        }
+
+        // 4. Chuyển đổi Tab chính và Subtab
+        function switchTab(event, tabId) {
+            document.querySelectorAll(".nav-btn").forEach(btn => btn.classList.remove("active"));
+            document.querySelectorAll(".tab-panel").forEach(panel => panel.classList.remove("active"));
+
+            event.target.classList.add("active");
+            document.getElementById(tabId).classList.add("active");
+        }
+
+        function switchSubTab(event, subTabId) {
+            document.querySelectorAll(".sub-btn").forEach(btn => btn.classList.remove("active"));
+            document.querySelectorAll(".sub-panel").forEach(panel => panel.classList.remove("active"));
+
+            event.target.classList.add("active");
+            document.getElementById(subTabId).classList.add("active");
+        }
+
+        // 5. Cấu hình ca học
+        function renderSessionConfigTable() {
+            const tbody = document.getElementById("sessionConfigTable");
+            tbody.innerHTML = "";
+
+            ["10", "11", "12"].forEach(khoi => {
+                const config = caHocTheoKhoi[khoi] || { sang: true, chieu: true };
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+                    <td><strong>Khối ${khoi}</strong></td>
+                    <td>
+                        <input type="checkbox" id="sang_${khoi}" ${config.sang ? "checked" : ""} onchange="updateSessionConfig('${khoi}')">
+                        <label for="sang_${khoi}">Học Sáng</label>
+                    </td>
+                    <td>
+                        <input type="checkbox" id="chieu_${khoi}" ${config.chieu ? "checked" : ""} onchange="updateSessionConfig('${khoi}')">
+                        <label for="chieu_${khoi}">Học Chiều</label>
+                    </td>
+                    <td>
+                        <span style="font-size: 12px; color: #28a745; font-weight: bold;">Đang áp dụng</span>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function updateSessionConfig(khoi) {
+            const sangChecked = document.getElementById(`sang_${khoi}`).checked;
+            const chieuChecked = document.getElementById(`chieu_${khoi}`).checked;
+
+            caHocTheoKhoi[khoi] = { sang: sangChecked, chieu: chieuChecked };
+            saveCaHocToStorage();
+        }
+
+        // 6. Chuyển lớp học sinh (Ràng buộc cùng khối)
+        function onTransferKhoiChange() {
+            const selectedKhoi = document.getElementById("transferKhoiSelect").value;
+            const studentSelect = document.getElementById("transferStudentSelect");
+            const targetClassSelect = document.getElementById("transferTargetClassSelect");
+            const btnExecute = document.getElementById("btnExecuteTransfer");
+
+            studentSelect.innerHTML = '<option value="">-- Chọn Học Sinh --</option>';
+            targetClassSelect.innerHTML = '<option value="">-- Chọn Lớp Đến --</option>';
+            
+            if (!selectedKhoi) {
+                studentSelect.disabled = true;
+                targetClassSelect.disabled = true;
+                btnExecute.disabled = true;
+                return;
+            }
+
+            const filteredStudents = dsHocSinh.filter(s => s.khoi === selectedKhoi && s.trangThai === "Đang học");
+            filteredStudents.forEach(s => {
+                const option = document.createElement("option");
+                option.value = s.id;
+                option.innerText = `${s.hoTen} (${s.maHS}) - Lớp hiện tại: ${s.tenLop}`;
+                studentSelect.appendChild(option);
+            });
+
+            studentSelect.disabled = false;
+            targetClassSelect.disabled = true;
+            btnExecute.disabled = true;
+        }
+
+        function onTransferStudentSelect() {
+            const selectedStudentId = document.getElementById("transferStudentSelect").value;
+            const selectedKhoi = document.getElementById("transferKhoiSelect").value;
+            const targetClassSelect = document.getElementById("transferTargetClassSelect");
+            const btnExecute = document.getElementById("btnExecuteTransfer");
+
+            targetClassSelect.innerHTML = '<option value="">-- Chọn Lớp Đến --</option>';
+
+            if (!selectedStudentId) {
+                targetClassSelect.disabled = true;
+                btnExecute.disabled = true;
+                return;
+            }
+
+            const currentStudent = dsHocSinh.find(s => s.id === selectedStudentId);
+
+            // Chỉ lấy các lớp CÙNG KHỐI với học sinh
+            const sameKhoiClasses = dsLop.filter(l => l.khoi === selectedKhoi && l.tenLop !== currentStudent.tenLop);
+
+            sameKhoiClasses.forEach(l => {
+                const option = document.createElement("option");
+                option.value = l.tenLop;
+                option.innerText = `Lớp ${l.tenLop} (Khối ${l.khoi})`;
+                targetClassSelect.appendChild(option);
+            });
+
+            targetClassSelect.disabled = false;
+            btnExecute.disabled = false;
+        }
+
+        function executeTransfer() {
+            const studentId = document.getElementById("transferStudentSelect").value;
+            const newClassName = document.getElementById("transferTargetClassSelect").value;
+
+            const student = dsHocSinh.find(s => s.id === studentId);
+            if (!student || !newClassName) return;
+
+            const oldClassName = student.tenLop;
+            student.tenLop = newClassName;
+
+            saveStudentsToStorage();
+            renderStudentList();
+            
+            alert(`Đã chuyển học sinh ${student.hoTen} từ lớp ${oldClassName} sang lớp ${newClassName} thành công!`);
+            
+            document.getElementById("transferKhoiSelect").value = "";
+            onTransferKhoiChange();
+        }
+
+        // 7. Quản lý danh sách học sinh (CRUD)
+        function renderStudentList() {
+            const tbody = document.getElementById("studentListTable");
+            tbody.innerHTML = "";
+
+            const filterKhoi = document.getElementById("filterKhoi").value;
+            const filterSearch = document.getElementById("filterSearch").value.toLowerCase().trim();
+
+            const filtered = dsHocSinh.filter(s => {
+                let matchKhoi = true;
+                if (filterKhoi === "GRADUATED") {
+                    matchKhoi = s.trangThai === "Đã tốt nghiệp";
+                } else if (filterKhoi !== "ALL") {
+                    matchKhoi = s.khoi === filterKhoi && s.trangThai === "Đang học";
+                }
+
+                let matchSearch = true;
+                if (filterSearch) {
+                    matchSearch = s.hoTen.toLowerCase().includes(filterSearch) || s.maHS.toLowerCase().includes(filterSearch);
+                }
+
+                return matchKhoi && matchSearch;
+            });
+
+            filtered.forEach(s => {
+                const tr = document.createElement("tr");
+                const statusBadge = s.trangThai === "Đang học" 
+                    ? `<span class="status-badge active">Đang học</span>` 
+                    : `<span class="status-badge graduated">Đã tốt nghiệp</span>`;
+
+                tr.innerHTML = `
+                    <td><strong>${s.maHS}</strong></td>
+                    <td>${s.hoTen}</td>
+                    <td>${s.ngaySinh || "N/A"}</td>
+                    <td>${s.khoi === "Đã ra trường" ? "Tốt nghiệp" : "Khối " + s.khoi}</td>
+                    <td>${s.tenLop}</td>
+                    <td>${statusBadge}</td>
+                    <td>
+                        <button class="btn btn-info" style="padding:4px 8px; font-size:12px;" onclick="openEditStudentModal('${s.id}')">Sửa</button>
+                        <button class="btn btn-danger" style="padding:4px 8px; font-size:12px;" onclick="deleteStudent('${s.id}')">Xóa</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function openAddStudentModal() {
+            document.getElementById("modalTitle").innerText = "Thêm Học Sinh Mới";
+            document.getElementById("studentEditId").value = "";
+            document.getElementById("inputMaHS").value = "";
+            document.getElementById("inputHoTen").value = "";
+            document.getElementById("inputNgaySinh").value = "";
+            document.getElementById("inputKhoi").value = "10";
+            
+            onModalKhoiChange();
+            document.getElementById("studentModal").classList.remove("hidden");
+        }
+
+        function openEditStudentModal(id) {
+            const student = dsHocSinh.find(s => s.id === id);
+            if (!student) return;
+
+            document.getElementById("modalTitle").innerText = "Chỉnh Sửa Thông Tin Học Sinh";
+            document.getElementById("studentEditId").value = student.id;
+            document.getElementById("inputMaHS").value = student.maHS;
+            document.getElementById("inputHoTen").value = student.hoTen;
+            document.getElementById("inputNgaySinh").value = student.ngaySinh;
+            document.getElementById("inputKhoi").value = student.khoi;
+
+            onModalKhoiChange();
+            document.getElementById("inputLop").value = student.tenLop;
+
+            document.getElementById("studentModal").classList.remove("hidden");
+        }
+
+        function onModalKhoiChange() {
+            const khoi = document.getElementById("inputKhoi").value;
+            const selectLop = document.getElementById("inputLop");
+            selectLop.innerHTML = "";
+
+            const filteredClasses = dsLop.filter(l => l.khoi === khoi);
+            filteredClasses.forEach(l => {
+                const option = document.createElement("option");
+                option.value = l.tenLop;
+                option.innerText = l.tenLop;
+                selectLop.appendChild(option);
+            });
+        }
+
+        function closeStudentModal() {
+            document.getElementById("studentModal").classList.add("hidden");
+        }
+
+        function saveStudentForm(e) {
+            e.preventDefault();
+
+            const editId = document.getElementById("studentEditId").value;
+            const maHS = document.getElementById("inputMaHS").value.trim();
+            const hoTen = document.getElementById("inputHoTen").value.trim();
+            const ngaySinh = document.getElementById("inputNgaySinh").value.trim();
+            const khoi = document.getElementById("inputKhoi").value;
+            const tenLop = document.getElementById("inputLop").value;
+
+            if (editId) {
+                const index = dsHocSinh.findIndex(s => s.id === editId);
+                if (index !== -1) {
+                    dsHocSinh[index] = { ...dsHocSinh[index], maHS, hoTen, ngaySinh, khoi, tenLop };
+                }
+            } else {
+                const duplicate = dsHocSinh.find(s => s.maHS === maHS);
+                if (duplicate) {
+                    alert("Mã HS này đã tồn tại trong hệ thống!");
+                    return;
+                }
+
+                const newStudent = {
+                    id: Date.now().toString(),
+                    maHS,
+                    hoTen,
+                    ngaySinh,
+                    khoi,
+                    tenLop,
+                    trangThai: "Đang học"
+                };
+                dsHocSinh.push(newStudent);
+            }
+
+            saveStudentsToStorage();
+            renderStudentList();
+            closeStudentModal();
+        }
+
+        function deleteStudent(id) {
+            if (confirm("Bạn có chắc chắn muốn xóa học sinh này?")) {
+                dsHocSinh = dsHocSinh.filter(s => s.id !== id);
+                saveStudentsToStorage();
+                renderStudentList();
+            }
+        }
+
+        // 8. Tải File mẫu & Import Excel bằng SheetJS
+        function downloadTemplateExcel() {
+            const templateData = [
+                { "Mã HS": "3160986688", "Họ và Tên": "Trần Thị Bích", "Ngày Sinh": "20/10/2010", "Khối": "10", "Lớp": "10A1" },
+                { "Mã HS": "3160986689", "Họ và Tên": "Lê Văn Cường", "Ngày Sinh": "12/05/2010", "Khối": "10", "Lớp": "10A2" }
+            ];
+
+            const worksheet = XLSX.utils.json_to_sheet(templateData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "DanhSachHocSinh");
+            XLSX.writeFile(workbook, "File_Mau_Danh_Sach_Hoc_Sinh.xlsx");
+        }
+
+        function importStudentExcel(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function (evt) {
+                try {
+                    const data = new Uint8Array(evt.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    const jsonResult = XLSX.utils.sheet_to_json(worksheet);
+
+                    let addedCount = 0;
+                    jsonResult.forEach(row => {
+                        const maHS = row["Mã HS"] ? row["Mã HS"].toString().trim() : "";
+                        if (maHS) {
+                            const existingIndex = dsHocSinh.findIndex(s => s.maHS === maHS);
+                            const studentItem = {
+                                id: existingIndex !== -1 ? dsHocSinh[existingIndex].id : Date.now().toString() + Math.random().toString(36).substr(2, 4),
+                                maHS: maHS,
+                                hoTen: row["Họ và Tên"] || row["Họ tên"] || "Chưa nhập tên",
+                                ngaySinh: row["Ngày Sinh"] || row["Ngày sinh"] || "",
+                                khoi: row["Khối"] ? row["Khối"].toString() : "10",
+                                tenLop: row["Lớp"] || "10A1",
+                                trangThai: "Đang học"
+                            };
+
+                            if (existingIndex !== -1) {
+                                dsHocSinh[existingIndex] = studentItem;
+                            } else {
+                                dsHocSinh.push(studentItem);
+                            }
+                            addedCount++;
+                        }
+                    });
+
+                    saveStudentsToStorage();
+                    renderStudentList();
+                    alert(`Đã import thành công ${addedCount} học sinh vào hệ thống!`);
+                } catch (err) {
+                    alert("Lỗi định dạng file Excel. Vui lòng kiểm tra lại cấu trúc file!");
+                }
+                e.target.value = "";
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        // 9. Kết chuyển năm học
+        function promoteAcademicYear() {
+            const confirmAction = confirm(
+                `XÁC NHẬN KẾT CHUYỂN NĂM HỌC:\n\n` +
+                `- Khối 10 -> Lên Khối 11\n` +
+                `- Khối 11 -> Lên Khối 12\n` +
+                `- Khối 12 -> Tốt nghiệp / Ra trường\n` +
+                `- Chuyển sang Năm học mới.\n\n` +
+                `Bạn có chắc chắn muốn thực hiện?`
+            );
+
+            if (!confirmAction) return;
+
+            let promotedCount = 0;
+            let graduatedCount = 0;
+
+            dsHocSinh.forEach(student => {
+                if (student.trangThai === "Đang học") {
+                    const currentKhoi = parseInt(student.khoi, 10);
+
+                    if (currentKhoi === 12) {
+                        student.trangThai = "Đã tốt nghiệp";
+                        student.khoi = "Đã ra trường";
+                        student.tenLop = "N/A";
+                        graduatedCount++;
+                    } else if (currentKhoi === 10 || currentKhoi === 11) {
+                        const nextKhoi = currentKhoi + 1;
+                        student.khoi = nextKhoi.toString();
+                        student.tenLop = student.tenLop.replace(currentKhoi.toString(), nextKhoi.toString());
+                        promotedCount++;
+                    }
+                }
+            });
+
+            const years = academicYear.split("-");
+            const nextStartYear = parseInt(years[1], 10);
+            academicYear = `${nextStartYear}-${nextStartYear + 1}`;
+
+            localStorage.setItem("academicYear", academicYear);
+            document.getElementById("currentAcademicYearDisplay").innerText = academicYear;
+
+            saveStudentsToStorage();
+            renderStudentList();
+
+            alert(
+                `KẾT CHUYỂN THÀNH CÔNG!\n\n` +
+                `- Học sinh chuyển khối: ${promotedCount}\n` +
+                `- Học sinh Tốt nghiệp: ${graduatedCount}\n` +
+                `- Năm học mới: ${academicYear}`
+            );
+        }
+    </script>
 </body>
 </html>
