@@ -1,14 +1,23 @@
 // ==========================================
 // CẤU HÌNH KẾT NỐI SUPABASE
 // ==========================================
-// Địa chỉ URL đã khớp chính xác với mã ref trong ANON_KEY
-const SUPABASE_URL = 'https://vbhtgkvvwfztswxlvnl.supabase.co'; 
+const SUPABASE_URL = 'https://vbhtgkvvmwfztswxlvnl.supabase.co'; 
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZiaHRna3Z2bXdmenRzd3hsdm5sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEwMjE2MzgsImV4cCI6MjEwNjU5NzYzOH0.CqsEoBOVB4CS9UphogsIRtR1syY82kx5uzvcz_K_luo'; 
 
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let _supabaseClient = null;
+
+function getSupabase() {
+    if (_supabaseClient) return _supabaseClient;
+    if (typeof window.supabase !== 'undefined' && window.supabase.createClient) {
+        _supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        return _supabaseClient;
+    }
+    console.error("Thư viện Supabase chưa được tải xong từ CDN!");
+    return null;
+}
 
 // ==========================================
-// CHUYỂN TAB GIAO DIỆN
+// ĐIỀU HƯỚNG TAB GIAO DIỆN
 // ==========================================
 function switchTab(tabIndex) {
     document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
@@ -62,84 +71,155 @@ function getTodayDDMMYYYY(withSlash = true) {
 }
 
 // ==========================================
-// XỬ LÝ ĐĂNG NHẬP (KIỂM TRA BẢNG CAN_BO)
+// TIỆN ÍCH FORM ĐĂNG NHẬP (HIỆN MẬT KHẨU & NHỚ TÀI KHOẢN)
+// ==========================================
+
+/**
+ * Hiện / Ẩn mật khẩu khi bấm nút mắt
+ */
+function toggleShowPassword() {
+    const passInput = document.getElementById('login-matkhau');
+    const btnToggle = document.getElementById('btn-toggle-password');
+    if (!passInput) return;
+
+    if (passInput.type === 'password') {
+        passInput.type = 'text';
+        if (btnToggle) btnToggle.innerHTML = '🙈';
+    } else {
+        passInput.type = 'password';
+        if (btnToggle) btnToggle.innerHTML = '👁️';
+    }
+}
+
+/**
+ * Nạp thông tin tài khoản đã lưu nếu người dùng từng tích "Nhớ đăng nhập"
+ */
+function loadRememberedUser() {
+    hideLoginError();
+    const saved = localStorage.getItem('remembered_login');
+    if (saved) {
+        try {
+            const { ma_cb, mat_khau } = JSON.parse(saved);
+            const maInput = document.getElementById('login-macb');
+            const passInput = document.getElementById('login-matkhau');
+            const rememberCheck = document.getElementById('remember-me');
+
+            if (maInput) maInput.value = ma_cb || '';
+            if (passInput) passInput.value = mat_khau || '';
+            if (rememberCheck) rememberCheck.checked = true;
+        } catch (e) {
+            console.error('Lỗi đọc tài khoản nhớ đăng nhập:', e);
+        }
+    }
+}
+
+function showLoginError(message) {
+    const errDiv = document.getElementById('login-error-msg');
+    if (errDiv) {
+        errDiv.textContent = message;
+        errDiv.classList.remove('d-none');
+    }
+}
+
+function hideLoginError() {
+    const errDiv = document.getElementById('login-error-msg');
+    if (errDiv) {
+        errDiv.classList.add('d-none');
+    }
+}
+
+// ==========================================
+// XỬ LÝ ĐĂNG NHẬP
 // ==========================================
 async function handleLogin() {
+    hideLoginError();
+
     const maInput = document.getElementById('login-macb');
     const passInput = document.getElementById('login-matkhau');
 
-    if (!maInput || !passInput) {
-        alert('Lỗi: Không tìm thấy ô nhập liệu!');
-        return;
-    }
+    if (!maInput || !passInput) return;
 
     const username = maInput.value.trim();
     const password = passInput.value.trim();
 
     if (!username || !password) {
-        alert('Vui lòng nhập đầy đủ Mã cán bộ và Mật khẩu!');
+        showLoginError('Vui lòng nhập đầy đủ Mã cán bộ và Mật khẩu!');
         return;
     }
 
-    const btnLogin = document.querySelector('#loginModal .btn-primary');
-    if (btnLogin) {
-        btnLogin.disabled = true;
-        btnLogin.textContent = 'Đang kiểm tra...';
+    const btnSubmit = document.getElementById('btn-submit-login');
+    if (btnSubmit) {
+        btnSubmit.disabled = true;
+        btnSubmit.textContent = 'Đang kiểm tra...';
     }
 
     try {
-        // Truy vấn dữ liệu từ bảng can_bo
-        const { data: canBoList, error } = await supabase
+        const client = getSupabase();
+        if (!client) {
+            showLoginError('Không thể kết nối thư viện Supabase CDN. Vui lòng kiểm tra lại mạng!');
+            return;
+        }
+
+        // Truy vấn toàn bộ bảng can_bo
+        const { data: accounts, error } = await client
             .from('can_bo')
-            .select('*')
-            .eq('ma_cb', username);
+            .select('*');
 
         if (error) {
-            console.error('Lỗi kết nối Supabase:', error);
-            alert('Lỗi truy vấn CSDL: ' + error.message);
+            console.error('Lỗi Supabase:', error);
+            showLoginError('Lỗi kết nối CSDL Supabase: ' + error.message);
             return;
         }
 
-        if (!canBoList || canBoList.length === 0) {
-            alert(`Mã cán bộ "${username}" KHÔNG TỒN TẠI trong bảng can_bo!\n(Lưu ý: Bảng can_bo hiện chỉ có 3 tài khoản).`);
+        if (!accounts || accounts.length === 0) {
+            showLoginError('Bảng can_bo chưa có dữ liệu!');
             return;
         }
 
-        // Kiểm tra mật khẩu (loại bỏ khoảng trắng dư thừa)
-        const user = canBoList.find(u => String(u.mat_khau).trim() === password);
+        // Tìm tài khoản khớp mã cán bộ và mật khẩu (ép kiểu về Chuỗi và loại bỏ khoảng trắng)
+        const user = accounts.find(a => 
+            String(a.ma_cb).trim() === username && 
+            String(a.mat_khau).trim() === password
+        );
 
         if (!user) {
-            alert('Mã cán bộ chính xác nhưng MẬT KHẨU KHÔNG ĐÚNG!');
+            showLoginError('Mã cán bộ hoặc Mật khẩu không chính xác!');
             return;
         }
 
-        // Lưu thông tin người dùng
-        const userResult = {
+        // Xử lý "Nhớ đăng nhập"
+        const rememberCheck = document.getElementById('remember-me');
+        if (rememberCheck && rememberCheck.checked) {
+            localStorage.setItem('remembered_login', JSON.stringify({ ma_cb: username, mat_khau: password }));
+        } else {
+            localStorage.removeItem('remembered_login');
+        }
+
+        // Lưu phiên đăng nhập người dùng hiện tại
+        const currentUserData = {
             ma_cb: user.ma_cb,
             ho_ten: user.ho_ten,
             vai_tro: user.vai_tro || 'Cán bộ',
             lop_quan_ly: user.lop_quan_ly || ''
         };
 
-        localStorage.setItem('current_user', JSON.stringify(userResult));
-        updateHeaderUserUI(userResult);
+        localStorage.setItem('current_user', JSON.stringify(currentUserData));
+        updateHeaderUserUI(currentUserData);
 
-        // Ẩn Modal đăng nhập
+        // Đóng Modal
         const modalEl = document.getElementById('loginModal');
         if (modalEl) {
             const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
             modal.hide();
         }
 
-        alert(`Đăng nhập thành công! Chào mừng ${userResult.ho_ten}`);
-
     } catch (err) {
         console.error('Lỗi ngoại lệ:', err);
-        alert('Đã xảy ra lỗi: ' + err.message);
+        showLoginError('Đã xảy ra lỗi: ' + err.message);
     } finally {
-        if (btnLogin) {
-            btnLogin.disabled = false;
-            btnLogin.textContent = 'Đăng Nhập';
+        if (btnSubmit) {
+            btnSubmit.disabled = false;
+            btnSubmit.textContent = 'Đăng Nhập';
         }
     }
 }
@@ -177,5 +257,6 @@ function logout() {
 document.addEventListener('DOMContentLoaded', () => {
     const user = getCurrentUser();
     updateHeaderUserUI(user);
+    loadRememberedUser();
     switchTab(1);
 });
