@@ -1,107 +1,107 @@
-// =======================================================
-// FILE: js/tab1-qr.js - TAB 1: QUÉT MÃ QR
-// =======================================================
+// ==========================================
+// TAB 1: QUÉT MÃ QR
+// ==========================================
 
-let html5QrcodeScanner = null;
+let html5QrCodeScanner = null;
 
-function startQRScanner() {
-  if (!canAccessTab(1)) return alert("Không có quyền sử dụng Quét QR!");
-  if (html5QrcodeScanner) stopQRScanner();
-
-  html5QrcodeScanner = new Html5Qrcode("reader");
-  html5QrcodeScanner.start(
-    { facingMode: "environment" },
-    { fps: 10, qrbox: { width: 250, height: 250 } },
-    (decodedText) => processQRCode(decodedText),
-    () => {}
-  ).catch(err => alert("Không mở được Camera: " + err));
+function initTab1QR() {
+    console.log('Khởi tạo Tab 1: Quét mã QR');
+    setupQRScanner();
 }
 
-function stopQRScanner() {
-  if (html5QrcodeScanner) {
-    html5QrcodeScanner.stop().then(() => {
-      document.getElementById('reader').innerHTML = '';
-      html5QrcodeScanner = null;
-    });
-  }
-}
+/**
+ * Khởi tạo camera quét mã QR (sử dụng thư viện html5-qrcode)
+ */
+function setupQRScanner() {
+    const qrContainer = document.getElementById('reader');
+    if (!qrContainer) return;
 
-function processManualQR() {
-  const val = document.getElementById('manual-ma-hs').value.trim();
-  if (val) processQRCode(val);
-}
-
-async function processQRCode(qrData) {
-  try {
-    const { data: hsData, error } = await _supabase
-      .from('hoc_sinh')
-      .select('*')
-      .or(`ma_hs.eq.${qrData},id.eq.${qrData}`)
-      .single();
-
-    if (error || !hsData) return alert(`Không tìm thấy học sinh mã QR: ${qrData}`);
-
-    const lopHS = hsData.ten_lop;
-    const buoi = getCurrentBuoi();
-    const thu = getCurrentThu();
-
-    // Kiểm tra Lịch học
-    const { data: lichData } = await _supabase
-      .from('lich_hoc')
-      .select('co_hoc')
-      .eq('ten_lop', lopHS)
-      .eq('thu_trong_tuan', thu)
-      .eq('buoi', buoi)
-      .single();
-
-    if (!lichData || !lichData.co_hoc) {
-      return alert(`KHÔNG GHI NHẬN: Lớp ${lopHS} không có lịch học buổi ${buoi === 'sang' ? 'Sáng' : 'Chiều'} hôm nay!`);
+    if (html5QrCodeScanner) {
+        html5QrCodeScanner.clear();
     }
 
-    document.getElementById('modal-ma-hs').innerText = hsData.ma_hs;
-    document.getElementById('modal-ho-ten').innerText = hsData.ho_ten;
-    document.getElementById('modal-lop').innerText = hsData.ten_lop;
+    html5QrCodeScanner = new Html5QrcodeScanner("reader", { 
+        fps: 10, 
+        qrbox: { width: 250, height: 250 } 
+    });
 
-    const action = document.querySelector('input[name="qr-action"]:checked').value;
-    document.getElementById('modal-hinh-thuc').innerText = action;
-    document.getElementById('qr-modal').setAttribute('data-hs', JSON.stringify(hsData));
-    document.getElementById('qr-modal').setAttribute('data-action', action);
-    document.getElementById('qr-modal').classList.remove('hidden');
-
-  } catch (err) {
-    alert("Lỗi xử lý QR: " + err.message);
-  }
+    html5QrCodeScanner.render(onScanSuccess, onScanError);
 }
 
-async function confirmSaveQR() {
-  const modal = document.getElementById('qr-modal');
-  const hs = JSON.parse(modal.getAttribute('data-hs'));
-  const action = modal.getAttribute('data-action');
+/**
+ * Xử lý khi quét mã QR thành công
+ */
+async function onScanSuccess(decodedText, decodedResult) {
+    console.log("Mã QR quét được:", decodedText);
+    
+    // Tìm kiếm thông tin học sinh theo ma_hs hoặc ma_qr
+    const { data: hocSinh, error } = await supabase
+        .from('hoc_sinh')
+        .select('*')
+        .eq('ma_hs', decodedText.trim())
+        .single();
 
-  let diem = action === 'muon_co_phep' ? -2 : (action === 'muon_khong_phep' ? -3 : 2);
+    if (error || !hocSinh) {
+        alert(`Không tìm thấy học sinh với mã: ${decodedText}`);
+        return;
+    }
 
-  const rec = {
-    ma_hs: hs.ma_hs,
-    ho_ten: hs.ho_ten,
-    khoi: hs.khoi || '10',
-    lop: hs.ten_lop,
-    ngay_diem_danh: formatDateToYYYYMMDD(new Date()), // Lưu DB
-    ngay_hien_thi: formatDateToDDMMYYYY(new Date()), // Hiển thị ddmmyyyy
-    buoi: getCurrentBuoi(),
-    trang_thai: action,
-    ma_hd: 'QR01',
-    chi_tiet: action,
-    diem: diem,
-    ten_nguoi_cap_nhat: currentUser ? currentUser.ho_ten : 'Bảo vệ'
-  };
-
-  const { error } = await _supabase.from('diem_danh_master').insert([rec]);
-  if (!error) {
-    alert(`Đã lưu thành công cho ${hs.ho_ten}!`);
-    closeQRModal();
-  }
+    // Hiển thị thông tin học sinh
+    displayScannedStudent(hocSinh);
 }
 
-function closeQRModal() {
-  document.getElementById('qr-modal').classList.add('hidden');
+function onScanError(errorMessage) {
+    // Không cần log liên tục
 }
+
+/**
+ * Hiển thị chi tiết học sinh & ghi nhận nền nếp
+ */
+function displayScannedStudent(student) {
+    const currentUser = getCurrentUser();
+    const todayFormatted = getTodayDDMMYYYY();
+    const todayISO = parseDDMMYYYYToISO(todayFormatted);
+
+    const resultDiv = document.getElementById('qr-scan-result');
+    if (resultDiv) {
+        resultDiv.innerHTML = `
+            <div class="card p-3 border-success">
+                <h5>Thông tin học sinh</h5>
+                <p><strong>Mã HS:</strong> ${student.ma_hs}</p>
+                <p><strong>Họ tên:</strong> ${student.ho_ten}</p>
+                <p><strong>Lớp:</strong> ${student.ten_lop}</p>
+                <p><strong>Ngày quét:</strong> ${todayFormatted}</p>
+                <button onclick="saveQRCheckin('${student.ma_hs}', '${student.ho_ten}', '${student.ten_lop}')" class="btn btn-success">Ghi nhận điểm danh</button>
+            </div>
+        `;
+    }
+}
+
+/**
+ * Lưu kết quả quét QR vào bảng diem_danh_master
+ */
+async function saveQRCheckin(ma_hs, ho_ten, lop) {
+    const currentUser = getCurrentUser() || { ma_cb: 'SYSTEM', ho_ten: 'Hệ thống' };
+    const todayISO = parseDDMMYYYYToISO(getTodayDDMMYYYY());
+
+    const { data, error } = await supabase
+        .from('diem_danh_master')
+        .insert([{
+            ma_hs: ma_hs,
+            ho_ten: ho_ten,
+            lop: lop,
+            ngay_diem_danh: todayISO,
+            buoi: 'Sáng',
+            trang_thai: 'Có mặt (Quét QR)',
+            ma_nguoi_cap_nhat: currentUser.ma_cb,
+            ten_nguoi_cap_nhat: currentUser.ho_ten
+        }]);
+
+    if (error) {
+        alert('Lỗi ghi nhận điểm danh: ' + error.message);
+    } else {
+        alert(`Đã điểm danh thành công cho học sinh ${ho_ten}!`);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', initTab1QR);
