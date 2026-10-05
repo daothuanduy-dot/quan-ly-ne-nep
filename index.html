@@ -1,14 +1,231 @@
-<!-- Supabase JS Client library -->
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QUẢN LÝ NỀN NẾP & THI ĐƯA - THPT LÊ HỒNG PHONG</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .nav-btn.active { background-color: #0d6efd !important; color: white !important; }
+    </style>
+</head>
+<body class="bg-light">
+
+<div class="container my-3">
+    <!-- HEADER -->
+    <div class="card p-3 mb-3 shadow-sm">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h3 class="text-primary fw-bold mb-1">QUẢN LÝ NỀN NẾP & THI ĐƯA</h3>
+                <div class="text-muted small">
+                    Người dùng: <strong id="header-user-info" class="text-dark">Chưa đăng nhập</strong> | 
+                    Vai trò: <span id="header-user-role" class="badge bg-primary">Khách</span>
+                </div>
+            </div>
+            <div id="auth-buttons">
+                <button id="btn-login-modal" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#loginModal">Đăng Nhập</button>
+                <button id="btn-logout" class="btn btn-outline-danger d-none" onclick="logout()">Đăng Xuất</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TABS NAVIGATION -->
+    <div class="d-flex gap-2 mb-3 flex-wrap">
+        <button class="btn btn-outline-primary nav-btn active flex-fill" onclick="switchTab(1)">1. QUÉT MÃ QR</button>
+        <button class="btn btn-outline-primary nav-btn flex-fill" onclick="switchTab(2)">2. BÁO VẮNG</button>
+        <button class="btn btn-outline-primary nav-btn flex-fill" onclick="switchTab(3)">3. CHẤM ĐIỂM THI ĐƯA</button>
+        <button class="btn btn-outline-primary nav-btn flex-fill" onclick="switchTab(4)">4. THỐNG KÊ & XẾP HẠNG</button>
+        <button class="btn btn-outline-primary nav-btn flex-fill" onclick="switchTab(5)">5. XẾP LOẠI & DANH HIỆU</button>
+        <button class="btn btn-outline-primary nav-btn flex-fill" onclick="switchTab(6)">6. QUẢN TRỊ</button>
+    </div>
+
+    <!-- TAB CONTENTS -->
+    <!-- TAB 1: QUÉT QR -->
+    <div id="tab-1" class="tab-content active card p-4 shadow-sm">
+        <h4>1. Quét mã QR Học sinh</h4>
+        <div id="reader" style="width: 100%; max-width: 400px;" class="mb-3"></div>
+        <div id="qr-scan-result"></div>
+    </div>
+
+    <!-- TAB 2: BÁO VẮNG -->
+    <div id="tab-2" class="tab-content card p-4 shadow-sm">
+        <h4>2. Báo vắng học sinh</h4>
+        <div class="row g-3 mb-3">
+            <div class="col-md-4">
+                <label class="form-label">Chọn Lớp</label>
+                <select id="baovang-select-lop" class="form-select" onchange="loadHocSinhForBaoVang()">
+                    <option value="">-- Chọn Lớp --</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Ngày (ddmmyyyy)</label>
+                <input type="text" id="baovang-ngay" class="form-control" placeholder="25102026 hoặc 25/10/2026">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Buổi</label>
+                <select id="baovang-buoi" class="form-select">
+                    <option value="Sáng">Sáng</option>
+                    <option value="Chiều">Chiều</option>
+                </select>
+            </div>
+        </div>
+        <table class="table table-bordered">
+            <thead>
+                <tr><th>STT</th><th>Mã HS</th><th>Họ và Tên</th><th>Trạng thái</th></tr>
+            </thead>
+            <tbody id="baovang-hocsinh-list"></tbody>
+        </table>
+        <button class="btn btn-primary" onclick="submitBaoVang()">Lưu Báo Vắng</button>
+    </div>
+
+    <!-- TAB 3: CHẤM ĐIỂM THI ĐƯA -->
+    <div id="tab-3" class="tab-content card p-4 shadow-sm">
+        <h4>3. Chấm điểm thi đua nền nếp</h4>
+        <div class="row g-3 mb-3">
+            <div class="col-md-3">
+                <label class="form-label">Lớp</label>
+                <input type="text" id="chamdiem-select-lop" class="form-control" placeholder="VD: 10A1">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Mã HS (Nếu có)</label>
+                <input type="text" id="chamdiem-ma-hs" class="form-control">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Họ tên HS</label>
+                <input type="text" id="chamdiem-ho-ten" class="form-control">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Ngày (ddmmyyyy)</label>
+                <input type="text" id="chamdiem-ngay" class="form-control">
+            </div>
+            <div class="col-md-12">
+                <label class="form-label">Tiêu chí / Lỗi thi đua</label>
+                <select id="chamdiem-select-hd" class="form-select"></select>
+            </div>
+            <div class="col-md-12">
+                <label class="form-label">Ghi chú chi tiết</label>
+                <textarea id="chamdiem-chi-tiet" class="form-control" rows="2"></textarea>
+            </div>
+        </div>
+        <button class="btn btn-success mb-3" onclick="saveChamDiem()">Ghi Nhận Điểm</button>
+
+        <h5>Lịch sử vi phạm trong ngày</h5>
+        <table class="table table-striped">
+            <thead><tr><th>STT</th><th>Ngày</th><th>Lớp</th><th>Học Sinh</th><th>Điểm</th><th>Chi tiết</th><th>Người nhập</th></tr></thead>
+            <tbody id="chamdiem-lichsu-list"></tbody>
+        </table>
+    </div>
+
+    <!-- TAB 4: THỐNG KÊ & XẾP HẠNG -->
+    <div id="tab-4" class="tab-content card p-4 shadow-sm">
+        <h4>4. Thống kê & Xếp hạng thi đua</h4>
+        <div class="row g-3 mb-3">
+            <div class="col-md-4">
+                <label class="form-label">Từ ngày (ddmmyyyy)</label>
+                <input type="text" id="thongke-tu-ngay" class="form-control">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Đến ngày (ddmmyyyy)</label>
+                <input type="text" id="thongke-den-ngay" class="form-control">
+            </div>
+            <div class="col-md-4 d-flex align-items-end">
+                <button class="btn btn-primary w-100" onclick="runThongKe()">Xem Thống Kê</button>
+            </div>
+        </div>
+        <table class="table table-hover">
+            <thead><tr><th>Hạng</th><th>Lớp</th><th>Số lượt vi phạm</th><th>Tổng điểm</th><th>Khoảng thời gian</th></tr></thead>
+            <tbody id="thongke-result-table"></tbody>
+        </table>
+    </div>
+
+    <!-- TAB 5: XẾP LOẠI & DANH HIỆU -->
+    <div id="tab-5" class="tab-content card p-4 shadow-sm">
+        <h4>5. Đăng ký Tuần học tốt</h4>
+        <div class="row g-3 mb-3">
+            <div class="col-md-3">
+                <label class="form-label">Lớp</label>
+                <input type="text" id="tuanhoctot-lop" class="form-control" placeholder="10A1">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Từ ngày (ddmmyyyy)</label>
+                <input type="text" id="tuanhoctot-ngay-bd" class="form-control">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Đến ngày (ddmmyyyy)</label>
+                <input type="text" id="tuanhoctot-ngay-kt" class="form-control">
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+                <button class="btn btn-success w-100" onclick="registerTuanHocTot()">Đăng Ký</button>
+            </div>
+        </div>
+        <table class="table table-bordered">
+            <thead><tr><th>STT</th><th>Lớp</th><th>Ngày bắt đầu</th><th>Ngày kết thúc</th><th>Người đăng ký</th></tr></thead>
+            <tbody id="tuanhoctot-list"></tbody>
+        </table>
+    </div>
+
+    <!-- TAB 6: QUẢN TRỊ -->
+    <div id="tab-6" class="tab-content card p-4 shadow-sm">
+        <h4>6. Quản trị hệ thống</h4>
+        <ul class="nav nav-tabs mb-3">
+            <li class="nav-item"><a class="nav-link active" href="#">Cán bộ</a></li>
+            <li class="nav-item"><a class="nav-link" href="#">Danh mục điểm</a></li>
+        </ul>
+        <div class="row g-2 mb-3">
+            <div class="col"><input type="text" id="quantri-macb" class="form-control" placeholder="Mã CB"></div>
+            <div class="col"><input type="text" id="quantri-hoten" class="form-control" placeholder="Họ tên"></div>
+            <div class="col"><input type="password" id="quantri-matkhau" class="form-control" placeholder="Mật khẩu"></div>
+            <div class="col"><input type="text" id="quantri-vaitro" class="form-control" placeholder="Vai trò"></div>
+            <div class="col"><input type="text" id="quantri-lopquanly" class="form-control" placeholder="Lớp quản lý"></div>
+            <div class="col-auto"><button class="btn btn-primary" onclick="addCanBo()">Thêm Cán Bộ</button></div>
+        </div>
+        <table class="table table-striped">
+            <thead><tr><th>STT</th><th>Mã CB</th><th>Họ tên</th><th>Vai trò</th><th>Lớp QL</th><th>Thao tác</th></tr></thead>
+            <tbody id="quantri-canbo-list"></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- MODAL ĐĂNG NHẬP -->
+<div class="modal fade" id="loginModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Đăng Nhập Cán Bộ</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+            <label class="form-label">Mã Cán Bộ</label>
+            <input type="text" id="login-macb" class="form-control">
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Mật khẩu</label>
+            <input type="password" id="login-matkhau" class="form-control">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" onclick="handleLogin()">Đăng Nhập</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- THƯ VIỆN BÊN NGOÀI -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://unpkg.com/html5-qrcode"></script>
 
-<!-- Cấu hình hệ thống & Auth -->
+<!-- CÁC FILE SCRIPT DỰ ÁN -->
 <script src="js/config.js"></script>
-<script src="js/auth.js"></script>
-
-<!-- Các file chức năng Tab -->
 <script src="js/tab1-qr.js"></script>
 <script src="js/tab2-baovang.js"></script>
 <script src="js/tab3-chamdiem.js"></script>
 <script src="js/tab4-thongke.js"></script>
 <script src="js/tab5-xeploai.js"></script>
 <script src="js/tab6-quantri.js"></script>
+</body>
+</html>
