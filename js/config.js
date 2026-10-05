@@ -15,12 +15,12 @@ const ROLE_DEFINITIONS = {
 
 // Ma trận cho phép truy cập Tab theo từng vai trò
 const TAB_PERMISSIONS = {
-  0: ['quan_tri', 'lanh_dao', 'bao_ve', 'co_do', 'gv_truc'],         // Tab 0: Quét QR
-  1: ['quan_tri', 'lanh_dao', 'gv_chu_nhiem', 'gv_truc'],           // Tab 1: Báo vắng
-  2: ['quan_tri', 'lanh_dao', 'co_do', 'gv_bo_mon', 'gv_truc'],     // Tab 2: Chấm điểm & SĐB
-  3: ['quan_tri', 'lanh_dao', 'gv_chu_nhiem', 'gv_truc'],           // Tab 3: Thống kê
-  4: ['quan_tri', 'lanh_dao'],                                       // Tab 4: Xếp loại
-  5: ['quan_tri']                                                   // Tab 5: Quản trị
+  0: ['quan_tri', 'lanh_dao', 'bao_ve', 'co_do', 'gv_truc'],                 // Tab 0: Quét QR
+  1: ['quan_tri', 'lanh_dao', 'gv_chu_nhiem', 'gv_truc'],                     // Tab 1: Báo vắng
+  2: ['quan_tri', 'lanh_dao', 'co_do', 'gv_bo_mon', 'gv_truc', 'cb_lop'],     // Tab 2: Chấm điểm & SĐB
+  3: ['quan_tri', 'lanh_dao', 'gv_chu_nhiem', 'gv_truc'],                     // Tab 3: Thống kê
+  4: ['quan_tri', 'lanh_dao'],                                                 // Tab 4: Xếp loại
+  5: ['quan_tri']                                                             // Tab 5: Quản trị
 };
 
 let currentUser = null; // Lớp thông tin cán bộ đăng nhập hiện tại
