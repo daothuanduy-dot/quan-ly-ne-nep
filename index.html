@@ -10,6 +10,7 @@
         .tab-content { display: none; }
         .tab-content.active { display: block; }
         .nav-btn.active { background-color: #0d6efd !important; color: white !important; }
+        .cursor-pointer { cursor: pointer; }
     </style>
 </head>
 <body class="bg-light">
@@ -26,7 +27,7 @@
                 </div>
             </div>
             <div id="auth-buttons">
-                <button id="btn-login-modal" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#loginModal">Đăng Nhập</button>
+                <button id="btn-login-modal" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#loginModal" onclick="loadRememberedUser()">Đăng Nhập</button>
                 <button id="btn-logout" class="btn btn-outline-danger d-none" onclick="logout()">Đăng Xuất</button>
             </div>
         </div>
@@ -43,14 +44,12 @@
     </div>
 
     <!-- TAB CONTENTS -->
-    <!-- TAB 1: QUÉT QR -->
     <div id="tab-1" class="tab-content active card p-4 shadow-sm">
         <h4>1. Quét mã QR Học sinh</h4>
         <div id="reader" style="width: 100%; max-width: 400px;" class="mb-3"></div>
         <div id="qr-scan-result"></div>
     </div>
 
-    <!-- TAB 2: BÁO VẮNG -->
     <div id="tab-2" class="tab-content card p-4 shadow-sm">
         <h4>2. Báo vắng học sinh</h4>
         <div class="row g-3 mb-3">
@@ -81,7 +80,6 @@
         <button class="btn btn-primary" onclick="submitBaoVang()">Lưu Báo Vắng</button>
     </div>
 
-    <!-- TAB 3: CHẤM ĐIỂM THI ĐƯA -->
     <div id="tab-3" class="tab-content card p-4 shadow-sm">
         <h4>3. Chấm điểm thi đua nền nếp</h4>
         <div class="row g-3 mb-3">
@@ -119,7 +117,6 @@
         </table>
     </div>
 
-    <!-- TAB 4: THỐNG KÊ & XẾP HẠNG -->
     <div id="tab-4" class="tab-content card p-4 shadow-sm">
         <h4>4. Thống kê & Xếp hạng thi đua</h4>
         <div class="row g-3 mb-3">
@@ -141,7 +138,6 @@
         </table>
     </div>
 
-    <!-- TAB 5: XẾP LOẠI & DANH HIỆU -->
     <div id="tab-5" class="tab-content card p-4 shadow-sm">
         <h4>5. Đăng ký Tuần học tốt</h4>
         <div class="row g-3 mb-3">
@@ -167,7 +163,6 @@
         </table>
     </div>
 
-    <!-- TAB 6: QUẢN TRỊ -->
     <div id="tab-6" class="tab-content card p-4 shadow-sm">
         <h4>6. Quản trị hệ thống</h4>
         <ul class="nav nav-tabs mb-3">
@@ -190,25 +185,42 @@
 </div>
 
 <!-- MODAL ĐĂNG NHẬP -->
-<div class="modal fade" id="loginModal" tabindex="-1">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Đăng Nhập Cán Bộ</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+<div class="modal fade" id="loginModal" tabindex="-1" aria-labelledby="loginModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content shadow">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title fw-bold" id="loginModalLabel">ĐĂNG NHẬP CÁN BỘ</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
-      <div class="modal-body">
+      <div class="modal-body p-4">
+        <!-- Thông báo lỗi khi đăng nhập thất bại -->
+        <div id="login-error-msg" class="alert alert-danger d-none py-2 small" role="alert"></div>
+
         <div class="mb-3">
-            <label class="form-label">Mã Cán Bộ</label>
-            <input type="text" id="login-macb" class="form-control">
+            <label for="login-macb" class="form-label fw-bold">Mã Cán Bộ</label>
+            <input type="text" id="login-macb" class="form-control" placeholder="Nhập mã cán bộ (VD: 3103016229)" onkeyup="if(event.key==='Enter') handleLogin()">
         </div>
+
         <div class="mb-3">
-            <label class="form-label">Mật khẩu</label>
-            <input type="password" id="login-matkhau" class="form-control">
+            <label for="login-matkhau" class="form-label fw-bold">Mật khẩu</label>
+            <div class="input-group">
+                <input type="password" id="login-matkhau" class="form-control" placeholder="Nhập mật khẩu" onkeyup="if(event.key==='Enter') handleLogin()">
+                <button class="btn btn-outline-secondary" type="button" id="btn-toggle-password" onclick="toggleShowPassword()">
+                    👁️
+                </button>
+            </div>
+        </div>
+
+        <div class="form-check mb-3">
+            <input class="form-check-input cursor-pointer" type="checkbox" id="remember-me">
+            <label class="form-check-label cursor-pointer select-none" for="remember-me">
+                Nhớ thông tin đăng nhập
+            </label>
         </div>
       </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-primary" onclick="handleLogin()">Đăng Nhập</button>
+      <div class="modal-footer bg-light">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+        <button type="button" id="btn-submit-login" class="btn btn-primary px-4 fw-bold" onclick="handleLogin()">Đăng Nhập</button>
       </div>
     </div>
   </div>
