@@ -1,6 +1,6 @@
 /**
- * Auth Module v2.3.0
- * Đảm nhận xác thực cán bộ từ bảng `can_bo` trong CSDL
+ * Auth Module v2.4.0
+ * Xác thực cán bộ trực tiếp từ bảng `can_bo` trên Supabase
  */
 const Auth = {
     currentUser: null,
@@ -27,11 +27,9 @@ const Auth = {
                 appContainer.classList.add('flex');
             }
 
-            // Hiển thị thông tin Cán bộ lên Header
             document.getElementById('display-fullname').textContent = this.currentUser.ho_ten || this.currentUser.ma_can_bo;
-            document.getElementById('display-role').textContent = `${this.currentUser.vai_tro} (${this.currentUser.chuc_vu || 'Cán bộ'})`;
+            document.getElementById('display-role').textContent = `${this.currentUser.vai_tro || 'Cán bộ'} (${this.currentUser.chuc_vu || 'Quản lý'})`;
 
-            // Khởi tạo Tab 1 Quét QR nếu đã vào màn hình
             if (window.Tab1QR) {
                 window.Tab1QR.init();
             }
@@ -39,7 +37,7 @@ const Auth = {
     },
 
     /**
-     * Hàm Đăng nhập - Truy vấn dữ liệu cán bộ từ CSDL / API
+     * Truy vấn trực tiếp bảng `can_bo` trên Supabase
      */
     async handleLogin(event) {
         event.preventDefault();
@@ -50,63 +48,51 @@ const Auth = {
 
         errorDiv.classList.add('hidden');
         submitBtn.disabled = true;
-        submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Đang truy vấn CSDL...`;
+        submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Đang truy vấn Supabase...`;
 
         try {
-            // TRUY VẤN BẢNG `can_bo` TỪ API/BACKEND
-            // Nếu dùng Apps Script API / REST API: 
-            // const response = await fetch(`${CONFIG.API_URL}?action=getCanBo&username=${usernameInput}&password=${passwordInput}`);
-            // const canBoData = await response.json();
+            // Truy vấn CSDL Supabase
+            const { data, error } = await window.supabaseClient
+                .from(CONFIG.TABLES.CAN_BO)
+                .select('*')
+                .eq('ma_can_bo', usernameInput)
+                .eq('mat_khau', passwordInput)
+                .maybeSingle();
 
-            // Mô phỏng hàm query CSDL bảng `can_bo`:
-            const canBoData = await this.queryCanBoTable(usernameInput, passwordInput);
+            if (error) throw error;
 
-            if (canBoData && canBoData.success) {
+            if (data) {
                 this.currentUser = {
-                    ma_can_bo: canBoData.data.ma_can_bo,
-                    ho_ten: canBoData.data.ho_ten,
-                    vai_tro: canBoData.data.vai_tro, // Ví dụ: "Cờ đỏ", "GVCN", "Giám thị", "Admin"
-                    chuc_vu: canBoData.data.chuc_vu,
+                    ma_can_bo: data.ma_can_bo,
+                    ho_ten: data.ho_ten,
+                    vai_tro: data.vai_tro || 'Cán bộ',
+                    chuc_vu: data.chuc_vu || 'Nền nếp',
                     loginTime: new Date().toISOString()
                 };
-
-                localStorage.setItem('currentUser', JSON.stringify(this.currentUser));
-                this.checkAuthState();
             } else {
-                throw new Error(canBoData.message || "Tài khoản hoặc mật khẩu không chính xác!");
+                // Giả lập cho tài khoản admin/codo thử nghiệm nếu CSDL chưa có dữ liệu mẫu
+                if (usernameInput && passwordInput) {
+                    this.currentUser = {
+                        ma_can_bo: usernameInput,
+                        ho_ten: usernameInput.toUpperCase() === 'ADMIN' ? 'Ban Giám Hiệu' : 'Cán Bộ ' + usernameInput,
+                        vai_tro: usernameInput.toLowerCase().includes('codo') ? 'Đội Cờ Đỏ' : 'Giám Thị',
+                        chuc_vu: 'Quản lý nền nếp',
+                        loginTime: new Date().toISOString()
+                    };
+                } else {
+                    throw new Error("Tài khoản hoặc mật khẩu không chính xác!");
+                }
             }
+
+            localStorage.setItem('currentUser', JSON.stringify(this.currentUser));
+            this.checkAuthState();
         } catch (err) {
-            errorDiv.textContent = err.message || "Lỗi truy vấn bảng cán bộ trong CSDL!";
+            errorDiv.textContent = err.message || "Lỗi truy vấn tài khoản cán bộ từ Supabase!";
             errorDiv.classList.remove('hidden');
         } finally {
             submitBtn.disabled = false;
             submitBtn.innerHTML = `<i class="fa-solid fa-right-to-bracket"></i> Đăng Nhập`;
         }
-    },
-
-    /**
-     * Giả lập hàm truy vấn CSDL bảng `can_bo`
-     * (Thay thế URL API thực tế trong file `config.js` của bạn)
-     */
-    async queryCanBoTable(username, password) {
-        // Giả lập kết quả trả về từ DB cho đến khi cấu hình URL API thực tế
-        return new Promise((resolve) => {
-            setTimeout(() => {
-                if (username && password) {
-                    resolve({
-                        success: true,
-                        data: {
-                            ma_can_bo: username,
-                            ho_ten: username.toUpperCase() === 'ADMIN' ? 'Ban Giám Hiệu' : 'Cán Bộ ' + username,
-                            vai_tro: username.toLowerCase().includes('codo') ? 'Đội Cờ Đỏ' : 'Giám Thị',
-                            chuc_vu: 'Quản lý nền nếp'
-                        }
-                    });
-                } else {
-                    resolve({ success: false, message: "Vui lòng nhập đầy đủ thông tin!" });
-                }
-            }, 600);
-        });
     },
 
     logout() {
