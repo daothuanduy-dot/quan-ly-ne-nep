@@ -112,21 +112,57 @@ async function submitChamDiem() {
     if (found) { tenHD = found.ten_hd; diemSo = parseFloat(found.diem) || 0; } else { tenHD = tcVal; }
   }
 
-  const chiTietStr = ghiChu ? `[${maHD}] ${tenHD} (${ghiChu})`.slice(0, 100) : `[${maHD}]${tenHD}`.slice(0, 100);
+  const chiTietStr = ghiChu ? `[${maHD}] ${tenHD} (${ghiChu})`.slice(0, 100) : `[${maHD}] ${tenHD}`.slice(0, 100);
   const trangThaiVal = loaiDiem === 'cong' ? 'diem_thuong' : 'diem_tru';
 
   try {
-    const targetRecord = !selectedStudentTab2 ? {
-      ma_hs: `LOP_${lop}`, ho_ten: `Tập thể Lớp ${lop}`, khoi: String(khoi), lop: String(lop), ngay_diem_danh: formatDateToYYYYMMDD(new Date()), buoi: buoiVal, trang_thai: trangThaiVal, ma_hd: maHD, chi_tiet: chiTietStr, diem: diemSo, ten_nguoi_cap_nhat: currentUser.ho_ten
-    } : {
-      ma_hs: selectedStudentTab2.ma_hs, ho_ten: selectedStudentTab2.ho_ten, khoi: String(khoi), lop: String(lop), ngay_diem_danh: formatDateToYYYYMMDD(new Date()), buoi: buoiVal, trang_thai: trangThaiVal, ma_hd: maHD, chi_tiet: chiTietStr, diem: diemSo, ten_nguoi_cap_nhat: currentUser.ho_ten
-    };
+    let recordsToInsert = [];
 
-    const { error } = await _supabase.from('diem_danh_master').insert([targetRecord]);
+    if (selectedStudentTab2) {
+      // Chấm điểm riêng cho 1 cá nhân
+      recordsToInsert.push({
+        ma_hs: selectedStudentTab2.ma_hs,
+        ho_ten: selectedStudentTab2.ho_ten,
+        khoi: String(khoi),
+        lop: String(lop),
+        ngay_diem_danh: formatDateToYYYYMMDD(new Date()),
+        buoi: buoiVal,
+        trang_thai: trangThaiVal,
+        ma_hd: maHD,
+        chi_tiet: chiTietStr,
+        diem: diemSo,
+        ten_nguoi_cap_nhat: currentUser.ho_ten
+      });
+    } else {
+      // Chấm tập thể lớp: Tự động gán điểm cho toàn bộ học sinh trong lớp
+      const students = await fetchStudentsByClass(lop);
+      if (!students || students.length === 0) {
+        return alert(`Không tìm thấy dữ liệu học sinh của Lớp ${lop}!`);
+      }
+
+      recordsToInsert = students.map(s => ({
+        ma_hs: s.ma_hs,
+        ho_ten: s.ho_ten,
+        khoi: String(khoi),
+        lop: String(lop),
+        ngay_diem_danh: formatDateToYYYYMMDD(new Date()),
+        buoi: buoiVal,
+        trang_thai: trangThaiVal,
+        ma_hd: maHD,
+        chi_tiet: `[TẬP THỂ LỚP ${lop}] ${chiTietStr}`.slice(0, 100),
+        diem: diemSo,
+        ten_nguoi_cap_nhat: currentUser.ho_ten
+      }));
+    }
+
+    const { error } = await _supabase.from('diem_danh_master').insert(recordsToInsert);
     if (error) throw error;
-    alert(`Đã lưu chấm điểm thành công!`);
+
+    alert(`Đã lưu thành công điểm thi đua cho ${recordsToInsert.length} học sinh Lớp ${lop}!`);
     document.getElementById('cd-ghichu').value = '';
-  } catch (e) { alert("Lỗi lưu CSDL: " + e.message); }
+  } catch (e) {
+    alert("Lỗi lưu CSDL: " + e.message);
+  }
 }
 
 function calcSdbTotalPreview() {
