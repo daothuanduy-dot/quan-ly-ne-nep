@@ -1,236 +1,144 @@
-/*
-  ==================================================
-  DỰ ÁN: QUẢN LÝ NỀN NẾP & THI ĐƯA - THPT LÊ HỒNG PHONG
-  FILE: js/tab1-qr.js
-  VERSION: v1.4
-  ==================================================
-*/
+/**
+ * Tab 1: QR Scanner Module v2.3.0
+ */
+const Tab1QR = {
+    html5QrcodeScanner: null,
+    scanRecords: [],
 
-let html5QrcodeScanner = null;
-let isProcessingQR = false;
+    init() {
+        this.scanRecords = JSON.parse(localStorage.getItem('late_records') || '[]');
+        this.renderScanHistory();
+        this.initScanner();
+    },
 
-// 1. ÂM THANH BÍP KHI QUÉT THÀNH CÔNG
-function playBeepSound() {
-    try {
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = 'sine';
-        osc.frequency.value = 880; 
-        gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.15); 
-    } catch (e) {
-        console.error('Không thể phát âm thanh bíp:', e);
-    }
-}
+    initScanner() {
+        if (!document.getElementById('reader') || this.html5QrcodeScanner) return;
 
-// 2. BÓC TÁCH MÃ HỌC SINH TỪ CHUỖI QR TRÊN THẺ
-function parseMaHS(decodedText) {
-    if (!decodedText) return '';
-    let text = decodedText.trim();
+        this.html5QrcodeScanner = new Html5QrcodeScanner(
+            "reader",
+            { 
+                fps: 10, 
+                qrbox: { width: 250, height: 250 },
+                rememberLastUsedCamera: true
+            },
+            /* verbose= */ false
+        );
 
-    // Dạng 1: JSON
-    if (text.startsWith('{') && text.endsWith('}')) {
+        this.html5QrcodeScanner.render((decodedText) => this.onScanSuccess(decodedText));
+    },
+
+    stopScanner() {
+        if (this.html5QrcodeScanner) {
+            this.html5QrcodeScanner.clear().catch(err => console.error(err));
+            this.html5QrcodeScanner = null;
+        }
+    },
+
+    parseQRData(qrText) {
         try {
-            const obj = JSON.parse(text);
-            return obj.ma_hs || obj.maHS || obj.id || text;
-        } catch (e) {}
-    }
-
-    // Dạng 2: "Mã HS: 3165617498 | Họ tên: Nguyễn Nam Khánh..."
-    const matchPrefix = text.match(/(?:Mã\s*HS|Ma\s*HS|MSHS|Mã\s*số|Mã|ID)\s*:\s*([A-Za-z0-9_-]+)/i);
-    if (matchPrefix && matchPrefix[1]) {
-        return matchPrefix[1].trim();
-    }
-
-    // Dạng 3: Phân tách bằng '|'
-    if (text.includes('|')) {
-        const parts = text.split('|');
-        for (let part of parts) {
-            const m = part.match(/(?:Mã\s*HS|Ma\s*HS|MSHS|Mã|ID)\s*:\s*([A-Za-z0-9_-]+)/i);
-            if (m && m[1]) return m[1].trim();
-            const digits = part.replace(/\D/g, '');
-            if (digits.length >= 6) return digits;
-        }
-    }
-
-    // Dạng 4: Chuỗi số liên tiếp 6-12 chữ số
-    const standaloneDigits = text.match(/\b\d{6,12}\b/);
-    if (standaloneDigits) {
-        return standaloneDigits[0];
-    }
-
-    return text;
-}
-
-// 3. KHỞI TẠO CAMERA QUÉT QR
-function initTab1QR() {
-    if (html5QrcodeScanner) return;
-
-    html5QrcodeScanner = new Html5QrcodeScanner(
-        "reader",
-        { fps: 10, qrbox: { width: 250, height: 250 } },
-        /* verbose= */ false
-    );
-    html5QrcodeScanner.render(onScanSuccess, onScanFailure);
-}
-
-// 4. XỬ LÝ QUÉT QR THÀNH CÔNG
-async function onScanSuccess(decodedText, decodedResult) {
-    if (isProcessingQR) return;
-    isProcessingQR = true;
-
-    playBeepSound();
-
-    const maHS = parseMaHS(decodedText);
-
-    if (!maHS) {
-        alert('Không thể nhận diện Mã Học Sinh từ mã QR này!');
-        isProcessingQR = false;
-        return;
-    }
-
-    const client = getSupabase();
-    if (!client) {
-        alert('Lỗi kết nối CSDL Supabase!');
-        isProcessingQR = false;
-        return;
-    }
-
-    try {
-        // Lấy trạng thái báo vắng đã chọn: "Có phép" hoặc "Không phép"
-        const selectedRadio = document.querySelector('input[name="qr-status-select"]:checked');
-        const trangThaiDiemDanh = selectedRadio ? selectedRadio.value : 'Có phép';
-
-        // TRUY VẤN VÀO BẢNG DanhSach
-        let student = null;
-        let { data: dsData } = await client.from('DanhSach').select('*').eq('ma_hs', maHS).maybeSingle();
-        
-        if (!dsData) {
-            const res2 = await client.from('danh_sach').select('*').eq('ma_hs', maHS).maybeSingle();
-            dsData = res2.data;
-        }
-
-        if (!dsData) {
-            const res3 = await client.from('hoc_sinh').select('*').eq('ma_hs', maHS).maybeSingle();
-            dsData = res3.data;
-        }
-
-        student = dsData;
-
-        if (!student) {
-            alert(`Không tìm thấy Học sinh có Mã: "${maHS}" trong CSDL DanhSach!`);
-            isProcessingQR = false;
-            return;
-        }
-
-        const hoTenHS = student.ho_ten || student.ten_hs || student.hoten || 'Không rõ';
-        const lopHS = student.lop || student.ten_lop || 'Chưa xếp lớp';
-
-        const now = new Date();
-        const currentHour = now.getHours();
-        const buoiHienTai = currentHour < 12 ? 'Sáng' : 'Chiều';
-        const gioQuetStr = now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-        const ngayHienTai = getTodayDDMMYYYY();
-
-        // Lấy thứ trong tuần (2 - 6)
-        let thuHienTai = now.getDay() + 1; // 0=Sunday -> 1, 1=Monday -> 2
-
-        // Kiểm tra lịch học trong bảng thoi_gian_hoc theo thứ
-        let trangThaiLichHoc = 'Theo thời khóa biểu';
-        const { data: tgHoc } = await client.from('thoi_gian_hoc')
-            .select('*')
-            .eq('lop', lopHS)
-            .eq('thu', thuHienTai)
-            .maybeSingle();
-
-        if (tgHoc) {
-            if (buoiHienTai === 'Sáng' && (!tgHoc.sang_tu_tiet || tgHoc.sang_tu_tiet === 0)) {
-                trangThaiLichHoc = 'Lớp không có lịch học Sáng';
-            } else if (buoiHienTai === 'Chiều' && (!tgHoc.chieu_tu_tiet || tgHoc.chieu_tu_tiet === 0)) {
-                trangThaiLichHoc = 'Lớp không có lịch học Chiều';
-            } else {
-                if (buoiHienTai === 'Sáng') {
-                    trangThaiLichHoc = `Học Sáng (Tiết ${tgHoc.sang_tu_tiet} - ${tgHoc.sang_den_tiet})`;
-                } else {
-                    trangThaiLichHoc = `Học Chiều (Tiết ${tgHoc.chieu_tu_tiet} - ${tgHoc.chieu_den_tiet})`;
-                }
+            return JSON.parse(qrText);
+        } catch (e) {
+            const parts = qrText.split('|');
+            if (parts.length >= 3) {
+                return {
+                    studentId: parts[0].trim(),
+                    name: parts[1].trim(),
+                    className: parts[2].trim()
+                };
             }
+            return {
+                studentId: qrText.substring(0, 8),
+                name: "Học sinh quét mã",
+                className: "K10"
+            };
         }
+    },
 
-        const currentUser = getCurrentUser();
-        const nguoiQuet = currentUser ? `${currentUser.ho_ten} (${currentUser.ma_cb})` : 'Hệ thống';
+    onScanSuccess(decodedText) {
+        // Lấy trạng thái đi muộn từ 2 Radio Button
+        const selectedRadio = document.querySelector('input[name="late_status"]:checked');
+        const lateType = selectedRadio ? selectedRadio.value : "Không phép";
+        
+        const studentInfo = this.parseQRData(decodedText);
+        const currentUser = Auth.getCurrentUser();
+        const now = new Date();
+        const timeString = now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
-        // GHI KẾT QUẢ VÀO BẢNG DiemDanhMaster
-        const record = {
-            ma_hs: student.ma_hs || maHS,
-            ho_ten: hoTenHS,
-            lop: lopHS,
-            ngay: ngayHienTai,
-            buoi: buoiHienTai,
-            gio_quet: gioQuetStr,
-            trang_thai: trangThaiDiemDanh,
-            nguoi_quet: nguoiQuet
+        const newRecord = {
+            studentId: studentInfo.studentId || "HS-UNK",
+            name: studentInfo.name || "Chưa rõ tên",
+            className: studentInfo.className || "K10",
+            lateType: lateType, // "Có phép" hoặc "Không phép"
+            time: timeString,
+            date: now.toISOString().split('T')[0],
+            recordedBy: currentUser ? `${currentUser.ho_ten} (${currentUser.ma_can_bo})` : "Chưa xác định"
         };
 
-        let { error: insertErr } = await client.from('DiemDanhMaster').insert([record]);
-        
-        if (insertErr) {
-            const resLower = await client.from('diem_danh_master').insert([record]);
-            insertErr = resLower.error;
-        }
+        // Lưu bản ghi
+        this.scanRecords.unshift(newRecord);
+        localStorage.setItem('late_records', JSON.stringify(this.scanRecords));
 
-        if (insertErr) {
-            console.error('Lỗi lưu DiemDanhMaster:', insertErr);
-            alert('Lỗi ghi kết quả điểm danh: ' + insertErr.message);
-            isProcessingQR = false;
+        // Cập nhật Thẻ hiển thị học sinh vừa quét
+        document.getElementById('latest-scan-card').classList.remove('hidden');
+        document.getElementById('scan-id').textContent = newRecord.studentId;
+        document.getElementById('scan-name').textContent = newRecord.name;
+        document.getElementById('scan-class').textContent = newRecord.className;
+        document.getElementById('scan-time').textContent = newRecord.time;
+        document.getElementById('scanned-by-tag').textContent = `Cán bộ: ${currentUser ? currentUser.ho_ten : '--'}`;
+
+        const typeBadge = document.getElementById('scan-type');
+        typeBadge.textContent = `Đi muộn ${newRecord.lateType.toUpperCase()}`;
+        typeBadge.className = `text-xs px-2 py-0.5 rounded font-bold ${
+            newRecord.lateType === 'Có phép' ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800'
+        }`;
+
+        // Hiệu ứng Flash xác nhận
+        const feedback = document.getElementById('scan-feedback');
+        feedback.classList.remove('hidden');
+        feedback.classList.add('flex');
+        setTimeout(() => {
+            feedback.classList.add('hidden');
+            feedback.classList.remove('flex');
+        }, 1200);
+
+        this.renderScanHistory();
+    },
+
+    renderScanHistory() {
+        const tbody = document.getElementById('scan-history-tbody');
+        const countBadge = document.getElementById('scan-count');
+        
+        if (!tbody) return;
+        countBadge.textContent = `${this.scanRecords.length} học sinh`;
+
+        if (this.scanRecords.length === 0) {
+            tbody.innerHTML = `
+                <tr id="empty-row">
+                    <td colspan="5" class="text-center py-8 text-gray-400">
+                        Chưa có dữ liệu quét trong phiên làm việc.
+                    </td>
+                </tr>`;
             return;
         }
 
-        // ĐỔ DỮ LIỆU LÊN MODAL
-        document.getElementById('qr-modal-hoten').textContent = hoTenHS;
-        document.getElementById('qr-modal-mahs').textContent = student.ma_hs || maHS;
-        document.getElementById('qr-modal-lop').textContent = lopHS;
-        document.getElementById('qr-modal-buoi').textContent = `Buổi ${buoiHienTai}`;
-        document.getElementById('qr-modal-gio').textContent = gioQuetStr;
-        document.getElementById('qr-modal-trangthai-lich').textContent = trangThaiLichHoc;
-
-        const elTT = document.getElementById('qr-modal-trangthai-diemdanh');
-        const modalHeader = document.getElementById('qr-modal-header');
-        const modalIcon = document.getElementById('qr-modal-icon');
-
-        if (trangThaiDiemDanh === 'Có phép') {
-            elTT.className = 'col-6 text-end fw-bold fs-6 text-warning';
-            elTT.textContent = '🟡 Báo vắng: CÓ PHÉP';
-            modalHeader.className = 'modal-header bg-warning text-dark';
-            modalIcon.textContent = '⚠️';
-        } else {
-            elTT.className = 'col-6 text-end fw-bold fs-6 text-danger';
-            elTT.textContent = '🔴 Báo vắng: KHÔNG PHÉP';
-            modalHeader.className = 'modal-header bg-danger text-white';
-            modalIcon.textContent = '❌';
-        }
-
-        const modalEl = document.getElementById('qrResultModal');
-        if (modalEl) {
-            const modal = new bootstrap.Modal(modalEl);
-            modal.show();
-        }
-
-    } catch (err) {
-        console.error('Lỗi quét QR:', err);
-        alert('Lỗi hệ thống: ' + err.message);
-        isProcessingQR = false;
+        tbody.innerHTML = this.scanRecords.map(item => `
+            <tr class="hover:bg-slate-50 transition-colors">
+                <td class="p-2.5 font-mono text-gray-500">${item.time}</td>
+                <td class="p-2.5 font-bold text-gray-700">${item.studentId}</td>
+                <td class="p-2.5 font-medium text-gray-900">${item.name}</td>
+                <td class="p-2.5 text-gray-600">${item.className}</td>
+                <td class="p-2.5 text-center">
+                    <span class="px-2 py-0.5 rounded text-[10px] font-bold ${
+                        item.lateType === 'Có phép' 
+                        ? 'bg-amber-100 text-amber-800' 
+                        : 'bg-red-100 text-red-800'
+                    }">
+                        ${item.lateType}
+                    </span>
+                </td>
+            </tr>
+        `).join('');
     }
-}
+};
 
-function onScanFailure(error) {
-    // Vòng lặp camera lắng nghe liên tục
-}
-
-function resumeQRScanner() {
-    isProcessingQR = false;
-}
+window.Tab1QR = Tab1QR;
