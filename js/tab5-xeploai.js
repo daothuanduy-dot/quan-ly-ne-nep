@@ -1,27 +1,72 @@
-// =======================================================
-// FILE: js/tab5-xeploai.js - TAB 5: XẾP LOẠI & DANH HIỆU
-// =======================================================
+// ==========================================
+// TAB 5: XẾP LOẠI & DANH HIỆU
+// ==========================================
 
-async function renderXepLoai() {
-  const { data } = await _supabase.from('diem_danh_master').select('*');
-  const lopMap = {};
-
-  (data || []).forEach(r => {
-    if (!lopMap[r.lop]) lopMap[r.lop] = { lop: r.lop, diem: 100 };
-    lopMap[r.lop].diem += r.diem;
-  });
-
-  const list = Object.values(lopMap).sort((a, b) => b.diem - a.diem);
-  const tbody = document.getElementById('xl-table-body');
-  tbody.innerHTML = '';
-
-  list.forEach((l, idx) => {
-    tbody.innerHTML += `
-      <tr class="border-b text-center hover:bg-slate-50">
-        <td class="p-3 font-bold">${idx + 1}</td>
-        <td class="p-3 text-left font-bold text-blue-800">${l.lop}</td>
-        <td class="p-3 font-bold text-emerald-700">${l.diem}</td>
-        <td class="p-3 text-left font-bold text-amber-600">${idx === 0 ? '🏆 Cờ Nhất' : '🥈 Cờ Nhì'}</td>
-      </tr>`;
-  });
+function initTab5XepLoai() {
+    console.log('Khởi tạo Tab 5: Xếp loại & Danh hiệu');
+    loadDangKyTuanHocTot();
 }
+
+/**
+ * Đăng ký Tuần học tốt (Lưu vào bảng dang_ky_tuan_hoc_tot)
+ */
+async function registerTuanHocTot() {
+    const lop = document.getElementById('tuanhoctot-lop').value;
+    const ngayBatDauStr = document.getElementById('tuanhoctot-ngay-bd').value; // ddmmyyyy
+    const ngayKetThucStr = document.getElementById('tuanhoctot-ngay-kt').value; // ddmmyyyy
+    const currentUser = getCurrentUser();
+
+    const isoBatDau = parseDDMMYYYYToISO(ngayBatDauStr);
+    const isoKetThuc = parseDDMMYYYYToISO(ngayKetThucStr);
+
+    if (!isoBatDau || !isoKetThuc) {
+        alert('Nhập ngày bắt đầu và kết thúc định dạng ddmmyyyy!');
+        return;
+    }
+
+    const { data, error } = await supabase
+        .from('dang_ky_tuan_hoc_tot')
+        .insert([{
+            lop: lop,
+            ngay_bat_dau: isoBatDau,
+            ngay_ket_thuc: isoKetThuc,
+            nguoi_dang_ky: currentUser?.ho_ten || 'GVCN'
+        }]);
+
+    if (error) {
+        alert('Lỗi đăng ký Tuần học tốt: ' + error.message);
+    } else {
+        alert(`Đã đăng ký Tuần học tốt thành công cho lớp ${lop}!`);
+        loadDangKyTuanHocTot();
+    }
+}
+
+/**
+ * Hiển thị danh sách Tuần học tốt đã đăng ký
+ */
+async function loadDangKyTuanHocTot() {
+    const tableBody = document.getElementById('tuanhoctot-list');
+    if (!tableBody) return;
+
+    const { data, error } = await supabase
+        .from('dang_ky_tuan_hoc_tot')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+    if (error) return;
+
+    tableBody.innerHTML = '';
+    data.forEach((item, index) => {
+        tableBody.innerHTML += `
+            <tr>
+                <td>${index + 1}</td>
+                <td>${item.lop}</td>
+                <td>${formatDateDDMMYYYY(item.ngay_bat_dau)}</td>
+                <td>${formatDateDDMMYYYY(item.ngay_ket_thuc)}</td>
+                <td>${item.nguoi_dang_ky || ''}</td>
+            </tr>
+        `;
+    });
+}
+
+document.addEventListener('DOMContentLoaded', initTab5XepLoai);
