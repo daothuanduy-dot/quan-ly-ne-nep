@@ -10,7 +10,8 @@ const ROLE_DEFINITIONS = {
   gv_bo_mon: "Giáo viên bộ môn",
   gv_truc: "Giáo viên trực",
   lanh_dao: "Lãnh đạo",
-  quan_tri: "Quản trị"
+  quan_tri: "Quản trị",
+  cb_lop: "Cán bộ lớp"
 };
 
 // Ma trận cho phép truy cập Tab theo từng vai trò
@@ -65,7 +66,7 @@ function getCurrentThu() {
 }
 
 // Định dạng ngàyYYYY-MM-DD
-function formatDateToYYYYMMDD(date) {
+function formatDateToDDMMYYYY(date) {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, '0');
   const d = String(date.getDate()).padStart(2, '0');
