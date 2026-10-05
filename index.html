@@ -1,300 +1,185 @@
+<!-- ================================================================= -->
+<!-- FILE: index.html                                                  -->
+<!-- PHIÊN BẢN: v2.2.0                                                 -->
+<!-- MÔ TẢ: Giao diện chính chứa Đăng nhập & Tab 6 Quản trị (Sub-tabs)  -->
+<!-- ================================================================= -->
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quản Lý Nền Nếp & Thi Đua - Version 2.4.0</title>
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- FontAwesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- HTML5-QRCode Library -->
-    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
-    <!-- Supabase JS Client CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hệ Thống Quản Lý Nền Nếp & Thi Đua v2.2.0</title>
+  <link rel="stylesheet" href="style.css">
 </head>
-<body class="bg-gray-100 font-sans text-gray-800 min-h-screen flex flex-col">
+<body>
 
-    <!-- MODAL ĐĂNG NHẬP -->
-    <div id="login-modal" class="fixed inset-0 bg-slate-900/85 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 sm:p-8 border border-gray-100 relative">
-            <div class="text-center mb-6">
-                <div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-3 text-2xl font-bold">
-                    <i class="fa-solid fa-user-shield"></i>
-                </div>
-                <h2 class="text-2xl font-bold text-gray-800">Đăng Nhập Hệ Thống</h2>
-                <p class="text-sm text-gray-500 mt-1">Quản Lý Nền Nếp & Thi Đua <span class="font-semibold text-blue-600">v2.4.0</span></p>
-            </div>
+  <!-- ==================== 1. MÀN HÌNH ĐĂNG NHẬP ==================== -->
+  <div id="login-screen" class="login-container">
+    <div class="login-card">
+      <div class="login-header">
+        <div class="icon-avatar">👤</div>
+        <h2>Đăng Nhập Hệ Thống</h2>
+        <p>Quản Lý Nền Nếp & Thi Đua <span class="version-tag">v2.2.0</span></p>
+      </div>
 
-            <form id="login-form" onsubmit="Auth.handleLogin(event)" class="space-y-4">
-                <div>
-                    <label class="block text-xs font-bold uppercase text-gray-600 mb-1">Mã Cán Bộ / Tài khoản</label>
-                    <div class="relative">
-                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
-                            <i class="fa-solid fa-id-badge"></i>
-                        </span>
-                        <input type="text" id="username" required class="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none" placeholder="Nhập mã cán bộ">
-                    </div>
-                </div>
-
-                <div>
-                    <label class="block text-xs font-bold uppercase text-gray-600 mb-1">Mật khẩu</label>
-                    <div class="relative">
-                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
-                            <i class="fa-solid fa-lock"></i>
-                        </span>
-                        <input type="password" id="password" required class="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none" placeholder="Nhập mật khẩu">
-                    </div>
-                </div>
-
-                <div id="login-error" class="hidden text-xs text-red-600 bg-red-50 p-2.5 rounded-lg border border-red-200 font-medium text-center"></div>
-
-                <button type="submit" id="login-submit-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 mt-2 flex justify-center items-center gap-2">
-                    <i class="fa-solid fa-right-to-bracket"></i> Đăng Nhập
-                </button>
-            </form>
-
-            <div class="mt-4 pt-4 border-t border-gray-100 text-center text-xs text-gray-400">
-                Xác thực Supabase Database • Năm học 2026-2027
-            </div>
+      <form id="loginForm" onsubmit="handleLogin(event)">
+        <!-- TÀI KHOẢN -->
+        <div class="form-group">
+          <label for="username">TÀI KHOẢN</label>
+          <div class="input-wrapper">
+            <span class="input-icon">👤</span>
+            <input type="text" id="username" placeholder="Nhập mã cán bộ / tên đăng nhập" required />
+          </div>
         </div>
+
+        <!-- MẬT KHẨU (Có nút ẩn/hiện) -->
+        <div class="form-group">
+          <label for="password">MẬT KHẨU</label>
+          <div class="input-wrapper">
+            <span class="input-icon">🔒</span>
+            <input type="password" id="password" placeholder="••••••••" required />
+            <button type="button" class="btn-toggle-pwd" onclick="togglePasswordVisibility()" title="Ẩn/Hiện mật khẩu">
+              <span id="eyeIcon">👁️</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- TÙY CHỌN GHI NHỚ (Đã loại bỏ hoàn toàn Dropdown Vai trò) -->
+        <div class="form-group row-remember">
+          <label class="remember-label">
+            <input type="checkbox" id="rememberMe" />
+            <span>Lưu thông tin đăng nhập</span>
+          </label>
+        </div>
+
+        <!-- NÚT ĐĂNG NHẬP -->
+        <button type="submit" class="btn-submit">➡️ Đăng Nhập</button>
+      </form>
+
+      <div class="login-footer">
+        Năm học: 2026-2027 • Hệ thống quản lý nội bộ
+      </div>
     </div>
+  </div>
 
-    <!-- MAIN APP CONTAINER -->
-    <div id="app-container" class="hidden flex-col min-h-screen">
-        
-        <!-- HEADER -->
-        <header class="bg-slate-800 text-white shadow-md">
-            <div class="max-w-7xl mx-auto px-4 py-2.5 flex flex-wrap justify-between items-center gap-3">
-                <div class="flex items-center gap-3">
-                    <h1 class="text-lg font-bold uppercase tracking-wide">Quản Lý Nền Nếp & Thi Đua</h1>
-                    <span class="bg-slate-700 text-slate-300 text-xs px-2 py-0.5 rounded-full font-mono border border-slate-600">v2.4.0</span>
-                </div>
 
-                <!-- Cán Bộ Profile -->
-                <div id="user-info-bar" class="flex items-center gap-3 bg-slate-700/60 px-3 py-1.5 rounded-lg border border-slate-600/50">
-                    <div class="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-sm shadow">
-                        <i class="fa-solid fa-user-check"></i>
-                    </div>
-                    <div class="text-left leading-tight">
-                        <div id="display-fullname" class="text-sm font-bold text-white">---</div>
-                        <div id="display-role" class="text-[11px] text-blue-300 font-medium">---</div>
-                    </div>
-                    <div class="h-6 w-px bg-slate-600 mx-1"></div>
-                    <button onclick="Auth.logout()" title="Đăng xuất khỏi hệ thống" class="text-xs bg-red-600/80 hover:bg-red-600 text-white px-2.5 py-1.5 rounded flex items-center gap-1 transition-colors">
-                        <i class="fa-solid fa-arrow-right-from-bracket"></i> Đăng xuất
-                    </button>
-                </div>
+  <!-- ==================== 2. MAN HÌNH CHÍNH / DASHBOARD ==================== -->
+  <div id="app-screen" class="app-container" style="display: none;">
+    <!-- THANH TIÊU ĐỀ HỆ THỐNG -->
+    <header class="main-header">
+      <div class="logo-title">
+        <h1>🏫 HỆ THỐNG QUẢN LÝ NỀN NẾP & THI ĐUA</h1>
+      </div>
+      <div class="user-info">
+        <span id="display-user-name">Xin chào, Cán bộ</span>
+        <span id="display-user-role" class="badge-role">Admin</span>
+        <button class="btn-logout" onclick="handleLogout()">Đăng xuất</button>
+      </div>
+    </header>
+
+    <!-- NỘI DUNG TAB 6: QUẢN TRỊ HỆ THỐNG -->
+    <main class="main-content">
+      <div id="tab6-content" class="tab-pane active">
+        <div class="admin-header">
+          <h2>⚙️ 6. Quản Trị Hệ Thống</h2>
+        </div>
+
+        <!-- THANH SUB TABS CON -->
+        <div class="sub-tabs-bar">
+          <button class="sub-tab-btn active" onclick="switchSubTab(event, 'subtab-canbo')">
+            👥 Quản lý Cán bộ & Tài khoản
+          </button>
+          <button class="sub-tab-btn" onclick="switchSubTab(event, 'subtab-lophoc')">
+            🏫 Quản lý Lớp học
+          </button>
+          <button class="sub-tab-btn" onclick="switchSubTab(event, 'subtab-tieuchi')">
+            📋 Quản lý Tiêu chí Thi đua
+          </button>
+          <button class="sub-tab-btn" onclick="switchSubTab(event, 'subtab-cauhinh')">
+            ⚙️ Cấu hình Hệ thống & Năm học
+          </button>
+        </div>
+
+        <!-- NỘI DUNG TỪNG SUB TAB -->
+        <div class="sub-tab-content-wrapper">
+          
+          <!-- SUB TAB 1: CÁN BỘ -->
+          <div id="subtab-canbo" class="sub-tab-pane active">
+            <div class="card-box">
+              <div class="card-header-actions">
+                <h3>Danh Sách Cán Bộ & Phân Quyền Tự Động (`can_bo`)</h3>
+                <button class="btn-primary" onclick="alert('Thêm cán bộ mới')">+ Thêm Cán Bộ</button>
+              </div>
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Mã Cán Bộ</th>
+                    <th>Họ và Tên</th>
+                    <th>Tên Đăng Nhập</th>
+                    <th>Vai Trò (Tự động gán)</th>
+                    <th>Trạng Thái</th>
+                    <th>Thao Tác</th>
+                  </tr>
+                </thead>
+                <tbody id="canboTableBody">
+                  <tr>
+                    <td>CB001</td>
+                    <td>Nguyễn Văn A</td>
+                    <td>admin</td>
+                    <td><span class="role-tag role-admin">Admin</span></td>
+                    <td><span class="status-active">Hoạt động</span></td>
+                    <td><button class="btn-sm">Sửa</button></td>
+                  </tr>
+                  <tr>
+                    <td>CB002</td>
+                    <td>Trần Thị B</td>
+                    <td>bgh_b</td>
+                    <td><span class="role-tag role-bgh">Ban Giám Hiệu</span></td>
+                    <td><span class="status-active">Hoạt động</span></td>
+                    <td><button class="btn-sm">Sửa</button></td>
+                  </tr>
+                  <tr>
+                    <td>CB003</td>
+                    <td>Lê Văn C</td>
+                    <td>codo_c</td>
+                    <td><span class="role-tag role-codo">Cờ Đỏ</span></td>
+                    <td><span class="status-active">Hoạt động</span></td>
+                    <td><button class="btn-sm">Sửa</button></td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
-        </header>
+          </div>
 
-        <!-- NAVIGATION TABS -->
-        <nav class="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-10">
-            <div class="max-w-7xl mx-auto px-4">
-                <div class="flex space-x-1 overflow-x-auto text-sm font-medium">
-                    <button onclick="switchTab(1)" id="tab-btn-1" class="py-3 px-4 border-b-2 border-blue-600 text-blue-600 font-bold flex items-center gap-2 whitespace-nowrap">
-                        <i class="fa-solid fa-qrcode"></i> 1. Quét QR Đi Muộn
-                    </button>
-                    <button onclick="switchTab(2)" id="tab-btn-2" class="py-3 px-4 border-b-2 border-transparent text-gray-500 hover:text-blue-600 flex items-center gap-2 whitespace-nowrap">
-                        <i class="fa-solid fa-user-xmark"></i> 2. Báo Vắng Học Sinh
-                    </button>
-                    <button onclick="switchTab(3)" id="tab-btn-3" class="py-3 px-4 border-b-2 border-transparent text-gray-500 hover:text-blue-600 flex items-center gap-2 whitespace-nowrap">
-                        <i class="fa-solid fa-clipboard-check"></i> 3. Chấm Điểm Thi Đua
-                    </button>
-                    <button onclick="switchTab(4)" id="tab-btn-4" class="py-3 px-4 border-b-2 border-transparent text-gray-500 hover:text-blue-600 flex items-center gap-2 whitespace-nowrap">
-                        <i class="fa-solid fa-chart-pie"></i> 4. Thống Kê Biểu Đồ
-                    </button>
-                    <button onclick="switchTab(5)" id="tab-btn-5" class="py-3 px-4 border-b-2 border-transparent text-gray-500 hover:text-blue-600 flex items-center gap-2 whitespace-nowrap">
-                        <i class="fa-solid fa-award"></i> 5. Xếp Loại & Danh Hiệu
-                    </button>
-                    <button onclick="switchTab(6)" id="tab-btn-6" class="py-3 px-4 border-b-2 border-transparent text-gray-500 hover:text-blue-600 flex items-center gap-2 whitespace-nowrap">
-                        <i class="fa-solid fa-sliders"></i> 6. Quản Trị Hệ Thống
-                    </button>
-                </div>
+          <!-- SUB TAB 2: LỚP HỌC -->
+          <div id="subtab-lophoc" class="sub-tab-pane">
+            <div class="card-box">
+              <h3>🏫 Quản Lý Danh Sách Lớp Học & Giáo Viên Chủ Nhiệm</h3>
+              <p>Cấu hình danh sách các lớp thuộc Khối 10, Khối 11, Khối 12 và phân công GVCN năm học 2026-2027.</p>
             </div>
-        </nav>
+          </div>
 
-        <!-- MAIN CONTENT -->
-        <main class="max-w-7xl mx-auto p-4 sm:p-6 flex-grow w-full">
+          <!-- SUB TAB 3: TIÊU CHÍ -->
+          <div id="subtab-tieuchi" class="sub-tab-pane">
+            <div class="card-box">
+              <h3>📋 Danh Mục Tiêu Chí Chấm Điểm Thi Đua</h3>
+              <p>Quản lý các tiêu chí điểm cộng, điểm trừ nền nếp (Đi muộn, trang phục, vệ sinh, không học bài...).</p>
+            </div>
+          </div>
 
-            <!-- TAB 1: QUÉT QR -->
-            <section id="tab-content-1" class="block">
-                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                    <div class="flex items-center gap-2 border-b border-gray-100 pb-4 mb-6">
-                        <div class="w-1.5 h-6 bg-blue-600 rounded-full"></div>
-                        <h2 class="text-lg font-bold text-gray-800">1. Quét Mã QR Ghi Nhận Học Sinh Đi Muộn</h2>
-                    </div>
+          <!-- SUB TAB 4: CẤU HÌNH -->
+          <div id="subtab-cauhinh" class="sub-tab-pane">
+            <div class="card-box">
+              <h3>⚙️ Cấu Hình Năm Học & Tham Số Hệ Thống</h3>
+              <p>Thiết lập thời gian chấm điểm, ngày khóa sổ thi đua hàng tuần và sao lưu dữ liệu.</p>
+            </div>
+          </div>
 
-                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                        <div class="lg:col-span-7 space-y-6">
-                            <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                                <label class="block text-xs font-bold uppercase text-gray-600 mb-3">
-                                    Chế độ ghi nhận đi muộn:
-                                </label>
-                                <div class="flex flex-wrap gap-6">
-                                    <label class="inline-flex items-center cursor-pointer group p-2 rounded-lg hover:bg-red-50 border border-transparent hover:border-red-200 transition-all">
-                                        <input type="radio" name="late_status" value="Không phép" checked class="w-4 h-4 text-red-600 focus:ring-red-500 border-gray-300">
-                                        <span class="ml-2 text-sm font-semibold text-gray-800 group-hover:text-red-700">
-                                            <i class="fa-solid fa-circle-exclamation text-red-500 mr-1"></i> KHÔNG PHÉP
-                                        </span>
-                                    </label>
+        </div>
+      </div>
+    </main>
+  </div>
 
-                                    <label class="inline-flex items-center cursor-pointer group p-2 rounded-lg hover:bg-amber-50 border border-transparent hover:border-amber-200 transition-all">
-                                        <input type="radio" name="late_status" value="Có phép" class="w-4 h-4 text-amber-600 focus:ring-amber-500 border-gray-300">
-                                        <span class="ml-2 text-sm font-semibold text-gray-800 group-hover:text-amber-700">
-                                            <i class="fa-solid fa-file-signature text-amber-500 mr-1"></i> CÓ PHÉP
-                                        </span>
-                                    </label>
-                                </div>
-                            </div>
-
-                            <div class="border-2 border-dashed border-gray-300 rounded-xl p-4 bg-gray-50 text-center relative overflow-hidden min-h-[320px] flex flex-col justify-center items-center">
-                                <div id="reader" class="w-full max-w-md mx-auto"></div>
-                                <div id="scan-feedback" class="hidden absolute inset-0 text-white flex flex-col justify-center items-center z-20 p-4 text-center transition-all duration-300"></div>
-                            </div>
-                        </div>
-
-                        <div class="lg:col-span-5 space-y-6">
-                            <div id="latest-scan-card" class="bg-blue-50 border border-blue-200 rounded-xl p-5 hidden">
-                                <h3 class="text-xs uppercase tracking-wider font-bold text-blue-800 mb-3 flex items-center justify-between">
-                                    <span><i class="fa-solid fa-id-card mr-1"></i> Vừa ghi nhận Supabase</span>
-                                    <span id="scanned-by-tag" class="text-[10px] bg-blue-200 text-blue-800 px-2 py-0.5 rounded">Cán bộ: --</span>
-                                </h3>
-                                <div class="space-y-2">
-                                    <div class="flex justify-between border-b border-blue-100 pb-1">
-                                        <span class="text-xs text-gray-500">Mã Học Sinh:</span>
-                                        <span id="scan-id" class="text-sm font-bold text-gray-800">--</span>
-                                    </div>
-                                    <div class="flex justify-between border-b border-blue-100 pb-1">
-                                        <span class="text-xs text-gray-500">Họ và Tên:</span>
-                                        <span id="scan-name" class="text-sm font-bold text-blue-900">--</span>
-                                    </div>
-                                    <div class="flex justify-between border-b border-blue-100 pb-1">
-                                        <span class="text-xs text-gray-500">Lớp:</span>
-                                        <span id="scan-class" class="text-sm font-semibold text-gray-700">--</span>
-                                    </div>
-                                    <div class="flex justify-between border-b border-blue-100 pb-1">
-                                        <span class="text-xs text-gray-500">Trạng thái:</span>
-                                        <span id="scan-type" class="text-xs px-2 py-0.5 rounded font-bold">--</span>
-                                    </div>
-                                    <div class="flex justify-between">
-                                        <span class="text-xs text-gray-500">Thời gian:</span>
-                                        <span id="scan-time" class="text-xs font-mono text-gray-600">--</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
-                                <div class="flex justify-between items-center mb-3">
-                                    <h3 class="text-sm font-bold text-gray-800 flex items-center gap-2">
-                                        <i class="fa-solid fa-list-check text-blue-600"></i> Lịch sử DiemDanhMaster hôm nay
-                                    </h3>
-                                    <span id="scan-count" class="bg-blue-100 text-blue-800 text-xs px-2.5 py-0.5 rounded-full font-bold">0 học sinh</span>
-                                </div>
-
-                                <div class="overflow-y-auto max-h-[300px] border border-gray-100 rounded-lg">
-                                    <table class="w-full text-left text-xs">
-                                        <thead class="bg-gray-100 text-gray-600 uppercase font-semibold sticky top-0">
-                                            <tr>
-                                                <th class="p-2.5">Giờ quét</th>
-                                                <th class="p-2.5">Mã HS</th>
-                                                <th class="p-2.5">Họ Tên</th>
-                                                <th class="p-2.5">Lớp</th>
-                                                <th class="p-2.5 text-center">Trạng thái</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="scan-history-tbody" class="divide-y divide-gray-100">
-                                            <tr id="empty-row">
-                                                <td colspan="5" class="text-center py-8 text-gray-400">
-                                                    Đang kết nối CSDL Supabase...
-                                                </td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- TAB 2, 3, 4, 5 PLACEHOLDERS -->
-            <section id="tab-content-2" class="hidden bg-white p-6 rounded-xl border"><h2 class="font-bold">2. Báo Vắng Học Sinh</h2></section>
-            <section id="tab-content-3" class="hidden bg-white p-6 rounded-xl border"><h2 class="font-bold">3. Chấm Điểm Thi Đua</h2></section>
-            <section id="tab-content-4" class="hidden bg-white p-6 rounded-xl border"><h2 class="font-bold">4. Thống Kê Biểu Đồ</h2></section>
-            <section id="tab-content-5" class="hidden bg-white p-6 rounded-xl border"><h2 class="font-bold">5. Xếp Loại & Danh Hiệu</h2></section>
-
-            <!-- TAB 6: QUẢN TRỊ HỆ THỐNG -->
-            <section id="tab-content-6" class="hidden">
-                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                    <div class="flex items-center justify-between border-b border-gray-100 pb-4 mb-6">
-                        <div class="flex items-center gap-2">
-                            <div class="w-1.5 h-6 bg-blue-600 rounded-full"></div>
-                            <h2 class="text-lg font-bold text-gray-800">6. Quản Trị Hệ Thống & Cấu Hình CSDL</h2>
-                        </div>
-                    </div>
-
-                    <!-- SUBTABS NAVIGATION TRONG TAB 6 -->
-                    <div class="flex border-b border-gray-200 mb-6 gap-2">
-                        <button onclick="Tab6QuanTri.switchSubTab(1)" id="subtab-btn-1" class="py-2.5 px-4 font-bold text-sm border-b-2 border-blue-600 text-blue-600 flex items-center gap-2">
-                            <i class="fa-solid fa-clock"></i> Thời Khóa Biểu & Giờ Học
-                        </button>
-                        <button onclick="Tab6QuanTri.switchSubTab(2)" id="subtab-btn-2" class="py-2.5 px-4 font-bold text-sm border-b-2 border-transparent text-gray-500 hover:text-blue-600 flex items-center gap-2">
-                            <i class="fa-solid fa-users-gear"></i> Quản Lý Cán Bộ
-                        </button>
-                        <button onclick="Tab6QuanTri.switchSubTab(3)" id="subtab-btn-3" class="py-2.5 px-4 font-bold text-sm border-b-2 border-transparent text-gray-500 hover:text-blue-600 flex items-center gap-2">
-                            <i class="fa-solid fa-graduation-cap"></i> Danh Sách Học Sinh
-                        </button>
-                    </div>
-
-                    <!-- SUBTAB 1: THỜI KHÓA BIỂU & GIỜ HỌC -->
-                    <div id="subtab-content-1" class="block space-y-6">
-                        <!-- Controls Bar -->
-                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-wrap gap-4 justify-between items-center">
-                            <div class="flex items-center gap-3">
-                                <label class="text-xs font-bold uppercase text-gray-600">Chọn Khối Lớp:</label>
-                                <select id="tkb-grade-filter" onchange="Tab6QuanTri.loadScheduleData()" class="bg-white border border-gray-300 text-gray-800 text-sm font-semibold rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500">
-                                    <option value="ALL">-- Tất cả các Khối --</option>
-                                    <option value="10">Khối 10</option>
-                                    <option value="11">Khối 11</option>
-                                    <option value="12">Khối 12</option>
-                                </select>
-                            </div>
-
-                            <div class="flex items-center gap-2">
-                                <button onclick="Tab6QuanTri.applyDefaultTemplate()" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold text-xs px-3 py-2 rounded-lg transition">
-                                    <i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Mẫu Chuẩn Toàn Trường
-                                </button>
-                                <button onclick="Tab6QuanTri.saveAllSchedules()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 py-2 rounded-lg shadow transition flex items-center gap-1">
-                                    <i class="fa-solid fa-floppy-disk"></i> Lưu Toàn Bộ CSDL
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Class Schedule Container Table/Cards -->
-                        <div id="schedule-cards-container" class="space-y-4">
-                            <div class="text-center py-12 text-gray-400">
-                                <i class="fa-solid fa-spinner fa-spin text-3xl mb-2"></i>
-                                <p>Đang tải danh sách Lớp & Cấu hình thời gian học từ Supabase...</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- SUBTAB 2 & 3 PLACEHOLDERS -->
-                    <div id="subtab-content-2" class="hidden p-4 text-gray-500">Chức năng Quản lý Cán bộ...</div>
-                    <div id="subtab-content-3" class="hidden p-4 text-gray-500">Chức năng Quản lý Danh sách Học sinh...</div>
-
-                </div>
-            </section>
-
-        </main>
-    </div>
-
-    <!-- JS Files -->
-    <script src="js/config.js"></script>
-    <script src="js/auth.js"></script>
-    <script src="js/tab1-qr.js"></script>
-    <script src="js/tab6-quantri.js"></script>
-    <script src="js/app.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>
