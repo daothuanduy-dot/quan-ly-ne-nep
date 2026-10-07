@@ -1,64 +1,65 @@
 <!doctype html>
 <html lang="vi">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Quản lý nề nếp & thi đua — V3.0.3</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Quản lý nề nếp & thi đua — V3.0.4</title>
 <link rel="stylesheet" href="./css/app.css">
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+<script src="https://unpkg.com/html5-qrcode" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
 </head>
 <body>
 <div id="loginView" class="login-wrap">
   <div class="login-card">
-    <div class="brand"><h1>Quản lý nề nếp & thi đua</h1><p>THPT Lê Hồng Phong · V3.0.3</p></div>
+    <div class="brand"><div class="brand-icon">🏫</div><h1>Quản lý nề nếp & thi đua</h1><p>THPT Lê Hồng Phong · V3.0.4</p></div>
     <form id="loginForm">
-      <label>Mã cán bộ<input id="username" required autocomplete="username"></label>
-      <label>Mật khẩu<input id="password" type="password" required autocomplete="current-password"></label>
-      <label class="inline"><input id="remember" type="checkbox"> Ghi nhớ mã cán bộ</label>
-      <button class="btn primary" type="submit">Đăng nhập</button>
+      <label>Mã cán bộ<input id="username" autocomplete="username" required></label>
+      <label>Mật khẩu<input id="password" type="password" autocomplete="current-password" required></label>
+      <button class="btn primary full" type="submit">Đăng nhập</button>
       <div id="loginError" class="error"></div>
     </form>
   </div>
 </div>
 
-<div id="appView" class="hidden">
-<header class="topbar">
-  <div class="brand-mini"><b>THPT Lê Hồng Phong</b><span>Quản lý nề nếp & thi đua · V3.0.3</span></div>
-  <div id="userBox"></div><button id="logoutBtn" class="btn danger">Đăng xuất</button>
-</header>
-<nav id="mainTabs" class="main-tabs">
-  <button data-tab="qr">Quét QR Đi Muộn</button>
-  <button data-tab="baovang">Báo Vắng Học Sinh</button>
-  <button data-tab="chamdiem">Chấm Điểm Thi Đua</button>
-  <button data-tab="thongke">Thống Kê Biểu Đồ</button>
-  <button data-tab="xeploai">Xếp Loại & Danh Hiệu</button>
-  <button data-tab="quantri">Quản Trị Hệ Thống</button>
-</nav>
+<div id="appView" class="app hidden">
+  <header class="topbar">
+    <div class="brand-mini"><span class="brand-icon small">🏫</span><div><b>THPT Lê Hồng Phong</b><small>Quản lý nề nếp & thi đua · V3.0.4</small></div></div>
+    <div class="top-actions"><div id="userBox"></div><button id="logoutBtn" class="btn light">Đăng xuất</button></div>
+  </header>
+  <nav id="mainTabs" class="main-tabs">
+    <button class="main-tab" data-tab="qr">📷 <span>Quét QR Đi Muộn</span></button>
+    <button class="main-tab" data-tab="baovang">📋 <span>Báo Vắng Học Sinh</span></button>
+    <button class="main-tab" data-tab="chamdiem">⭐ <span>Chấm Điểm Thi Đua</span></button>
+    <button class="main-tab" data-tab="thongke">📊 <span>Thống Kê Biểu Đồ</span></button>
+    <button class="main-tab" data-tab="xeploai">🏆 <span>Xếp Loại & Danh Hiệu</span></button>
+    <button class="main-tab" data-tab="quantri">⚙️ <span>Quản Trị Hệ Thống</span></button>
+  </nav>
 
-<main id="main">
-<section id="page-qr" class="page hidden"><div id="qrRoot"></div></section>
-<section id="page-baovang" class="page hidden"><div id="baovangRoot"></div></section>
-<section id="page-chamdiem" class="page hidden"><div id="chamdiemRoot"></div></section>
-<section id="page-thongke" class="page hidden"><div id="thongkeRoot"></div></section>
-<section id="page-xeploai" class="page hidden"><div id="xeploaiRoot"></div></section>
-<section id="page-quantri" class="page hidden">
-  <div class="card">
-    <div class="section-head"><div><h2>Quản Trị Hệ Thống</h2><p>7 chức năng là sub-tab của Tab 6.</p></div></div>
-    <div id="adminTabs" class="subtabs">
-      <button data-admin="students">Quản lý học sinh</button>
-      <button data-admin="import">Nhập học sinh từ Excel</button>
-      <button data-admin="staff">Quản lý cán bộ</button>
-      <button data-admin="schedule">TKB và TG học</button>
-      <button data-admin="transfer">Kết chuyển năm và TN</button>
-      <button data-admin="criteria">Quản lý tiêu chí</button>
-      <button data-admin="permissions">Phân quyền sử dụng chức năng</button>
-    </div>
-    <div id="adminRoot"></div>
-  </div>
-</section>
-</main>
-<div id="toast"></div>
-<div id="modalRoot"></div>
+  <main>
+    <section id="page-qr" class="page hidden"></section>
+    <section id="page-baovang" class="page hidden"></section>
+    <section id="page-chamdiem" class="page hidden"></section>
+    <section id="page-thongke" class="page hidden"></section>
+    <section id="page-xeploai" class="page hidden"></section>
+    <section id="page-quantri" class="page hidden">
+      <div class="panel">
+        <div class="page-head"><div><h2>Quản Trị Hệ Thống</h2><p>7 chức năng quản trị được tổ chức thành sub-tab.</p></div></div>
+        <div id="adminTabs" class="subtabs">
+          <button data-admin="students">👨‍🎓 Quản lý học sinh</button>
+          <button data-admin="import">📥 Nhập học sinh từ Excel</button>
+          <button data-admin="staff">👥 Quản lý cán bộ</button>
+          <button data-admin="schedule">🕒 TKB và TG học</button>
+          <button data-admin="transfer">🔄 Kết chuyển năm và TN</button>
+          <button data-admin="criteria">📝 Quản lý tiêu chí</button>
+          <button data-admin="permissions">🔐 Phân quyền sử dụng chức năng</button>
+        </div>
+        <div id="adminContent"></div>
+      </div>
+    </section>
+  </main>
 </div>
+<div id="toast" class="toast hidden"></div>
+<div id="modalRoot"></div>
 <script type="module" src="./js/app.js"></script>
-</body></html>
+</body>
+</html>
