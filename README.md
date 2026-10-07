@@ -289,3 +289,13 @@ Migration 009 chuẩn bị `tuan_hoc`, `tiet`, `mon_hoc`, `nguon_cham` cho lịc
 - QR scanner hỗ trợ QR chứa mã học sinh thuần, chuỗi có nhãn "Mã HS:", URL, JSON hoặc chuỗi thẻ có kèm thông tin học sinh.
 - Khi QR được đọc, hệ thống tự trích mã học sinh, tra cứu `ma_qr`/`ma_hs` và hiển thị hồ sơ học sinh; không dùng nguyên chuỗi QR làm mã tra cứu duy nhất.
 - Giao diện chỉ hiển thị mã HS sau khi đã nhận diện thành công; không hiển thị nguyên payload QR dài.
+
+## V3.0.5.8 — Sửa schema Báo vắng
+
+Nếu xuất hiện lỗi `Could not find the table 'public.bao_vang_lop' in the schema cache` hoặc `Could not find the 'nam_hoc' column of 'diem_danh_master' in the schema cache`, hãy chạy **một lần** file:
+
+`sql/011_v3_0_5_8_fix_bao_vang_schema.sql`
+
+File này bổ sung các bảng/cột còn thiếu và gửi `NOTIFY pgrst, 'reload schema'` để PostgREST làm mới schema cache.
+
+Sau khi SQL chạy thành công, tải lại GitHub Pages bằng `Ctrl + F5`.
