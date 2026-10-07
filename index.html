@@ -1,22 +1,117 @@
-<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0f4c81"><title>Quản lý nề nếp & thi đua · v3.0.1</title><style>
-:root{--p:#0f4c81;--bg:#f4f7fb;--bd:#dbe3ec;--txt:#1f2937;--mut:#6b7280;--danger:#b42318;--ok:#18794e}*{box-sizing:border-box}body{margin:0;font:14px Arial,sans-serif;background:var(--bg);color:var(--txt)}button,input,select{font:inherit}.hidden{display:none!important}.top{background:linear-gradient(135deg,#0f4c81,#0b355c);color:#fff;padding:14px 22px;display:flex;justify-content:space-between;gap:15px;align-items:center}.brand{display:flex;gap:12px;align-items:center}.logo{width:42px;height:42px;border-radius:50%;background:#fff;color:#0f4c81;display:grid;place-items:center;font-weight:bold}.brand h1{font-size:18px;margin:0}.brand small{opacity:.8}.user{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.btn{border:1px solid var(--bd);background:#fff;border-radius:8px;padding:8px 12px;cursor:pointer;font-weight:600}.btn-primary{background:var(--p);border-color:var(--p);color:#fff}.btn-danger{background:var(--danger);border-color:var(--danger);color:#fff}.btn-success{background:var(--ok);border-color:var(--ok);color:#fff}.btn-sm{padding:6px 9px;font-size:12px}.login{min-height:calc(100vh - 70px);display:grid;place-items:center;padding:20px}.login-card,.card{background:#fff;border:1px solid var(--bd);border-radius:12px;box-shadow:0 3px 14px #0f4c8112;padding:16px}.login-card{width:min(430px,100%);padding:26px}.field{margin:0 0 12px}.field label{display:block;font-weight:700;font-size:13px;margin-bottom:5px}.field input,.field select{width:100%;padding:9px;border:1px solid var(--bd);border-radius:8px}.msg{min-height:22px;color:var(--danger);font-size:13px}.nav{display:flex;gap:3px;overflow:auto;background:#fff;border-bottom:1px solid var(--bd);position:sticky;top:0;z-index:10}.main-tab,.admin-tab{border:0;background:transparent;padding:12px 14px;cursor:pointer;font-weight:700;color:#64748b;white-space:nowrap;border-bottom:3px solid transparent}.main-tab.active,.admin-tab.active{color:var(--p);border-bottom-color:var(--p)}.page{max-width:1500px;margin:auto;padding:18px}.pane,.admin-pane{display:none}.pane.active,.admin-pane.active{display:block}.title{margin-bottom:15px}.title h2{margin:0;color:var(--p)}.title p,.hint{color:var(--mut);line-height:1.5}.grid{display:grid;gap:14px}.g2{grid-template-columns:repeat(2,minmax(0,1fr))}.g3{grid-template-columns:repeat(3,minmax(0,1fr))}.g4{grid-template-columns:repeat(4,minmax(0,1fr))}.stat{background:#fff;border:1px solid var(--bd);border-radius:12px;padding:16px}.stat small{color:var(--mut)}.stat strong{display:block;font-size:25px;color:var(--p);margin-top:5px}.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}.grow{flex:1;min-width:220px}.table-wrap{overflow:auto;border:1px solid var(--bd);border-radius:8px}table{width:100%;border-collapse:collapse;min-width:700px}th,td{padding:8px 9px;border-bottom:1px solid var(--bd);text-align:left}th{background:#f7fafc;white-space:nowrap}.empty{text-align:center;color:var(--mut);padding:28px}.admin-nav{display:flex;overflow:auto;border-bottom:1px solid var(--bd);margin-bottom:15px}.modal-bg{display:none;position:fixed;inset:0;background:#0007;z-index:50;align-items:center;justify-content:center;padding:20px}.modal-bg.open{display:flex}.modal{background:#fff;width:min(760px,100%);max-height:90vh;overflow:auto;border-radius:12px}.mh,.mf{padding:12px 16px;border-bottom:1px solid var(--bd);display:flex;justify-content:space-between;align-items:center}.mf{border-top:1px solid var(--bd);border-bottom:0;justify-content:flex-end;gap:8px}.mb{padding:16px}.toast{position:fixed;right:18px;bottom:18px;background:#1f2937;color:#fff;padding:11px 14px;border-radius:8px;display:none;z-index:100;max-width:500px}.toast.show{display:block}.toast.ok{background:var(--ok)}.toast.err{background:var(--danger)}@media(max-width:800px){.g4,.g3{grid-template-columns:repeat(2,1fr)}.g2{grid-template-columns:1fr}.top{align-items:flex-start;flex-direction:column}}@media(max-width:550px){.g4,.g3{grid-template-columns:1fr}.page{padding:10px}}
-</style></head><body>
-<header class="top"><div class="brand"><div class="logo">LP</div><div><h1>QUẢN LÝ NỀ NẾP & THI ĐUA <small>v3.0.1</small></h1><small>THPT Lê Hồng Phong · Năm học <span id="namHocLabel">2026-2027</span></small></div></div><div class="user"><span id="userInfo">Chưa đăng nhập</span><button id="btnRefresh" class="btn btn-sm">↻ Làm mới</button><button id="btnLogout" class="btn btn-sm btn-danger">Đăng xuất</button></div></header>
-<section id="loginView" class="login"><div class="login-card"><h2 style="color:#0f4c81">Đăng nhập hệ thống</h2><p class="hint">Mã cán bộ và mật khẩu được kiểm tra trực tiếp qua Supabase.</p><form id="loginForm"><div class="field"><label for="loginUsername">Mã cán bộ</label><input id="loginUsername" required autocomplete="username"></div><div class="field"><label for="loginPassword">Mật khẩu</label><input id="loginPassword" type="password" required autocomplete="current-password"></div><div class="field"><label><input type="checkbox" id="rememberLogin"> Ghi nhớ mã cán bộ</label></div><div id="loginMessage" class="msg"></div><button type="submit" class="btn btn-primary" style="width:100%">Đăng nhập</button></form></div></section>
-<main id="appShell" class="hidden"><nav class="nav"><button class="main-tab active" data-tab="qr" data-permission="qr">1. Quét QR Đi Muộn</button><button class="main-tab" data-tab="vang" data-permission="vang">2. Báo Vắng Học Sinh</button><button class="main-tab" data-tab="diem" data-permission="diem">3. Chấm Điểm Thi Đua</button><button class="main-tab" data-tab="thongke" data-permission="thongke">4. Thống Kê Biểu Đồ</button><button class="main-tab" data-tab="xeploai" data-permission="xeploai">5. Xếp Loại & Danh Hiệu</button><button class="main-tab" data-tab="quantri" data-permission="quantri">6. Quản Trị Hệ Thống</button></nav><div class="page">
-<section class="pane active" data-pane="qr"><div class="title"><h2>Quét QR Đi Muộn</h2><p>Tra cứu học sinh. Bước ghi nhận chính thức sẽ đối chiếu <code>cai_dat_thoi_gian</code> trước khi ghi <code>diem_danh_master</code>.</p></div><div class="grid g3"><div class="stat"><small>Ngày</small><strong id="qrDate">—</strong></div><div class="stat"><small>Buổi</small><strong id="qrSession">—</strong></div><div class="stat"><small>Trạng thái</small><strong id="qrStatus">Sẵn sàng</strong></div></div><div class="card" style="margin-top:15px"><div class="field"><label>Mã QR / Mã học sinh</label><input id="qrInput" placeholder="Nhập hoặc quét mã..."></div><button id="btnQrProcess" class="btn btn-primary">Tra cứu</button></div><div id="qrResult" class="card"></div></section>
-<section class="pane" data-pane="vang"><div class="title"><h2>Báo Vắng Học Sinh</h2><p>Khu vực nghiệp vụ báo vắng.</p></div><div class="card">Module nghiệp vụ sẽ nối vào CSDL sau khi hoàn thiện nền đăng nhập v3.</div></section>
-<section class="pane" data-pane="diem"><div class="title"><h2>Chấm Điểm Thi Đua</h2><p>Khu vực chấm điểm theo danh mục hành vi.</p></div><div class="card">Module nghiệp vụ sẽ nối vào <code>danh_muc_diem</code>.</div></section>
-<section class="pane" data-pane="thongke"><div class="title"><h2>Thống Kê Biểu Đồ</h2><p>Số liệu được truy vấn trực tiếp từ Supabase.</p></div><div class="grid g4"><div class="stat"><small>Học sinh</small><strong id="statStudents">—</strong></div><div class="stat"><small>Cán bộ</small><strong id="statStaff">—</strong></div><div class="stat"><small>Lớp</small><strong id="statClasses">—</strong></div><div class="stat"><small>Tiêu chí</small><strong id="statCriteria">—</strong></div></div></section>
-<section class="pane" data-pane="xeploai"><div class="title"><h2>Xếp Loại & Danh Hiệu</h2><p>Khu vực xếp loại.</p></div><div class="card">Module nghiệp vụ sẽ nối sau khi nền dữ liệu ổn định.</div></section>
-<section class="pane" data-pane="quantri"><div class="title"><h2>Quản Trị Hệ Thống</h2><p><strong>7 chức năng là sub-tab của Tab 6.</strong></p></div><div class="admin-nav"><button class="admin-tab active" data-tab="students">Quản lý học sinh</button><button class="admin-tab" data-tab="import">Nhập học sinh từ Excel</button><button class="admin-tab" data-tab="staff">Quản lý cán bộ</button><button class="admin-tab" data-tab="schedule">TKB và TG học</button><button class="admin-tab" data-tab="transfer">Kết chuyển năm và TN</button><button class="admin-tab" data-tab="criteria">Quản lý tiêu chí</button><button class="admin-tab" data-tab="permissions">Phân quyền sử dụng chức năng</button></div>
-<section class="admin-pane active" data-admin="students"><div class="card"><h3>Quản lý học sinh</h3><div class="toolbar"><input id="studentSearch" class="btn grow" style="text-align:left" placeholder="Tìm mã HS, họ tên, lớp..."><select id="studentGradeFilter" class="btn"><option value="">Tất cả khối</option><option>10</option><option>11</option><option>12</option></select><select id="studentClassFilter" class="btn"><option value="">Tất cả lớp</option></select><button id="btnStudentAdd" class="btn btn-primary">+ Thêm</button><button id="btnStudentReload" class="btn">↻</button></div><div class="table-wrap"><table><thead><tr><th>Mã HS</th><th>Họ tên</th><th>Khối</th><th>Lớp</th><th>Ngày sinh</th><th>Trạng thái</th><th>Thao tác</th></tr></thead><tbody id="studentTableBody"></tbody></table></div></div></section>
-<section class="admin-pane" data-admin="import"><div class="card"><h3>Nhập học sinh từ Excel</h3><p class="hint">Bản v3 lõi nhận CSV để tránh phụ thuộc thư viện. Sau khi nền ổn định sẽ nối SheetJS.</p><div class="toolbar"><button id="btnDownloadTemplate" class="btn btn-success">Tải mẫu CSV</button><input id="excelFile" type="file" accept=".csv" class="btn"><button id="btnImportPreview" class="btn btn-primary">Xem trước</button><button id="btnImportCommit" class="btn">Ghi CSDL</button></div><div id="importPreview" class="card"></div></div></section>
-<section class="admin-pane" data-admin="staff"><div class="card"><h3>Quản lý cán bộ</h3><div class="toolbar"><input id="staffSearch" class="btn grow" style="text-align:left" placeholder="Tìm mã CB, họ tên..."><button id="btnStaffAdd" class="btn btn-primary">+ Thêm</button><button id="btnStaffReload" class="btn">↻</button></div><div class="table-wrap"><table><thead><tr><th>Mã CB</th><th>Họ tên</th><th>Vai trò</th><th>Lớp quản lý</th><th>Thao tác</th></tr></thead><tbody id="staffTableBody"></tbody></table></div></div></section>
-<section class="admin-pane" data-admin="schedule"><div class="grid g2"><div class="card"><h3>TKB và thời gian học</h3><p class="hint">Bảng <code>thoi_gian_hoc</code>.</p></div><div class="card"><h3>Cửa sổ điểm danh</h3><p class="hint">Bảng <code>cai_dat_thoi_gian</code>.</p></div></div></section>
-<section class="admin-pane" data-admin="transfer"><div class="card"><h3>Kết chuyển năm và tốt nghiệp</h3><div class="grid g3"><div class="field"><label>Năm học</label><input id="transferCurrentYear" readonly></div><div class="field"><label>Năm tiếp theo</label><input id="transferNextYear" readonly></div><div class="field"><label>Trạng thái</label><input id="transferStatus" readonly value="Sẵn sàng"></div></div><div class="toolbar"><button id="btnPreviewTransfer" class="btn">Xem trước</button><button id="btnExecuteTransfer" class="btn">Kết chuyển</button><button id="btnGraduate" class="btn btn-primary">Đánh dấu TN khối 12</button></div><div id="transferPreview" class="table-wrap"></div></div></section>
-<section class="admin-pane" data-admin="criteria"><div class="card"><h3>Quản lý tiêu chí</h3><div class="toolbar"><input id="criteriaSearch" class="btn grow" style="text-align:left" placeholder="Tìm mã/tên hành vi..."><button id="btnCriteriaAdd" class="btn btn-primary">+ Thêm</button><button id="btnCriteriaReload" class="btn">↻</button></div><div class="table-wrap"><table><thead><tr><th>Mã HĐ</th><th>Tên HĐ</th><th>Mảng</th><th>Loại</th><th>Điểm</th><th>Thao tác</th></tr></thead><tbody id="criteriaTableBody"></tbody></table></div></div></section>
-<section class="admin-pane" data-admin="permissions"><div class="card"><h3>Phân quyền sử dụng chức năng</h3><p class="hint">v3 chỉ hiển thị trạng thái. Không tự ý ghi quyền vào sai bảng.</p><div class="toolbar"><input id="permissionSearch" class="btn grow" style="text-align:left" placeholder="Tìm cán bộ..."><button id="btnPermissionReload" class="btn">↻</button></div><div id="permissionModule"></div></div></section>
-</section><p class="hint" style="text-align:center">THPT Lê Hồng Phong · Quản lý nề nếp & thi đua · v3.0.1</p></div></main>
-<div id="modalBackdrop" class="modal-bg"><div class="modal"><div class="mh"><h3 id="modalTitle">Biểu mẫu</h3><button id="modalClose" class="btn">✕</button></div><div id="modalBody" class="mb"></div><div class="mf"><button id="modalCancel" class="btn">Hủy</button><button id="modalSave" class="btn btn-primary">Lưu</button></div></div></div><div id="toast" class="toast"></div>
-<script type="module" src="./js/app.js"></script></body></html>
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Quản lý nề nếp & thi đua — V3.0.2</title>
+  <meta name="theme-color" content="#0f766e">
+  <style>
+    :root{--primary:#0f766e;--primary2:#115e59;--bg:#f3f6f8;--card:#fff;--text:#17202a;--muted:#64748b;--border:#dbe3e8;--danger:#dc2626;--ok:#15803d}
+    *{box-sizing:border-box} body{margin:0;font-family:Inter,Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--text)}
+    button,input,select{font:inherit} button{cursor:pointer}
+    .hidden{display:none!important}
+    .login-wrap{min-height:100vh;display:grid;place-items:center;padding:24px}
+    .login-card{width:min(430px,100%);background:#fff;border:1px solid var(--border);border-radius:18px;padding:30px;box-shadow:0 16px 50px #00000012}
+    .brand{text-align:center;margin-bottom:22px}.brand h1{margin:0 0 8px;font-size:24px}.brand p{margin:0;color:var(--muted)}
+    .field{margin:14px 0}.field label{display:block;font-weight:600;margin-bottom:7px}
+    .field input{width:100%;padding:12px 13px;border:1px solid var(--border);border-radius:10px;outline:none}
+    .field input:focus{border-color:var(--primary);box-shadow:0 0 0 3px #0f766e18}
+    .btn{border:0;border-radius:10px;padding:11px 15px;background:var(--primary);color:#fff;font-weight:650}
+    .btn:hover{background:var(--primary2)} .btn.secondary{background:#e8eef0;color:#17202a}.btn.danger{background:var(--danger)}
+    .login-card .btn{width:100%;margin-top:8px}.error{color:var(--danger);min-height:20px;margin-top:10px;font-size:14px}
+    .app{min-height:100vh}.topbar{background:#fff;border-bottom:1px solid var(--border);padding:12px 18px;display:flex;align-items:center;gap:18px;position:sticky;top:0;z-index:20}
+    .topbar .school{font-weight:800}.topbar .version{font-size:12px;color:var(--muted);font-weight:500}
+    .userbox{margin-left:auto;display:flex;align-items:center;gap:10px;font-size:14px}.userbox strong{display:block}.userbox small{color:var(--muted)}
+    .tabs{background:#fff;border-bottom:1px solid var(--border);display:flex;gap:4px;padding:0 12px;overflow:auto}
+    .tab{border:0;background:transparent;padding:14px 15px;color:#475569;border-bottom:3px solid transparent;white-space:nowrap}
+    .tab.active{color:var(--primary);border-bottom-color:var(--primary);font-weight:700}
+    main{padding:18px;max-width:1500px;margin:auto}.panel{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px}
+    .page-title{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}.page-title h2{margin:0;font-size:20px}.page-title p{margin:4px 0 0;color:var(--muted);font-size:14px}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px}.stat{padding:18px;border:1px solid var(--border);border-radius:12px;background:#fff}.stat .n{font-size:30px;font-weight:800}.stat .l{color:var(--muted);margin-top:4px}
+    .admin-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:15px;border-bottom:1px solid var(--border);padding-bottom:10px}
+    .admin-tab{border:1px solid var(--border);background:#fff;border-radius:9px;padding:9px 12px}.admin-tab.active{background:#e6f5f3;border-color:#91d7ce;color:var(--primary2);font-weight:700}
+    .notice{padding:12px 14px;border-radius:10px;background:#f0fdfa;border:1px solid #b7ebe4;color:#115e59;margin-bottom:14px}
+    .warning{background:#fff7ed;border-color:#fed7aa;color:#9a3412}.danger-box{background:#fef2f2;border:1px solid #fecaca;color:#991b1b;padding:12px 14px;border-radius:10px}
+    .placeholder{padding:35px;text-align:center;color:var(--muted);border:1px dashed var(--border);border-radius:12px}
+    .toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}.toolbar input{padding:10px 12px;border:1px solid var(--border);border-radius:9px;min-width:240px}
+    .table-wrap{overflow:auto;border:1px solid var(--border);border-radius:10px}.table{width:100%;border-collapse:collapse;font-size:14px}.table th,.table td{padding:10px 12px;border-bottom:1px solid var(--border);text-align:left;vertical-align:middle}.table th{background:#f8fafc;white-space:nowrap}.table tr:last-child td{border-bottom:0}
+    .check-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:10px}.check-item{border:1px solid var(--border);border-radius:10px;padding:11px;background:#fff}.check-item label{display:flex;gap:9px;align-items:flex-start;cursor:pointer}.check-item input{margin-top:3px}
+    .badge{display:inline-flex;padding:3px 8px;border-radius:999px;background:#e2e8f0;font-size:12px;font-weight:650}.badge.ok{background:#dcfce7;color:#166534}.badge.admin{background:#ede9fe;color:#6d28d9}
+    .toast{position:fixed;right:18px;bottom:18px;z-index:100;padding:12px 16px;border-radius:10px;background:#17202a;color:#fff;box-shadow:0 10px 30px #0003;max-width:min(520px,calc(100vw - 36px))}
+    .toast.ok{background:#166534}.toast.err{background:#991b1b}
+    .footer{color:var(--muted);font-size:12px;margin-top:18px;text-align:center}
+    @media(max-width:720px){.topbar{align-items:flex-start}.userbox{display:none}main{padding:10px}.panel{padding:13px}}
+  </style>
+</head>
+<body>
+  <section id="loginView" class="login-wrap">
+    <div class="login-card">
+      <div class="brand">
+        <h1>Quản lý nề nếp & thi đua</h1>
+        <p>THPT Lê Hồng Phong · Phiên bản V3.0.2</p>
+      </div>
+      <form id="loginForm">
+        <div class="field"><label for="username">Mã cán bộ</label><input id="username" autocomplete="username" required></div>
+        <div class="field"><label for="password">Mật khẩu</label><input id="password" type="password" autocomplete="current-password" required></div>
+        <button class="btn" type="submit">Đăng nhập</button>
+        <div id="loginError" class="error"></div>
+      </form>
+    </div>
+  </section>
+
+  <section id="appView" class="app hidden">
+    <header class="topbar">
+      <div><div class="school">THPT Lê Hồng Phong</div><div class="version">Quản lý nề nếp & thi đua · V3.0.2</div></div>
+      <div id="userBox" class="userbox"></div>
+      <button id="logoutBtn" class="btn secondary">Đăng xuất</button>
+    </header>
+
+    <nav id="mainTabs" class="tabs" aria-label="Chức năng chính">
+      <button class="tab" data-tab="qr">Quét QR Đi Muộn</button>
+      <button class="tab" data-tab="baovang">Báo Vắng Học Sinh</button>
+      <button class="tab" data-tab="chamdiem">Chấm Điểm Thi Đua</button>
+      <button class="tab" data-tab="thongke">Thống Kê Biểu Đồ</button>
+      <button class="tab" data-tab="xeploai">Xếp Loại & Danh Hiệu</button>
+      <button class="tab" data-tab="quantri">Quản Trị Hệ Thống</button>
+    </nav>
+
+    <main>
+      <section id="page-qr" class="page hidden">
+        <div class="panel"><div class="page-title"><div><h2>Quét QR Đi Muộn</h2><p>Module khung V3.0.2 — sẵn sàng gắn nghiệp vụ quét QR.</p></div></div><div class="placeholder">Module QR được tách khỏi cơ chế phân quyền. Khi mở rộng, chỉ cần gắn module nghiệp vụ vào trang này.</div></div>
+      </section>
+      <section id="page-baovang" class="page hidden"><div class="panel"><div class="page-title"><div><h2>Báo Vắng Học Sinh</h2><p>Module khung V3.0.2.</p></div></div><div class="placeholder">Khu vực nghiệp vụ báo vắng.</div></div></section>
+      <section id="page-chamdiem" class="page hidden"><div class="panel"><div class="page-title"><div><h2>Chấm Điểm Thi Đua</h2><p>Module khung V3.0.2.</p></div></div><div class="placeholder">Khu vực nghiệp vụ chấm điểm.</div></div></section>
+      <section id="page-thongke" class="page hidden"><div class="panel"><div class="page-title"><div><h2>Thống Kê Biểu Đồ</h2><p>Module khung V3.0.2.</p></div></div><div class="placeholder">Khu vực thống kê và biểu đồ.</div></div></section>
+      <section id="page-xeploai" class="page hidden"><div class="panel"><div class="page-title"><div><h2>Xếp Loại & Danh Hiệu</h2><p>Module khung V3.0.2.</p></div></div><div class="placeholder">Khu vực xếp loại và danh hiệu.</div></div></section>
+
+      <section id="page-quantri" class="page hidden">
+        <div class="panel">
+          <div class="page-title"><div><h2>Quản Trị Hệ Thống</h2><p>7 chức năng là các <strong>sub-tab</strong> của Tab 6.</p></div></div>
+          <div id="adminTabs" class="admin-tabs">
+            <button class="admin-tab" data-admin-tab="students">Quản lý học sinh</button>
+            <button class="admin-tab" data-admin-tab="import">Nhập học sinh từ Excel</button>
+            <button class="admin-tab" data-admin-tab="staff">Quản lý cán bộ</button>
+            <button class="admin-tab" data-admin-tab="schedule">TKB và TG học</button>
+            <button class="admin-tab" data-admin-tab="transfer">Kết chuyển năm và TN</button>
+            <button class="admin-tab" data-admin-tab="criteria">Quản lý tiêu chí</button>
+            <button class="admin-tab" data-admin-tab="permissions">Phân quyền sử dụng chức năng</button>
+          </div>
+
+          <div id="admin-students" class="admin-page hidden"><div class="placeholder">Quản lý học sinh — module nghiệp vụ sẽ được gắn vào shell V3.0.2.</div></div>
+          <div id="admin-import" class="admin-page hidden"><div class="placeholder">Nhập học sinh từ Excel — module nghiệp vụ sẽ được gắn vào shell V3.0.2.</div></div>
+          <div id="admin-staff" class="admin-page hidden"><div class="placeholder">Quản lý cán bộ — module nghiệp vụ sẽ được gắn vào shell V3.0.2.</div></div>
+          <div id="admin-schedule" class="admin-page hidden"><div class="placeholder">TKB và TG học — module nghiệp vụ sẽ được gắn vào shell V3.0.2.</div></div>
+          <div id="admin-transfer" class="admin-page hidden"><div class="placeholder">Kết chuyển năm và TN — module nghiệp vụ sẽ được gắn vào shell V3.0.2.</div></div>
+          <div id="admin-criteria" class="admin-page hidden"><div class="placeholder">Quản lý tiêu chí — module nghiệp vụ sẽ được gắn vào shell V3.0.2.</div></div>
+          <div id="admin-permissions" class="admin-page hidden">
+            <div id="permissionsRoot"></div>
+          </div>
+        </div>
+      </section>
+      <div class="footer">V3.0.2 · Quyền chức năng lưu tại <code>can_bo.quyen_tabs</code>; không sử dụng <code>danh_sach.quyen_xep_loai</code>.</div>
+    </main>
+  </section>
+  <div id="toast" class="toast hidden"></div>
+  <script type="module" src="./js/app.js"></script>
+</body>
+</html>
