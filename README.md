@@ -205,3 +205,25 @@ Chạy file SQL 007 để biết CSDL hiện có thực sự các giá trị:
 - hoặc giá trị khác.
 
 Không tự động biến tiêu chí cá nhân thành tiêu chí tập thể.
+
+
+## V3.0.5.2 — Tối ưu giao diện chọn khối/lớp
+
+- Khối không còn là dropdown.
+- Các khối được hiển thị bằng radio button theo hàng ngang.
+- Khi chọn khối, hệ thống tải và hiển thị ngay các lớp thuộc khối đó bằng các nút lựa chọn.
+- Chọn lớp xong mới mở phần chọn **Tập thể / Cá nhân**.
+- Bố cục khối/lớp nằm trên cùng một hàng ở màn hình rộng, tự chuyển thành một cột trên màn hình hẹp.
+- Giữ nguyên cơ chế phân trang >1.000 học sinh và radio Điểm cộng/Điểm trừ của V3.0.5.1.
+
+
+## V3.0.5.3 — Tối ưu giao diện chọn khối/lớp
+
+- Không còn hiển thị radio khối/lớp theo từng dòng kéo dài xuống dưới.
+- Khối được bố trí trong một cụm lựa chọn gọn, rõ ràng.
+- Lớp được bố trí dạng lưới card/chip nhiều cột, tận dụng chiều ngang màn hình.
+- Lớp được tự động thay đổi theo khối.
+- Có hiển thị số lượng lớp thuộc khối đang chọn.
+- Lớp được chọn có màu nổi bật và dấu ✓.
+- Responsive: màn hình nhỏ tự giảm số cột.
+- Không thay đổi logic CSDL, phân trang học sinh, tiêu chí hoặc phân quyền.
