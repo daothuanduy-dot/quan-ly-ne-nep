@@ -21,7 +21,7 @@ async function renderShell(){
     <div class="page-head">
       <div>
         <h2>Chấm Điểm Thi Đua</h2>
-        <p>Chọn khối → lớp → đối tượng chấm. Điểm cộng/trừ lấy trực tiếp từ danh mục tiêu chí.</p>
+        <p>Chọn khối → lớp → đối tượng chấm. Danh mục điểm lấy trực tiếp từ CSDL.</p>
       </div>
       <span class="badge ok">Ghi lịch sử vào CSDL</span>
     </div>
@@ -42,7 +42,7 @@ async function renderShell(){
     <div id="scoreModeWrap" class="hidden">
       <div class="notice">
         <b>Đã chọn lớp:</b> <span id="scoreClassLabel"></span>.
-        Chọn hình thức chấm bên dưới.
+        Chọn hình thức chấm.
       </div>
       <div class="score-mode">
         <button type="button" data-mode="collective">
@@ -72,23 +72,36 @@ async function renderShell(){
   });
 }
 
-async function loadGrades(){
-  const {data,error}=await supabase
-    .from('danh_sach')
-    .select('khoi')
-    .eq('trang_thai','Active')
-    .not('khoi','is',null);
-
-  if(error){
-    return showError(error.message);
+async function fetchAll(queryFactory, chunk=1000){
+  const all=[];
+  let from=0;
+  while(true){
+    const {data,error}=await queryFactory().range(from,from+chunk-1);
+    if(error) throw error;
+    const rows=data||[];
+    all.push(...rows);
+    if(rows.length<chunk) break;
+    from+=chunk;
   }
+  return all;
+}
 
-  grades=[...new Set((data||[]).map(x=>String(x.khoi).trim()).filter(Boolean))]
-    .sort(naturalSort);
-
-  const select=root.querySelector('#scoreGrade');
-  select.innerHTML='<option value="">-- Chọn khối --</option>'+
-    grades.map(g=>`<option value="${esc(g)}">${esc(g)}</option>`).join('');
+async function loadGrades(){
+  try{
+    const data=await fetchAll(()=>supabase
+      .from('danh_sach')
+      .select('khoi')
+      .eq('trang_thai','Active')
+      .not('khoi','is',null)
+      .order('khoi'));
+    grades=[...new Set(data.map(x=>String(x.khoi).trim()).filter(Boolean))]
+      .sort(naturalSort);
+    root.querySelector('#scoreGrade').innerHTML=
+      '<option value="">-- Chọn khối --</option>'+
+      grades.map(g=>`<option value="${esc(g)}">${esc(g)}</option>`).join('');
+  }catch(e){
+    showError(e.message);
+  }
 }
 
 async function onGradeChange(){
@@ -104,21 +117,24 @@ async function onGradeChange(){
 
   if(!grade)return;
 
-  const {data,error}=await supabase
-    .from('danh_sach')
-    .select('lop')
-    .eq('trang_thai','Active')
-    .eq('khoi',grade)
-    .not('lop','is',null);
+  try{
+    const data=await fetchAll(()=>supabase
+      .from('danh_sach')
+      .select('lop')
+      .eq('trang_thai','Active')
+      .eq('khoi',grade)
+      .not('lop','is',null)
+      .order('lop'));
+    classes=[...new Set(data.map(x=>String(x.lop).trim()).filter(Boolean))]
+      .sort(naturalSort);
 
-  if(error)return showError(error.message);
-
-  classes=[...new Set((data||[]).map(x=>String(x.lop).trim()).filter(Boolean))]
-    .sort(naturalSort);
-
-  classSelect.innerHTML='<option value="">-- Chọn lớp --</option>'+
-    classes.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('');
-  classSelect.disabled=false;
+    classSelect.innerHTML=
+      '<option value="">-- Chọn lớp --</option>'+
+      classes.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('');
+    classSelect.disabled=false;
+  }catch(e){
+    showError(e.message);
+  }
 }
 
 async function onClassChange(){
@@ -133,21 +149,30 @@ async function onClassChange(){
     return;
   }
 
-  await loadStudents(grade,cls);
-  setMode('individual');
+  try{
+    await loadStudents(grade,cls);
+    setMode('individual');
+  }catch(e){
+    showError(e.message);
+  }
 }
 
 async function loadStudents(grade,cls){
-  const {data,error}=await supabase
+  // Không dùng .limit(1000). Dùng phân trang để không mất học sinh khi bảng > 1.000 dòng.
+  students=await fetchAll(()=>supabase
     .from('danh_sach')
     .select('ma_hs,ho_ten,khoi,lop,ngay_sinh,ma_qr,trang_thai')
     .eq('trang_thai','Active')
     .eq('khoi',grade)
     .eq('lop',cls)
-    .order('ho_ten');
+    .order('ho_ten'));
 
-  if(error)return showError(error.message);
-  students=data||[];
+  // Sắp xếp theo tên, sau đó ngày sinh để dễ nhận diện học sinh trùng tên.
+  students.sort((a,b)=>{
+    const n=String(a.ho_ten||'').localeCompare(String(b.ho_ten||''),'vi',{sensitivity:'base'});
+    if(n!==0)return n;
+    return String(a.ngay_sinh||'').localeCompare(String(b.ngay_sinh||''));
+  });
 }
 
 async function loadCriteria(){
@@ -158,7 +183,10 @@ async function loadCriteria(){
     .order('loai')
     .order('ten_hd');
 
-  if(error)return showError(error.message);
+  if(error){
+    showError(error.message);
+    return;
+  }
   criteria=data||[];
 }
 
@@ -172,60 +200,95 @@ function setMode(next){
 
 function renderScoreForm(){
   const wrap=root.querySelector('#scoreFormWrap');
+  const cls=root.querySelector('#scoreClass').value;
 
-  if(!root.querySelector('#scoreClass').value){
+  if(!cls){
     wrap.innerHTML='<div class="empty">Hãy chọn khối và lớp trước.</div>';
     return;
   }
 
-  const className=root.querySelector('#scoreClass').value;
-
   if(mode==='collective'){
-    const list=getCriteria('Tập thể');
-
-    wrap.innerHTML=`
-      <div class="score-form">
-        <div class="page-head">
-          <div>
-            <h3 style="margin:0">👥 Chấm điểm tập thể — lớp ${esc(className)}</h3>
-            <p>Chỉ hiển thị các tiêu chí dành cho tập thể.</p>
-          </div>
-        </div>
-
-        ${criteriaSelectHtml(list,'collectiveCriteria')}
-
-        <div id="collectiveSummary" class="score-summary">
-          Chưa chọn tiêu chí.
-        </div>
-
-        <div class="action-row">
-          <button id="saveCollective" class="btn primary">💾 Ghi thông tin vào CSDL</button>
-        </div>
-      </div>
-    `;
-
-    bindCriteriaPreview('collectiveCriteria','collectiveSummary');
-    root.querySelector('#saveCollective').onclick=saveCollective;
-    return;
+    renderCollective(wrap,cls);
+  }else{
+    renderIndividual(wrap);
   }
+}
 
-  const individualCriteria=getCriteria('Cá nhân');
+function renderCollective(wrap,cls){
+  const list=getCriteria('Tập thể');
+  const note=list.length
+    ? ''
+    : `<div class="score-no-criteria">
+         <b>Chưa có tiêu chí chấm cho tập thể trong CSDL.</b><br>
+         Kiểm tra trường <code>danh_muc_diem.doi_tuong</code>.
+         Cần có giá trị như <code>Tập thể</code> (hoặc <code>Tập thể lớp</code>).
+         Anh có thể vào <b>Quản trị → Quản lý tiêu chí</b> để tạo tiêu chí tập thể.
+       </div>`;
 
   wrap.innerHTML=`
     <div class="score-form">
       <div class="page-head">
         <div>
-          <h3 style="margin:0">👨‍🎓 Chấm điểm cá nhân</h3>
-          <p>Chọn học sinh trong lớp, sau đó chọn tiêu chí cộng/trừ.</p>
+          <h3 style="margin:0">👥 Chấm điểm tập thể — lớp ${esc(cls)}</h3>
+          <p>Chỉ hiển thị tiêu chí được đánh dấu đối tượng tập thể.</p>
         </div>
       </div>
 
+      ${note}
+
+      <label>Chọn loại điểm</label>
+      <div class="score-radio-group">
+        <label class="score-radio plus">
+          <input type="radio" name="collectiveType" value="plus">
+          <span class="radio-dot"></span>
+          <span>➕ Điểm cộng</span>
+        </label>
+        <label class="score-radio minus">
+          <input type="radio" name="collectiveType" value="minus">
+          <span class="radio-dot"></span>
+          <span>➖ Điểm trừ</span>
+        </label>
+      </div>
+
+      <label style="margin-top:15px">Danh mục nội dung
+        <select id="collectiveCriteria" ${list.length?'':'disabled'}>
+          <option value="">-- Chọn điểm cộng/trừ trước --</option>
+        </select>
+      </label>
+
+      <div id="collectiveSummary" class="score-summary">
+        Chưa chọn tiêu chí.
+      </div>
+
+      <div class="action-row">
+        <button id="saveCollective" class="btn primary" ${list.length?'':'disabled'}>
+          💾 Ghi thông tin vào CSDL
+        </button>
+      </div>
+    </div>
+  `;
+
+  bindRadioCriteria('collectiveType','collectiveCriteria','collectiveSummary','Tập thể');
+  root.querySelector('#saveCollective').onclick=saveCollective;
+}
+
+function renderIndividual(wrap){
+  wrap.innerHTML=`
+    <div class="score-form">
+      <div class="page-head">
+        <div>
+          <h3 style="margin:0">👨‍🎓 Chấm điểm cá nhân</h3>
+          <p>Chọn học sinh theo <b>họ tên + ngày sinh</b>; không hiển thị mã định danh.</p>
+        </div>
+        <span class="badge">${students.length} học sinh</span>
+      </div>
+
       <label>Chọn học sinh
-        <select id="scoreStudent">
+        <select id="scoreStudent" class="score-student-select">
           <option value="">-- Chọn học sinh --</option>
-          ${students.map(s=>`
-            <option value="${esc(s.ma_hs)}">
-              ${esc(s.ho_ten)} — ${esc(s.ma_hs)}
+          ${students.map((s,i)=>`
+            <option value="${esc(String(i))}">
+              ${esc(s.ho_ten)} — ${formatDate(s.ngay_sinh)}
             </option>
           `).join('')}
         </select>
@@ -233,7 +296,25 @@ function renderScoreForm(){
 
       <div id="scoreStudentCard"></div>
 
-      ${criteriaSelectHtml(individualCriteria,'individualCriteria')}
+      <label style="margin-top:15px">Chọn loại điểm</label>
+      <div class="score-radio-group">
+        <label class="score-radio plus">
+          <input type="radio" name="individualType" value="plus">
+          <span class="radio-dot"></span>
+          <span>➕ Điểm cộng</span>
+        </label>
+        <label class="score-radio minus">
+          <input type="radio" name="individualType" value="minus">
+          <span class="radio-dot"></span>
+          <span>➖ Điểm trừ</span>
+        </label>
+      </div>
+
+      <label style="margin-top:15px">Danh mục nội dung
+        <select id="individualCriteria">
+          <option value="">-- Chọn điểm cộng/trừ trước --</option>
+        </select>
+      </label>
 
       <div id="individualSummary" class="score-summary">
         Chưa chọn học sinh và tiêu chí.
@@ -246,67 +327,57 @@ function renderScoreForm(){
   `;
 
   root.querySelector('#scoreStudent').onchange=renderStudentCard;
-  bindCriteriaPreview('individualCriteria','individualSummary');
+  bindRadioCriteria('individualType','individualCriteria','individualSummary','Cá nhân');
   root.querySelector('#saveIndividual').onclick=saveIndividual;
 }
 
-function criteriaSelectHtml(list,id){
-  const plus=list.filter(isPlus);
-  const minus=list.filter(isMinus);
+function bindRadioCriteria(radioName,selectId,summaryId,target){
+  const select=root.querySelector('#'+selectId);
+  root.querySelectorAll(`input[name="${radioName}"]`).forEach(r=>{
+    r.onchange=()=>{
+      const list=getCriteria(target).filter(c=>{
+        return r.value==='plus'?isPlus(c):isMinus(c);
+      });
 
-  return `
-    <div class="grid" style="margin-top:14px">
-      <label>Loại điểm
-        <select id="${id}Type">
-          <option value="">-- Chọn điểm cộng hoặc điểm trừ --</option>
-          <option value="plus">➕ Điểm cộng</option>
-          <option value="minus">➖ Điểm trừ</option>
-        </select>
-      </label>
+      select.innerHTML=
+        '<option value="">-- Chọn nội dung --</option>'+
+        list.map(c=>`
+          <option value="${esc(c.ma_hd)}">
+            ${esc(c.ten_hd)} (${Number(c.diem)>0?'+':''}${c.diem})
+          </option>
+        `).join('');
 
-      <label>Danh mục nội dung
-        <select id="${id}">
-          <option value="">-- Chọn loại điểm trước --</option>
-        </select>
-      </label>
-    </div>
-  `;
-}
+      if(!list.length){
+        select.innerHTML='<option value="">-- Chưa có tiêu chí phù hợp --</option>';
+        root.querySelector('#'+summaryId).innerHTML=
+          `<div class="score-no-criteria">
+            Chưa có tiêu chí ${r.value==='plus'?'điểm cộng':'điểm trừ'} cho đối tượng <b>${esc(target)}</b>.
+          </div>`;
+      }else{
+        root.querySelector('#'+summaryId).innerHTML=
+          `Đã chọn <span class="badge ${r.value==='plus'?'ok':'warn'}">${r.value==='plus'?'Điểm cộng':'Điểm trừ'}</span>. Hãy chọn nội dung.`;
+      }
+    };
+  });
 
-function bindCriteriaPreview(id,summaryId){
-  const typeSelect=root.querySelector(`#${id}Type`);
-  const criteriaSelect=root.querySelector(`#${id}`);
-  const summary=root.querySelector(`#${summaryId}`);
-
-  typeSelect.onchange=()=>{
-    const type=typeSelect.value;
-    const list=getCriteriaByMode(type);
-
-    criteriaSelect.innerHTML=
-      `<option value="">-- Chọn nội dung --</option>`+
-      list.map(c=>`
-        <option value="${esc(c.ma_hd)}">
-          ${esc(c.ten_hd)} (${Number(c.diem)>0?'+':''}${c.diem})
-        </option>
-      `).join('');
-
-    summary.innerHTML=type?
-      `<span class="badge ${type==='plus'?'ok':'warn'}">
-        ${type==='plus'?'➕ Điểm cộng':'➖ Điểm trừ'}
-      </span> — Hãy chọn nội dung.`
-      :'Chưa chọn loại điểm.';
-  };
-
-  criteriaSelect.onchange=()=>{
-    const c=criteria.find(x=>x.ma_hd===criteriaSelect.value);
+  select.onchange=()=>{
+    const c=criteria.find(x=>x.ma_hd===select.value);
     if(!c){
-      summary.textContent='Chưa chọn tiêu chí.';
+      root.querySelector('#'+summaryId).textContent='Chưa chọn tiêu chí.';
       return;
     }
-    summary.innerHTML=`
-      <b>${esc(c.ten_hd)}</b>
+
+    let prefix='';
+    if(target==='Cá nhân'){
+      const idx=root.querySelector('#scoreStudent')?.value;
+      const s=idx!==''&&idx!=null?students[Number(idx)]:null;
+      prefix=s?`<b>${esc(s.ho_ten)}</b> — `:'';
+    }
+
+    root.querySelector('#'+summaryId).innerHTML=`
+      ${prefix}<b>${esc(c.ten_hd)}</b>
       <span class="badge ${Number(c.diem)>=0?'ok':'warn'}" style="margin-left:7px">
-        Điểm: ${Number(c.diem)>0?'+':''}${c.diem}
+        ${Number(c.diem)>0?'+':''}${c.diem}
       </span>
       ${c.mang?`<span class="badge" style="margin-left:5px">${esc(c.mang)}</span>`:''}
     `;
@@ -314,8 +385,8 @@ function bindCriteriaPreview(id,summaryId){
 }
 
 function renderStudentCard(){
-  const ma=root.querySelector('#scoreStudent').value;
-  const s=students.find(x=>x.ma_hs===ma);
+  const idx=root.querySelector('#scoreStudent').value;
+  const s=idx!==''?students[Number(idx)]:null;
   const box=root.querySelector('#scoreStudentCard');
 
   if(!s){
@@ -329,56 +400,87 @@ function renderStudentCard(){
       <div>
         <b>${esc(s.ho_ten)}</b>
         <div style="color:var(--muted);margin-top:3px">
-          ${esc(s.ma_hs)} · Khối ${esc(s.khoi)} · Lớp ${esc(s.lop)}
+          Ngày sinh: ${formatDate(s.ngay_sinh)} · Lớp ${esc(s.lop)}
         </div>
       </div>
     </div>
   `;
 
-  const summary=root.querySelector('#individualSummary');
-  const c=root.querySelector('#individualCriteria').value
+  // Nếu đã chọn tiêu chí trước khi chọn học sinh thì cập nhật lại phần tóm tắt.
+  const c=root.querySelector('#individualCriteria')?.value
     ?criteria.find(x=>x.ma_hd===root.querySelector('#individualCriteria').value)
     :null;
 
-  summary.innerHTML=c
-    ? `<b>${esc(s.ho_ten)}</b> — ${esc(c.ten_hd)}
+  if(c){
+    root.querySelector('#individualSummary').innerHTML=
+      `<b>${esc(s.ho_ten)}</b> — ${esc(c.ten_hd)}
        <span class="badge ${Number(c.diem)>=0?'ok':'warn'}">
-       ${Number(c.diem)>0?'+':''}${c.diem}</span>`
-    : `Đã chọn học sinh <b>${esc(s.ho_ten)}</b>. Hãy chọn tiêu chí.`;
+       ${Number(c.diem)>0?'+':''}${c.diem}</span>`;
+  }else{
+    root.querySelector('#individualSummary').innerHTML=
+      `Đã chọn học sinh <b>${esc(s.ho_ten)}</b>. Hãy chọn tiêu chí.`;
+  }
 }
 
 function getCriteria(target){
-  const t=String(target).toLowerCase();
+  const targetNorm=normalizeText(target);
+
   return criteria.filter(c=>{
-    const d=String(c.doi_tuong||'Cá nhân').toLowerCase();
-    if(t==='tập thể'){
-      return d.includes('tập thể')||d.includes('tap the');
+    const d=normalizeText(c.doi_tuong||'Cá nhân');
+
+    if(targetNorm==='tap the'){
+      return d==='tap the' ||
+             d.includes('tap the') ||
+             d.includes('lop') ||
+             d.includes('toan lop') ||
+             d.includes('tap the lop');
     }
-    return d.includes('cá nhân')||d.includes('ca nhan')||!c.doi_tuong;
+
+    // Cá nhân: chỉ lấy tiêu chí rõ ràng là cá nhân.
+    // Không tự động coi tiêu chí tập thể là cá nhân.
+    return d==='ca nhan' || d.includes('ca nhan');
   });
 }
 
-function getCriteriaByMode(type){
-  const target=mode==='collective'?'Tập thể':'Cá nhân';
-  return getCriteria(target).filter(c=>type==='plus'?isPlus(c):isMinus(c));
+function normalizeText(v){
+  return String(v??'')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g,'')
+    .toLowerCase()
+    .trim();
 }
 
 function isPlus(c){
   const score=Number(c.diem||0);
-  const type=String(c.loai||'').toLowerCase();
-  return score>0 || type.includes('cộng') || type.includes('cong');
+  const type=normalizeText(c.loai||'');
+  return score>0 || type.includes('cong');
 }
 
 function isMinus(c){
   const score=Number(c.diem||0);
-  const type=String(c.loai||'').toLowerCase();
+  const type=normalizeText(c.loai||'');
   return score<0 ||
-    type.includes('trừ') ||
     type.includes('tru') ||
-    type.includes('vi phạm') ||
     type.includes('vi pham') ||
-    type.includes('phạt') ||
     type.includes('phat');
+}
+
+async function insertEvent(payload){
+  // V3.0.5.1 ưu tiên ghi doi_tuong.
+  // Nếu CSDL chưa chạy migration 006 thì thử lại không có cột này
+  // để frontend không bị khóa hoàn toàn.
+  const first=await supabase.from('diem_danh_master').insert(payload);
+
+  if(!first.error)return first;
+
+  const msg=String(first.error.message||'').toLowerCase();
+  if(msg.includes('doi_tuong') && (msg.includes('column')||msg.includes('schema cache'))){
+    const fallback={...payload};
+    delete fallback.doi_tuong;
+    return await supabase.from('diem_danh_master').insert(fallback);
+  }
+
+  return first;
 }
 
 async function saveCollective(){
@@ -405,22 +507,23 @@ async function saveCollective(){
     ma_hd:c.ma_hd,
     diem:Number(c.diem)||0,
     ma_nguoi_cap_nhat:u?.ma_cb||null,
-    ten_nguoi_cap_nhat:u?.ho_ten||null
+    ten_nguoi_cap_nhat:u?.ho_ten||null,
+    doi_tuong:'Tập thể'
   };
 
-  const {error}=await supabase.from('diem_danh_master').insert(payload);
+  const {error}=await insertEvent(payload);
   if(error)return toast(`Không ghi được điểm tập thể: ${error.message}`,'err');
 
   toast(`Đã ghi ${Number(c.diem)>0?'+':''}${c.diem} điểm cho tập thể lớp ${cls}.`,'ok');
   root.querySelector('#collectiveCriteria').value='';
-  root.querySelector('#collectiveCriteriaType').value='';
+  root.querySelectorAll('input[name="collectiveType"]').forEach(x=>x.checked=false);
   root.querySelector('#collectiveSummary').textContent='Đã ghi nhận. Có thể tiếp tục chấm.';
 }
 
 async function saveIndividual(){
-  const maHs=root.querySelector('#scoreStudent').value;
+  const idx=root.querySelector('#scoreStudent').value;
   const maHd=root.querySelector('#individualCriteria').value;
-  const s=students.find(x=>x.ma_hs===maHs);
+  const s=idx!==''?students[Number(idx)]:null;
   const c=criteria.find(x=>x.ma_hd===maHd);
 
   if(!s)return toast('Hãy chọn học sinh.','err');
@@ -441,18 +544,24 @@ async function saveIndividual(){
     ma_hd:c.ma_hd,
     diem:Number(c.diem)||0,
     ma_nguoi_cap_nhat:u?.ma_cb||null,
-    ten_nguoi_cap_nhat:u?.ho_ten||null
+    ten_nguoi_cap_nhat:u?.ho_ten||null,
+    doi_tuong:'Cá nhân'
   };
 
-  const {error}=await supabase.from('diem_danh_master').insert(payload);
+  const {error}=await insertEvent(payload);
   if(error)return toast(`Không ghi được điểm cá nhân: ${error.message}`,'err');
 
   toast(`Đã ghi ${Number(c.diem)>0?'+':''}${c.diem} điểm cho ${s.ho_ten}.`,'ok');
 
-  // Reset nội dung nhưng giữ lớp để chấm tiếp học sinh khác.
-  root.querySelector('#individualCriteriaType').value='';
-  root.querySelector('#individualCriteria').innerHTML='<option value="">-- Chọn loại điểm trước --</option>';
-  root.querySelector('#individualSummary').textContent='Đã ghi nhận. Có thể chọn học sinh/tiêu chí tiếp theo.';
+  root.querySelector('#individualCriteria').value='';
+  root.querySelectorAll('input[name="individualType"]').forEach(x=>x.checked=false);
+  root.querySelector('#individualSummary').textContent='Đã ghi nhận. Có thể tiếp tục chấm.';
+}
+
+function formatDate(v){
+  if(!v)return 'Chưa có ngày sinh';
+  const m=String(v).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return m?`${m[3]}/${m[2]}/${m[1]}`:String(v);
 }
 
 function showError(message){
