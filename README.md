@@ -313,3 +313,20 @@ Sau khi SQL chạy thành công, tải lại GitHub Pages bằng `Ctrl + F5`.
   - Giữ bảng `cai_dat_thoi_gian` cho cửa sổ điểm danh.
 - Sửa theo dõi báo vắng để đọc cả cột `buoi` của TKB.
 - TKB trở thành nguồn chính để xác định lớp có học; khi chưa có TKB thì Báo vắng vẫn dùng fallback `cai_dat_thoi_gian`.
+
+
+## V3.0.5.10
+- Kích hoạt đầy đủ TKB & TG học: thêm/sửa/xóa tiết TKB, xem thời gian điểm danh, kiểm tra lịch hôm nay.
+- Đổi nhãn Quản lý cán bộ thành Quản lý người dùng.
+- Theo dõi báo vắng không còn hiển thị 'Tất cả lớp đã báo' khi thực tế chưa có dữ liệu lịch; hiển thị cảnh báo cần nhập TKB/cấu hình dự phòng.
+- Bổ sung migration `013_v3_0_5_10_tkb_bao_vang.sql`.
+
+
+## V3.0.5.11 — Lịch học tối giản và chặn ghi ngoài lịch
+
+- TKB chỉ quản lý **Thứ + Sáng/Chiều + phạm vi khối/lớp**; không nhập môn/tiết.
+- Nếu `lop` có giá trị: lịch áp dụng cho lớp cụ thể. Nếu `lop` rỗng: áp dụng toàn khối `khoi`.
+- Báo vắng và Quét QR Đi muộn kiểm tra TKB trước khi ghi CSDL. Không có lịch học thì từ chối ghi.
+- Khi từ chối ghi, hệ thống hiển thị hộp thông báo nêu rõ lý do và khẳng định không ghi dữ liệu.
+- Lớp có lịch nhưng báo vắng 0 vẫn được ghi `bao_vang_lop`. Lớp không có lịch không được tạo bản ghi.
+- Migration: `014_v3_0_5_11_lich_hoc_tuan.sql`.
