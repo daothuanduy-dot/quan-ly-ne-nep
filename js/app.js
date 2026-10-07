@@ -5,5 +5,31 @@ function renderUser(){const u=Auth.currentUser;$('userBox').innerHTML=u?`<div><s
 function allowed(k){return Auth.hasTab(k)}
 async function open(k){if(!allowed(k))return toast('Tài khoản chưa được cấp quyền chức năng này.','err');active=k;document.querySelectorAll('.main-tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===k));pages.forEach(x=>$(`page-${x}`).classList.add('hidden'));$(`page-${k}`).classList.remove('hidden');if(k==='qr')await QR.init($('page-qr'));if(k==='baovang')await Abs.init($('page-baovang'));if(k==='chamdiem')await Score.init($('page-chamdiem'));if(k==='thongke')await Stats.init($('page-thongke'));if(k==='xeploai')await Rank.init($('page-xeploai'));if(k==='quantri')await Admin.init($('page-quantri').querySelector('#adminContent'))}
 function session(){ $('loginView').classList.add('hidden');$('appView').classList.remove('hidden');renderUser();document.querySelectorAll('.main-tab').forEach(b=>b.classList.toggle('hidden',!allowed(b.dataset.tab)));const first=pages.find(allowed);if(first)open(first);else toast('Tài khoản chưa được cấp quyền nào.','err')}
-function bind(){ $('loginForm').onsubmit=async e=>{e.preventDefault();const er=$('loginError');er.textContent='';const r=await Auth.login($('username').value,$('password').value,false);if(!r.ok)return er.textContent=r.message;session()};$('logoutBtn').onclick=()=>{Auth.logout();location.reload()};document.querySelectorAll('.main-tab').forEach(b=>b.onclick=()=>open(b.dataset.tab))}
-window.App={Auth,toast,open};$('username').value=Auth.remembered();bind();if(Auth.restore())session();console.info(`QLNN ${APP_VERSION}`,appConfig);
+function bind(){
+ $('loginForm').onsubmit=async e=>{
+   e.preventDefault();
+   const er=$('loginError');
+   er.textContent='';
+   const remember=$('rememberMe')?.checked===true;
+   const r=await Auth.login($('username').value,$('password').value,remember);
+   if(!r.ok)return er.textContent=r.message;
+   session();
+ };
+ $('togglePassword')?.addEventListener('click',()=>{
+   const input=$('password');
+   const btn=$('togglePassword');
+   const show=input.type==='password';
+   input.type=show?'text':'password';
+   btn.textContent=show?'🙈':'👁';
+   btn.title=show?'Ẩn mật khẩu':'Hiển thị mật khẩu';
+   btn.setAttribute('aria-label',btn.title);
+ });
+ $('logoutBtn').onclick=()=>{Auth.logout();location.reload()};
+ document.querySelectorAll('.main-tab').forEach(b=>b.onclick=()=>open(b.dataset.tab));
+}
+window.App={Auth,toast,open};
+$('username').value=Auth.remembered();
+$('rememberMe').checked=!!Auth.remembered();
+bind();
+if(Auth.restore())session();
+console.info(`QLNN ${APP_VERSION}`,appConfig);
