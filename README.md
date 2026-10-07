@@ -1,26 +1,43 @@
-# Quản trị hệ thống - Quản lý nề nếp & thi đua
+# QUẢN LÝ NỀ NẾP & THI ĐUA — v3.0.1
+
+## Trạng thái
+Đây là bản đồng bộ sau khi xác nhận trực tiếp Supabase RPC:
+`public.login_can_bo('3103016229','123456')` đã trả về JSON cán bộ thành công.
 
 ## Cấu trúc
-- `index.html`: giao diện Quản trị hệ thống.
-- `js/config.js`: cấu hình Supabase + năm học + hàm xử lý tên lớp.
-- `js/quantri-hocsinh.js`: CRUD bảng `danh_sach`.
-- `js/quantri-import.js`: tải mẫu và import Excel hàng loạt.
-- `js/quantri-canbo.js`: CRUD bảng `can_bo`, nhiều vai trò, lớp CN, lớp giảng dạy.
-- `js/quantri-tkb.js`: cấu hình `cai_dat_thoi_gian`.
-- `js/quantri-ketchuyen.js`: kết chuyển 10→11, 11→12 và TN khối 12.
-- `js/quantri-tieuchi.js`: CRUD `danh_muc_diem`.
-- `js/quantri-phanquyen.js`: quyền tab theo cán bộ/vai trò.
-- `sql/quantri.sql`: SQL bổ sung cấu trúc.
+- `index.html`
+- `js/config.js`
+- `js/auth.js`
+- `js/app.js`
+- `sql/001_login_can_bo_v3_0_1.sql`
 
-## Cài đặt
-1. Chạy `sql/quantri.sql` trên Supabase SQL Editor.
-2. Mở `js/config.js`, điền `supabaseUrl` và `supabaseAnonKey`.
-3. Nếu dự án hiện tại đã có `config.js`, giữ cách tạo client hiện tại nhưng bảo đảm các module export `supabase`, `appConfig`.
-4. Deploy các file lên GitHub Pages cùng thư mục.
-5. Với production nên bật RLS và tạo policy theo tài khoản Supabase Auth. Không dùng service_role key ở frontend.
+## Upload GitHub
+Thay đồng bộ 4 file frontend. Không ghép file cũ.
+`index.html` chỉ load:
+`<script type="module" src="./js/app.js"></script>`
 
-## Lưu ý kết chuyển
-Khuyến nghị sau khi chạy SQL nên chuyển nghiệp vụ kết chuyển sang RPC/transaction để tránh trạng thái dở dang nếu một nhóm update bị lỗi. Bản frontend cập nhật 10/11 sang `nam_hoc` kế tiếp và đánh dấu TN khối 12 sang năm học kế tiếp; học sinh lưu ban/rèn luyện lại không được chọn sẽ tiếp tục ở năm học hiện tại.
+## Supabase
+Nếu function hiện tại đã trả đúng như ảnh người dùng cung cấp thì không cần chạy SQL lại. Nếu muốn khóa lại đúng v3.0.1, chạy file SQL trong SQL Editor.
 
-## Lưu ý năm học
-Để lưu được lịch sử nhiều năm, `danh_sach.nam_hoc` là trường quan trọng. Không nên xóa vật lý học sinh tốt nghiệp. Hệ thống nên đánh dấu `Đã tốt nghiệp` và chuyển/archived theo năm học.
+Test:
+```sql
+SELECT public.login_can_bo('3103016229','123456');
+```
+
+Kết quả không được chứa `mat_khau`.
+
+## Đăng nhập
+Frontend gọi duy nhất:
+`supabase.rpc('login_can_bo', { p_ma_cb, p_mat_khau })`
+
+Không dùng `api_login.php` và không query `mat_khau` trực tiếp từ frontend.
+
+## Sau khi upload
+- Commit tất cả file.
+- Chờ GitHub Pages deploy.
+- Ctrl+Shift+R.
+- Nếu vẫn thấy phiên cũ: F12 -> Application -> Local Storage -> xóa `nenep_current_user_v3_0_1`.
+- Console phải có `[Quản lý nề nếp] v3.0.1 started`.
+
+## Lưu ý bảo mật
+CSDL hiện vẫn có `mat_khau` dạng plaintext để tương thích hệ thống. Sau khi hệ thống ổn định nên chuyển sang Supabase Auth + RLS + password hashing.
