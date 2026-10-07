@@ -21,22 +21,25 @@ async function renderShell(){
     <div class="page-head">
       <div>
         <h2>Chấm Điểm Thi Đua</h2>
-        <p>Chọn khối → lớp → đối tượng chấm. Danh mục điểm lấy trực tiếp từ CSDL.</p>
+        <p>Chọn khối → chọn lớp → chọn đối tượng chấm. Danh mục điểm lấy trực tiếp từ CSDL.</p>
       </div>
       <span class="badge ok">Ghi lịch sử vào CSDL</span>
     </div>
 
-    <div class="score-filter">
-      <label>Chọn khối
-        <select id="scoreGrade">
-          <option value="">-- Chọn khối --</option>
-        </select>
-      </label>
-      <label>Chọn lớp
-        <select id="scoreClass" disabled>
-          <option value="">-- Chọn lớp --</option>
-        </select>
-      </label>
+    <div class="score-class-selector">
+      <div class="score-selector-box">
+        <div class="score-selector-title">Chọn khối</div>
+        <div id="scoreGradeRadios" class="grade-radio-group">
+          <span class="class-empty">Đang tải khối...</span>
+        </div>
+      </div>
+
+      <div class="score-selector-box">
+        <div class="score-selector-title">Chọn lớp</div>
+        <div id="scoreClassRadios" class="class-radio-group">
+          <span class="class-empty">Hãy chọn khối trước.</span>
+        </div>
+      </div>
     </div>
 
     <div id="scoreModeWrap" class="hidden">
@@ -65,8 +68,7 @@ async function renderShell(){
     </div>
   `;
 
-  root.querySelector('#scoreGrade').onchange=onGradeChange;
-  root.querySelector('#scoreClass').onchange=onClassChange;
+  // Các nút chọn đối tượng chấm vẫn dùng hàng ngang vì tên ngắn.
   root.querySelectorAll('[data-mode]').forEach(b=>{
     b.onclick=()=>setMode(b.dataset.mode);
   });
@@ -94,28 +96,45 @@ async function loadGrades(){
       .eq('trang_thai','Active')
       .not('khoi','is',null)
       .order('khoi'));
+
     grades=[...new Set(data.map(x=>String(x.khoi).trim()).filter(Boolean))]
       .sort(naturalSort);
-    root.querySelector('#scoreGrade').innerHTML=
-      '<option value="">-- Chọn khối --</option>'+
-      grades.map(g=>`<option value="${esc(g)}">${esc(g)}</option>`).join('');
+
+    const box=root.querySelector('#scoreGradeRadios');
+    if(!grades.length){
+      box.innerHTML='<span class="class-empty">Không có dữ liệu khối.</span>';
+      return;
+    }
+
+    box.innerHTML=grades.map((g,i)=>`
+      <label class="grade-radio">
+        <input type="radio" name="scoreGrade" value="${esc(g)}">
+        <span class="radio-dot"></span>
+        <span>${esc(g)}</span>
+      </label>
+    `).join('');
+
+    box.querySelectorAll('input[name="scoreGrade"]').forEach(r=>{
+      r.onchange=()=>onGradeChange(r.value);
+    });
   }catch(e){
     showError(e.message);
   }
 }
 
-async function onGradeChange(){
-  const grade=root.querySelector('#scoreGrade').value;
-  const classSelect=root.querySelector('#scoreClass');
+async function onGradeChange(grade){
+  const classBox=root.querySelector('#scoreClassRadios');
 
   root.querySelector('#scoreModeWrap').classList.add('hidden');
   root.querySelector('#scoreFormWrap').innerHTML='<div class="empty">Hãy chọn lớp.</div>';
-  classSelect.innerHTML='<option value="">-- Chọn lớp --</option>';
-  classSelect.disabled=true;
+  classBox.innerHTML='<span class="class-empty">Đang tải danh sách lớp...</span>';
   students=[];
   classes=[];
 
-  if(!grade)return;
+  if(!grade){
+    classBox.innerHTML='<span class="class-empty">Hãy chọn khối trước.</span>';
+    return;
+  }
 
   try{
     const data=await fetchAll(()=>supabase
@@ -125,21 +144,32 @@ async function onGradeChange(){
       .eq('khoi',grade)
       .not('lop','is',null)
       .order('lop'));
+
     classes=[...new Set(data.map(x=>String(x.lop).trim()).filter(Boolean))]
       .sort(naturalSort);
 
-    classSelect.innerHTML=
-      '<option value="">-- Chọn lớp --</option>'+
-      classes.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('');
-    classSelect.disabled=false;
+    if(!classes.length){
+      classBox.innerHTML='<span class="class-empty">Khối này chưa có lớp.</span>';
+      return;
+    }
+
+    classBox.innerHTML=classes.map(c=>`
+      <label class="class-radio">
+        <input type="radio" name="scoreClass" value="${esc(c)}">
+        <span>${esc(c)}</span>
+      </label>
+    `).join('');
+
+    classBox.querySelectorAll('input[name="scoreClass"]').forEach(r=>{
+      r.onchange=()=>onClassChange(r.value);
+    });
   }catch(e){
     showError(e.message);
   }
 }
 
-async function onClassChange(){
-  const grade=root.querySelector('#scoreGrade').value;
-  const cls=root.querySelector('#scoreClass').value;
+async function onClassChange(cls){
+  const grade=root.querySelector('input[name="scoreGrade"]:checked')?.value || '';
 
   root.querySelector('#scoreModeWrap').classList.toggle('hidden',!cls);
   root.querySelector('#scoreClassLabel').textContent=cls||'';
@@ -200,7 +230,7 @@ function setMode(next){
 
 function renderScoreForm(){
   const wrap=root.querySelector('#scoreFormWrap');
-  const cls=root.querySelector('#scoreClass').value;
+  const cls=root.querySelector('input[name="scoreClass"]:checked')?.value || '';
 
   if(!cls){
     wrap.innerHTML='<div class="empty">Hãy chọn khối và lớp trước.</div>';
@@ -484,8 +514,8 @@ async function insertEvent(payload){
 }
 
 async function saveCollective(){
-  const cls=root.querySelector('#scoreClass').value;
-  const grade=root.querySelector('#scoreGrade').value;
+  const cls=root.querySelector('input[name="scoreClass"]:checked')?.value || '';
+  const grade=root.querySelector('input[name="scoreGrade"]:checked')?.value || '';
   const maHd=root.querySelector('#collectiveCriteria').value;
   const c=criteria.find(x=>x.ma_hd===maHd);
 
