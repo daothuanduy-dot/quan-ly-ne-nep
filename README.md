@@ -255,3 +255,19 @@ Luồng mới:
   - Vắng không phép
 - Không cho chọn trùng cùng một học sinh trong các dòng.
 - Dữ liệu được ghi vào `diem_danh_master`.
+
+## V3.0.5.5 — Quản lý vai trò và phạm vi lớp
+
+### Vai trò chuẩn hóa
+- Admin — toàn hệ thống.
+- GVCN — giáo viên chủ nhiệm; có lớp chủ nhiệm; được cập nhật điểm/báo vắng lớp chủ nhiệm, xem thống kê toàn trường và lớp mình, đăng ký Tuần học tốt.
+- Giáo viên — giáo viên giảng dạy; được gán nhiều lớp giảng dạy; chỉ cập nhật điểm/báo vắng trong các lớp được phân công và xem thống kê phạm vi đó.
+- Cán bộ lớp — tài khoản học sinh; phải liên kết `ma_hs` và một lớp; chỉ chấm điểm cá nhân cho học sinh cùng lớp và xem thống kê lớp.
+
+### CSDL
+Chạy:
+- `sql/008_v3_0_5_5_quan_ly_can_bo.sql`
+- `sql/009_v3_0_5_5_so_dau_bai.sql`
+
+Migration 008 thêm `can_bo.ma_hs` và `can_bo.loai_quan_ly_lop`.
+Migration 009 chuẩn bị `tuan_hoc`, `tiet`, `mon_hoc`, `nguon_cham` cho lịch sử điểm và tạo bảng `tuan_hoc_tot` cho đăng ký của GVCN.
