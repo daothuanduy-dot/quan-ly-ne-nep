@@ -155,23 +155,50 @@ async function schedule(b){
   async function timeBulkForm(){
     const {data,error}=await supabase.from('danh_sach').select('lop,khoi').eq('trang_thai','Active').not('lop','is',null).order('lop');
     if(error)return toast(error.message,'err');
-    const cls=[...new Map((data||[]).map(x=>[String(x.lop).trim(),{lop:String(x.lop).trim(),khoi:String(x.khoi||'').trim()}])).values()].sort((a,b)=>a.lop.localeCompare(b.lop,'vi',{numeric:true}));
-    const m=modal('Thiết lập thời gian điểm danh',`<div class="notice"><b>Lưu ý:</b> đây là giờ điểm danh, không tạo lịch học. TKB ở tab “Lịch học” vẫn là điều kiện bắt buộc để Báo vắng/Quét QR được ghi dữ liệu.</div>
-      <div class="grid"><label>Phạm vi<select id="tm_scope"><option value="all">Toàn trường</option><option value="grade">Theo khối</option><option value="class">Chọn lớp</option></select></label><label id="tm_grade_wrap">Khối<select id="tm_grade"><option>Khối 10</option><option>Khối 11</option><option>Khối 12</option></select></label></div>
-      <div id="tm_classes" class="staff-section" style="display:none;margin-top:10px"><div class="staff-section-title">Lớp áp dụng</div><div class="toolbar"><button type="button" id="tm_all" class="btn light">Chọn tất cả</button><button type="button" id="tm_none" class="btn light">Bỏ chọn</button></div><div style="display:grid;grid-template-columns:repeat(4,minmax(100px,1fr));gap:6px;max-height:190px;overflow:auto">${cls.map(x=>`<label class="check-item"><input class="tm_cls" type="checkbox" value="${esc(x.lop)}" data-grade="${esc(x.khoi)}"><span>${esc(x.lop)}</span></label>`).join('')}</div></div>
+    const normalizeGrade=v=>{const m=String(v||'').match(/(?:Khối\s*)?(10|11|12)/i);return m?`Khối ${m[1]}`:''};
+    const cls=[...new Map((data||[]).map(x=>{const lop=String(x.lop||'').trim();return [lop,{lop,khoi:normalizeGrade(x.khoi)||normalizeGrade(lop)}]}).filter(x=>x[0])).values()].sort((a,b)=>a.lop.localeCompare(b.lop,'vi',{numeric:true}));
+    const m=modal('Thiết lập thời gian điểm danh',`<div class="notice"><b>Lưu ý:</b> phần này chỉ thiết lập <b>khung giờ điểm danh</b>, không tạo TKB. TKB ở tab “Lịch học” vẫn là điều kiện bắt buộc để Báo vắng/Quét QR được ghi dữ liệu.</div>
+      <div class="grid"><label>Phạm vi áp dụng<select id="tm_scope">
+        <option value="all">Toàn trường</option>
+        <option value="grade">Theo khối</option>
+        <option value="assignment">Theo phân công buổi học (TKB)</option>
+        <option value="class">Chọn các lớp</option>
+      </select></label><label id="tm_grade_wrap">Khối<select id="tm_grade"><option>Khối 10</option><option>Khối 11</option><option>Khối 12</option></select></label></div>
+      <div id="tm_assignment_note" class="notice" style="display:none;margin-top:10px">Hệ thống sẽ tự lấy các lớp đang có lịch <b>Hoạt động</b> trong TKB theo từng buổi. Nếu chọn cả Sáng và Chiều, mỗi buổi sẽ áp dụng đúng cho các lớp có phân công buổi đó.</div>
+      <div id="tm_classes" class="staff-section" style="display:none;margin-top:10px"><div class="staff-section-title">Lớp áp dụng <span id="tm_class_count" class="badge"></span></div><div class="toolbar"><button type="button" id="tm_all" class="btn light">Chọn tất cả lớp khối</button><button type="button" id="tm_none" class="btn light">Bỏ chọn</button></div><div id="tm_class_list" style="display:grid;grid-template-columns:repeat(4,minmax(100px,1fr));gap:6px;max-height:190px;overflow:auto;border:1px solid #ddd;border-radius:10px;padding:8px"></div></div>
       <div class="staff-section" style="margin-top:10px"><div class="staff-section-title">Buổi và khung giờ</div><div class="grid"><label><input id="tm_morning" type="checkbox" checked> Sáng</label><label><input id="tm_afternoon" type="checkbox" checked> Chiều</label><label>Tiết đầu sáng<input id="tm_m1" type="number" min="1" value="1"></label><label>Tiết cuối sáng<input id="tm_m2" type="number" min="1" value="5"></label><label>Bắt đầu sáng<input id="tm_ms" type="time" value="07:00"></label><label>Kết thúc sáng<input id="tm_me" type="time" value="11:30"></label><label>Tiết đầu chiều<input id="tm_a1" type="number" min="1" value="2"></label><label>Tiết cuối chiều<input id="tm_a2" type="number" min="2" value="5"></label><label>Bắt đầu chiều<input id="tm_as" type="time" value="14:00"></label><label>Kết thúc chiều<input id="tm_ae" type="time" value="17:30"></label></div></div>`,`<button id="tm_cancel" class="btn light">Hủy</button><button id="tm_save" class="btn primary">Lưu cấu hình</button>`);
-    const scope=m.querySelector('#tm_scope'),gw=m.querySelector('#tm_grade_wrap'),cw=m.querySelector('#tm_classes');
-    const sync=()=>{gw.style.display=scope.value==='grade'?'block':'none';cw.style.display=scope.value==='class'?'block':'none'};scope.onchange=sync;sync();
-    m.querySelector('#tm_all').onclick=()=>m.querySelectorAll('.tm_cls').forEach(x=>x.checked=true);m.querySelector('#tm_none').onclick=()=>m.querySelectorAll('.tm_cls').forEach(x=>x.checked=false);m.querySelector('#tm_cancel').onclick=closeModal;
+    const scope=m.querySelector('#tm_scope'),gw=m.querySelector('#tm_grade_wrap'),cw=m.querySelector('#tm_classes'),cl=m.querySelector('#tm_class_list'),assignNote=m.querySelector('#tm_assignment_note');
+    const renderClassChecks=(list,selected=[])=>{cl.innerHTML=list.length?list.map(x=>`<label class="check-item"><input class="tm_cls" type="checkbox" value="${esc(x.lop)}" data-grade="${esc(x.khoi)}" ${selected.includes(x.lop)?'checked':''}><span>${esc(x.lop)}</span></label>`).join(''):'<div class="empty">Không có lớp phù hợp.</div>';updateCount()};
+    const updateCount=()=>{const el=m.querySelector('#tm_class_count');if(el)el.textContent=`${cl.querySelectorAll('.tm_cls:checked').length} lớp đã chọn`};
+    const refreshClassArea=()=>{const isGrade=scope.value==='grade',isClass=scope.value==='class',isAssign=scope.value==='assignment';gw.style.display=isGrade?'block':'none';cw.style.display=(isGrade||isClass)?'block':'none';assignNote.style.display=isAssign?'block':'none';if(isGrade)renderClassChecks(cls.filter(x=>x.khoi===m.querySelector('#tm_grade').value));else if(isClass)renderClassChecks(cls);else cl.innerHTML='';updateCount();};
+    scope.onchange=refreshClassArea;m.querySelector('#tm_grade').onchange=refreshClassArea;m.querySelector('#tm_all').onclick=()=>{cl.querySelectorAll('.tm_cls').forEach(x=>x.checked=true);updateCount()};m.querySelector('#tm_none').onclick=()=>{cl.querySelectorAll('.tm_cls').forEach(x=>x.checked=false);updateCount()};cl.onchange=updateCount;m.querySelector('#tm_cancel').onclick=closeModal;refreshClassArea();
     m.querySelector('#tm_save').onclick=async()=>{
-      let targets=scope.value==='all'?cls:scope.value==='grade'?cls.filter(x=>x.khoi===m.querySelector('#tm_grade').value):[...m.querySelectorAll('.tm_cls:checked')].map(x=>cls.find(c=>c.lop===x.value)).filter(Boolean);
-      if(!targets.length)return toast('Chưa có lớp áp dụng.','err');
-      const sessions=[];if(m.querySelector('#tm_morning').checked)sessions.push({buoi:'Sáng',tu:Number(m.querySelector('#tm_m1').value),den:Number(m.querySelector('#tm_m2').value),start:m.querySelector('#tm_ms').value,end:m.querySelector('#tm_me').value});if(m.querySelector('#tm_afternoon').checked)sessions.push({buoi:'Chiều',tu:Number(m.querySelector('#tm_a1').value),den:Number(m.querySelector('#tm_a2').value),start:m.querySelector('#tm_as').value,end:m.querySelector('#tm_ae').value});if(!sessions.length)return toast('Chọn ít nhất một buổi.','err');
-      if(sessions.some(x=>x.tu>x.den||!x.start||!x.end))return toast('Khoảng tiết/giờ không hợp lệ.','err');
-      const rows=sessions.flatMap(ss=>targets.map(t=>({khoi:t.khoi,lop:t.lop,buoi:ss.buoi,trang_thai:'Học',tu_tiet:ss.tu,den_tiet:ss.den,gio_bat_dau_diem_danh:ss.start,gio_ket_thuc_diem_danh:ss.end,nam_hoc:'2026-2027',updated_at:new Date().toISOString()})));
-      // Xóa cấu hình cũ đúng phạm vi lớp/buổi rồi ghi cấu hình mới, tránh nhiều dòng chồng lấn.
-      for(const ss of sessions){for(const t of targets){const d=await supabase.from('cai_dat_thoi_gian').delete().eq('nam_hoc','2026-2027').eq('lop',t.lop).eq('buoi',ss.buoi);if(d.error)return toast('Không cập nhật giờ: '+d.error.message,'err')}}
-      const ins=await supabase.from('cai_dat_thoi_gian').insert(rows);if(ins.error)return toast('Không lưu cấu hình giờ: '+ins.error.message,'err');closeModal();toast(`Đã cấu hình ${rows.length} khung giờ. Buổi chiều bắt đầu ${sessions.find(x=>x.buoi==='Chiều')?.start||'14:00'}, từ tiết ${sessions.find(x=>x.buoi==='Chiều')?.tu||2}.`,'ok');await renderTime(root.querySelector('#adminBody'));
+      const sessions=[];if(m.querySelector('#tm_morning').checked)sessions.push({buoi:'Sáng',tu:Number(m.querySelector('#tm_m1').value),den:Number(m.querySelector('#tm_m2').value),start:m.querySelector('#tm_ms').value,end:m.querySelector('#tm_me').value});if(m.querySelector('#tm_afternoon').checked)sessions.push({buoi:'Chiều',tu:Number(m.querySelector('#tm_a1').value),den:Number(m.querySelector('#tm_a2').value),start:m.querySelector('#tm_as').value,end:m.querySelector('#tm_ae').value});
+      if(!sessions.length)return toast('Chọn ít nhất một buổi.','err');
+      if(sessions.some(x=>x.tu>x.den||!x.start||!x.end||x.start>=x.end))return toast('Khoảng tiết/giờ không hợp lệ.','err');
+      const scopeValue=scope.value;
+      let targets=scopeValue==='all'?cls:scopeValue==='grade'?cls.filter(x=>x.khoi===m.querySelector('#tm_grade').value):scopeValue==='class'?[...cl.querySelectorAll('.tm_cls:checked')].map(x=>cls.find(c=>c.lop===x.value)).filter(Boolean):[];
+      if((scopeValue==='grade'||scopeValue==='class')&&!targets.length)return toast('Chưa có lớp áp dụng. Hãy kiểm tra khối hoặc tích chọn ít nhất một lớp.','err');
+      let scheduleRows=null;
+      if(scopeValue==='assignment'){
+        const q=await supabase.from('thoi_khoa_bieu').select('thu,buoi,khoi,lop,trang_thai').eq('nam_hoc','2026-2027').eq('trang_thai','Hoạt động');
+        if(q.error)return toast('Không đọc được TKB để xác định phân công buổi học: '+q.error.message,'err');
+        scheduleRows=q.data||[];
+        if(!scheduleRows.length)return toast('Chưa có TKB hoạt động. Hãy thiết lập Lịch học trước.','err');
+      }
+      const rows=[];const targetKeys=new Set();
+      for(const ss of sessions){
+        let sessionTargets=targets;
+        if(scopeValue==='assignment'){
+          const matched=new Set();scheduleRows.filter(r=>r.buoi===ss.buoi).forEach(r=>{if(r.lop)matched.add(r.lop);else if(r.khoi)cls.filter(c=>c.khoi===normalizeGrade(r.khoi)).forEach(c=>matched.add(c.lop));else cls.forEach(c=>matched.add(c.lop));});
+          sessionTargets=cls.filter(c=>matched.has(c.lop));
+          if(!sessionTargets.length)continue;
+        }
+        for(const t of sessionTargets){const key=`${t.lop}|${ss.buoi}`;if(targetKeys.has(key))continue;targetKeys.add(key);rows.push({khoi:t.khoi,lop:t.lop,buoi:ss.buoi,trang_thai:'Học',tu_tiet:ss.tu,den_tiet:ss.den,gio_bat_dau_diem_danh:ss.start,gio_ket_thuc_diem_danh:ss.end,nam_hoc:'2026-2027',updated_at:new Date().toISOString()});}
+      }
+      if(!rows.length)return toast(scopeValue==='assignment'?'Không có lớp nào được phân công trong các buổi đã chọn.':'Không tạo được cấu hình áp dụng.','err');
+      for(const ss of sessions){for(const t of (scopeValue==='assignment'?rows.filter(r=>r.buoi===ss.buoi):rows.filter(r=>r.buoi===ss.buoi))){const d=await supabase.from('cai_dat_thoi_gian').delete().eq('nam_hoc','2026-2027').eq('lop',t.lop).eq('buoi',ss.buoi);if(d.error)return toast('Không cập nhật giờ: '+d.error.message,'err')}}
+      const ins=await supabase.from('cai_dat_thoi_gian').insert(rows);if(ins.error)return toast('Không lưu cấu hình giờ: '+ins.error.message,'err');closeModal();toast(`Đã cấu hình ${rows.length} lớp. Chiều từ tiết ${sessions.find(x=>x.buoi==='Chiều')?.tu||2}, bắt đầu ${sessions.find(x=>x.buoi==='Chiều')?.start||'14:00'}.`,'ok');await renderTime(root.querySelector('#adminBody'));
     };
   }
   async function renderToday(body){const now=new Date(),dow=now.getDay(),thu=dow===0?8:dow+1,session=await detectCurrentSessionForSchedule(now);const scheduled=await resolveScheduledClasses(thu,session);body.innerHTML=`<div class="cards"><div class="action-card"><h3>📅 Hôm nay</h3><p>${now.toLocaleDateString('vi-VN')} · ${esc(dow===0?'Chủ nhật':dayName(thu))}</p></div><div class="action-card"><h3>☀️ Buổi</h3><p><b>${esc(session)}</b></p></div><div class="action-card"><h3>🏫 Lớp có lịch</h3><p><b style="font-size:24px">${scheduled.length}</b> lớp</p></div></div><div class="table-wrap" style="margin-top:14px"><table class="table"><thead><tr><th>Lớp</th><th>Phạm vi lịch</th></tr></thead><tbody>${scheduled.map(x=>`<tr><td><b>${esc(x.lop)}</b></td><td>${esc(x.source)}</td></tr>`).join('')||'<tr><td colspan="2"><div class="empty">Không có lớp nào có lịch học trong buổi hiện tại.</div></td></tr>'}</tbody></table></div><div class="notice" style="margin-top:12px">Đây chính là danh sách lớp mà Báo vắng/Quét QR sẽ được phép ghi dữ liệu.</div>`}
