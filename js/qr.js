@@ -7,12 +7,55 @@ export async function init(rootEl){
  root.querySelector('#qrFind').onclick=()=>findStudent(root.querySelector('#qrManual').value);
  root.querySelector('#qrStart').onclick=startScanner;
 }
+function extractQrValues(raw){
+ const source=String(raw??'').trim();
+ const values=[];
+ const push=v=>{v=String(v||'').trim();if(v&&!values.includes(v))values.push(v)};
+ push(source);
+ try{push(decodeURIComponent(source));}catch{}
+ try{
+   const obj=JSON.parse(source);
+   ['ma_hs','maHS','ma_qr','maQR','code','studentCode'].forEach(k=>push(obj?.[k]));
+ }catch{}
+ // Hỗ trợ QR dạng: "Mã HS: 3159266269 | Họ tên: ...", URL hoặc chuỗi có mã HS.
+ const texts=[...values];
+ for(const txt of texts){
+   const m=txt.match(/(?:mã\s*hs|ma[_\s-]*hs|student\s*id|studentcode|code)\s*[:=\-]?\s*(\d{6,14})/i);
+   if(m)push(m[1]);
+   const nums=txt.match(/\b\d{8,14}\b/g)||[];
+   nums.forEach(push);
+   try{
+     const u=new URL(txt,location.href);
+     ['ma_hs','mahs','ma_qr','qr','code'].forEach(k=>push(u.searchParams.get(k)));
+   }catch{}
+ }
+ return values;
+}
+
 async function findStudent(value){
- const q=String(value||'').trim();if(!q)return toast('Hãy nhập mã QR hoặc mã học sinh.','err');
- const {data,error}=await supabase.from('danh_sach').select('id,ma_hs,ho_ten,khoi,lop,ngay_sinh,ma_qr,trang_thai,nam_hoc').or(`ma_qr.eq.${q},ma_hs.eq.${q}`).limit(1).maybeSingle();
- if(error)return toast(`Không tìm được học sinh: ${error.message}`,'err');
- if(!data)return toast('Không tìm thấy học sinh.','err');
- student=data;await loadCriteria();renderStudent();
+ const raw=String(value||'').trim();
+ if(!raw)return toast('Hãy nhập mã QR hoặc mã học sinh.','err');
+ const candidates=extractQrValues(raw);
+ let found=null,lastError=null;
+ // Ưu tiên ma_qr nguyên bản, sau đó thử các giá trị đã chuẩn hóa và ma_hs.
+ for(const q of candidates){
+   const byQr=await supabase.from('danh_sach').select('id,ma_hs,ho_ten,khoi,lop,ngay_sinh,ma_qr,trang_thai,nam_hoc').eq('ma_qr',q).limit(1);
+   if(byQr.error){lastError=byQr.error;continue;}
+   if(byQr.data?.[0]){found=byQr.data[0];break;}
+   const byHs=await supabase.from('danh_sach').select('id,ma_hs,ho_ten,khoi,lop,ngay_sinh,ma_qr,trang_thai,nam_hoc').eq('ma_hs',q).limit(1);
+   if(byHs.error){lastError=byHs.error;continue;}
+   if(byHs.data?.[0]){found=byHs.data[0];break;}
+ }
+ if(!found){
+   if(lastError)return toast(`Không tìm được học sinh: ${lastError.message}`,'err');
+   return toast('QR đã đọc nhưng không trích xuất được mã học sinh hợp lệ hoặc mã chưa tồn tại trong CSDL.','err');
+ }
+ student=found;
+ const normalized=found.ma_hs||candidates.find(x=>/^\d{8,14}$/.test(x))||raw;
+ root.querySelector('#qrManual').value=normalized;
+ const st=root.querySelector('#qrStatus');
+ if(st)st.innerHTML='<div class="badge ok">✓ Đã nhận diện học sinh từ QR</div>';
+ await loadCriteria();renderStudent();
 }
 async function loadCriteria(){
  const {data}=await supabase.from('danh_muc_diem').select('ma_hd,ten_hd,mang,loai,diem,doi_tuong').order('mang').order('ten_hd');criteria=data||[];
@@ -48,6 +91,7 @@ async function startScanner(){
  if(!window.Html5Qrcode)return toast('Thư viện camera QR chưa tải xong. Có thể dùng nhập mã thủ công.','err');
  if(scanner){try{await scanner.stop()}catch{}}
  scanner=new Html5Qrcode('reader');
+ const st=root.querySelector('#qrStatus'); if(st)st.innerHTML='<div class="badge">Đang đọc QR...</div>';
  try{await scanner.start({facingMode:'environment'},{fps:10,qrbox:{width:240,height:240}},async decoded=>{await scanner.stop();root.querySelector('#qrManual').value=decoded;await findStudent(decoded)},()=>{})}
  catch(e){toast('Không mở được camera. Hãy kiểm tra quyền camera hoặc dùng nhập mã QR.','err')}
 }

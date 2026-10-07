@@ -1,5 +1,5 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-export const APP_VERSION='3.0.5.5';
+export const APP_VERSION='3.0.5.7';
 export const appConfig={
   supabaseUrl:'https://vbhtgkvvmwfztswxlvnl.supabase.co',
   supabaseAnonKey:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZiaHRna3Z2bXdmenRzd3hsdm5sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEwMjE2MzgsImV4cCI6MjEwNjU5NzYzOH0.CqsEoBOVB4CS9UphogsIRtR1syY82kx5uzvcz_K_luo',
@@ -25,7 +25,8 @@ export const STAFF_ROLES=[
  {key:'Admin',label:'Quản trị hệ thống'},
  {key:'GVCN',label:'Giáo viên chủ nhiệm'},
  {key:'Giáo viên',label:'Giáo viên giảng dạy'},
- {key:'Cán bộ lớp',label:'Cán bộ lớp (học sinh)'}
+ {key:'Cán bộ lớp',label:'Cán bộ lớp (học sinh)'},
+ {key:'Trực',label:'Cán bộ trực'}
 ];
 export const CLASS_MANAGEMENT_TYPES=[
  {key:'Chủ nhiệm',label:'Chủ nhiệm'},
@@ -37,6 +38,7 @@ export function roleOf(s){
  if(roles.some(x=>['admin','quantri','quản trị','quản trị hệ thống'].includes(x)))return 'Admin';
  if(roles.some(x=>['gvcn','giáo viên chủ nhiệm','giao vien chu nhiem'].includes(x)))return 'GVCN';
  if(roles.some(x=>['cán bộ lớp','can bo lop'].includes(x)))return 'Cán bộ lớp';
+ if(roles.some(x=>['trực','truc','cán bộ trực','can bo truc'].includes(x)))return 'Trực';
  if(roles.some(x=>['giáo viên','giao vien','gv'].includes(x)))return 'Giáo viên';
  return String(s?.vai_tro||'').trim();
 }
@@ -63,6 +65,7 @@ export function canScore(s,lop,target='Cá nhân'){
  return role==='GVCN'||role==='Giáo viên';
 }
 export function canViewAllStats(s){return roleOf(s)==='Admin'||roleOf(s)==='GVCN';}
+export function canMonitorAbsence(s){return ['Admin','Trực'].includes(roleOf(s));}
 
 export function isAdminStaff(s){
  if(!s)return false;

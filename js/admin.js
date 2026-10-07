@@ -32,6 +32,7 @@ function scopeLabel(x){
  if(role==='GVCN')return x.lop_quan_ly?`Chủ nhiệm: ${x.lop_quan_ly}`:'Chưa phân lớp';
  if(role==='Giáo viên')return Array.isArray(x.lop_giang_day)&&x.lop_giang_day.length?`Giảng dạy: ${x.lop_giang_day.join(', ')}`:'Chưa phân lớp';
  if(role==='Cán bộ lớp')return x.lop_quan_ly?`Cán bộ lớp: ${x.lop_quan_ly}`:'Chưa phân lớp';
+ if(role==='Trực')return 'Theo dõi báo vắng';
  return 'Toàn hệ thống';
 }
 function staffForm(s,classes){
@@ -68,6 +69,9 @@ function staffForm(s,classes){
    area.innerHTML=`<label>Lớp cán bộ lớp<select id="c_class">${classOptions(classes,x.lop_quan_ly)}</select></label><div class="scope-help">Tài khoản học sinh chỉ được chấm điểm cá nhân cho học sinh cùng lớp.</div>`;
    studentSection.classList.remove('hidden');
    loadStudentsForClass(m,x.lop_quan_ly||'');
+  }else if(r==='Trực'){
+   area.innerHTML=`<div class="notice"><b>Cán bộ trực:</b> theo dõi tình trạng báo vắng của các lớp theo lịch học. Không được sửa điểm hoặc báo vắng thay cho giáo viên.</div>`;
+   studentSection.classList.add('hidden');
   }else{
    area.innerHTML=`<div class="notice">Admin có phạm vi toàn hệ thống, không cần gán lớp.</div>`;
    studentSection.classList.add('hidden');
@@ -90,6 +94,7 @@ function staffForm(s,classes){
   if(r==='GVCN'){payload.lop_quan_ly=m.querySelector('#c_class')?.value||null;payload.lop_giang_day=[];payload.loai_quan_ly_lop='Chủ nhiệm';payload.ma_hs=null}
   else if(r==='Giáo viên'){payload.lop_quan_ly=null;payload.lop_giang_day=[...(m.querySelector('#c_classes')?.selectedOptions||[])].map(o=>o.value);payload.loai_quan_ly_lop='Giảng dạy';payload.ma_hs=null}
   else if(r==='Cán bộ lớp'){payload.lop_quan_ly=m.querySelector('#c_class')?.value||null;payload.lop_giang_day=[];payload.loai_quan_ly_lop='Cán bộ lớp';payload.ma_hs=m.querySelector('#c_student')?.value||null;if(!payload.lop_quan_ly||!payload.ma_hs)return toast('Cán bộ lớp phải có lớp và học sinh liên kết.','err')}
+  else if(r==='Trực'){payload.lop_quan_ly=null;payload.lop_giang_day=[];payload.loai_quan_ly_lop='Trực';payload.ma_hs=null}
   else{payload.lop_quan_ly='ALL';payload.lop_giang_day=[];payload.loai_quan_ly_lop='';payload.ma_hs=null}
   if(!s)payload.quyen_tabs=defaultTabsForRole(r);
   const q=s?supabase.from('can_bo').update(payload).eq('ma_cb',s.ma_cb):supabase.from('can_bo').insert(payload);
@@ -98,9 +103,33 @@ function staffForm(s,classes){
 }
 function classOptions(classes,selected){return '<option value="">-- Chọn lớp --</option>'+classes.map(c=>`<option value="${esc(c)}" ${c===selected?'selected':''}>${esc(c)}</option>`).join('')}
 function formatDate(v){const m=String(v||'').match(/^(\d{4})-(\d{2})-(\d{2})/);return m?`${m[3]}/${m[2]}/${m[1]}`:''}
-function defaultTabsForRole(r){if(r==='Admin')return PERMISSION_TABS.map(x=>x.key);if(r==='GVCN')return ['baovang','chamdiem','thongke','xeploai'];if(r==='Giáo viên')return ['baovang','chamdiem','thongke'];if(r==='Cán bộ lớp')return ['chamdiem','thongke'];return []}
+function defaultTabsForRole(r){if(r==='Admin')return PERMISSION_TABS.map(x=>x.key);if(r==='GVCN')return ['baovang','chamdiem','thongke','xeploai'];if(r==='Giáo viên')return ['baovang','chamdiem','thongke'];if(r==='Cán bộ lớp')return ['chamdiem','thongke'];if(r==='Trực')return ['baovang'];return []}
 async function schedule(b){const {data,error}=await supabase.from('cai_dat_thoi_gian').select('*').order('khoi').order('lop').order('tu_tiet');if(error)return b.innerHTML=`<div class="danger-box">${esc(error.message)}</div>`;b.innerHTML=`<div class="notice">Cấu hình thời gian điểm danh hiện dùng bảng <code>cai_dat_thoi_gian</code>. V3.0.4 chỉ chỉnh các trường đã xác nhận từ schema.</div><div class="toolbar"><button id="tgAdd" class="btn primary">+ Thêm cấu hình</button></div><div class="table-wrap"><table class="table"><thead><tr><th>Khối</th><th>Lớp</th><th>Buổi</th><th>Tiết</th><th>Bắt đầu</th><th>Kết thúc</th><th>Trạng thái</th></tr></thead><tbody>${data.map(x=>`<tr><td>${esc(x.khoi)}</td><td>${esc(x.lop)}</td><td>${esc(x.buoi)}</td><td>${x.tu_tiet}-${x.den_tiet}</td><td>${esc(x.gio_bat_dau_diem_danh)}</td><td>${esc(x.gio_ket_thuc_diem_danh)}</td><td>${esc(x.trang_thai)}</td></tr>`).join('')}</tbody></table></div>`;b.querySelector('#tgAdd').onclick=()=>toast('Form thêm cấu hình TKB sẽ được hoàn thiện sau khi chốt nghiệp vụ TKB chi tiết.','ok');}
 async function transfer(b){b.innerHTML=`<div class="cards"><div class="action-card"><h3>🔄 Kết chuyển học sinh</h3><p>Gọi RPC <code>ket_chuyen_hoc_sinh</code> để kết chuyển một học sinh sang khối/lớp/năm học mới.</p><div class="action-row"><button id="transferOne" class="btn primary">Thực hiện</button></div></div><div class="action-card"><h3>🎓 Tốt nghiệp học sinh</h3><p>Gọi RPC <code>tot_nghiep_hoc_sinh</code>. V3.0.4 chưa tự động chạy hàng loạt.</p><div class="action-row"><button id="grad" class="btn warn">Mở thao tác</button></div></div></div>`;b.querySelector('#transferOne').onclick=()=>toast('Đã mở khung kết chuyển. Khi chốt quy trình hàng loạt sẽ bổ sung lựa chọn lớp đích.','ok');b.querySelector('#grad').onclick=()=>toast('Chức năng tốt nghiệp đang ở chế độ an toàn, chưa tự động cập nhật hàng loạt.','ok');}
 async function criteria(b){const {data,error}=await supabase.from('danh_muc_diem').select('ma_hd,ten_hd,mang,loai,diem,doi_tuong').order('mang').order('loai').order('ten_hd');if(error)return b.innerHTML=`<div class="danger-box">${esc(error.message)}</div>`;b.innerHTML=`<div class="toolbar"><button id="crAdd" class="btn primary">+ Thêm tiêu chí</button><span class="badge">${data.length} tiêu chí</span></div><div class="table-wrap"><table class="table"><thead><tr><th>Mã</th><th>Nội dung</th><th>Mảng</th><th>Loại</th><th>Điểm</th><th>Đối tượng</th><th></th></tr></thead><tbody>${data.map(x=>`<tr><td>${esc(x.ma_hd)}</td><td>${esc(x.ten_hd)}</td><td>${esc(x.mang)}</td><td>${esc(x.loai)}</td><td>${Number(x.diem)>0?'+':''}${x.diem}</td><td>${esc(x.doi_tuong)}</td><td><button class="btn light cr-edit" data-ma="${esc(x.ma_hd)}">Sửa</button></td></tr>`).join('')}</tbody></table></div>`;b.querySelector('#crAdd').onclick=()=>criteriaForm(null);b.querySelectorAll('.cr-edit').forEach(btn=>btn.onclick=()=>criteriaForm(data.find(x=>x.ma_hd===btn.dataset.ma)));}
-function criteriaForm(s){const x=s||{};const m=modal(s?'Sửa tiêu chí':'Thêm tiêu chí',`<div class="grid"><label>Mã hoạt động<input id="d_ma" value="${esc(x.ma_hd)}" ${s?'readonly':''}></label><label>Tên hoạt động<input id="d_name" value="${esc(x.ten_hd)}"></label><label>Mảng<input id="d_mang" value="${esc(x.mang||'Nề nếp')}"></label><label>Loại<input id="d_loai" value="${esc(x.loai||'Vi phạm')}"></label><label>Điểm<input id="d_score" type="number" step="0.5" value="${x.diem??0}"></label><label>Đối tượng<input id="d_obj" value="${esc(x.doi_tuong||'Cá nhân')}"></label></div>`,`<button id="d_cancel" class="btn light">Hủy</button><button id="d_save" class="btn primary">Lưu</button>`);m.querySelector('#d_cancel').onclick=closeModal;m.querySelector('#d_save').onclick=async()=>{const payload={ma_hd:m.querySelector('#d_ma').value.trim(),ten_hd:m.querySelector('#d_name').value.trim(),mang:m.querySelector('#d_mang').value.trim(),loai:m.querySelector('#d_loai').value.trim(),diem:Number(m.querySelector('#d_score').value||0),doi_tuong:m.querySelector('#d_obj').value.trim()};const q=s?supabase.from('danh_muc_diem').update(payload).eq('ma_hd',s.ma_hd):supabase.from('danh_muc_diem').insert(payload);const {error}=await q;if(error)return toast(error.message,'err');closeModal();toast('Đã lưu tiêu chí.','ok');await criteria(root.querySelector('#adminBody'));};}
+function criteriaForm(s){
+ const x=s||{};
+ const mangs=['Nề nếp','Học tập','Đoàn đội','Hoạt động tập thể'];
+ const loais=['Khen thưởng','Vi phạm'];
+ const doituongs=['Cá nhân','Tập thể'];
+ const selected=(arr,val)=>arr.map(v=>`<option value="${esc(v)}" ${String(v)===String(val||'')?'selected':''}>${esc(v)}</option>`).join('');
+ const m=modal(s?'Sửa tiêu chí':'Thêm tiêu chí',`<div class="grid">
+   <label>Mã hoạt động<input id="d_ma" value="${esc(x.ma_hd)}" ${s?'readonly':''}></label>
+   <label>Tên hoạt động<input id="d_name" value="${esc(x.ten_hd)}"></label>
+   <label>Mảng<select id="d_mang">${selected(mangs,x.mang||'Nề nếp')}</select></label>
+   <label>Loại<select id="d_loai">${selected(loais,x.loai||'Vi phạm')}</select></label>
+   <label>Điểm<input id="d_score" type="number" step="0.5" value="${x.diem??0}"></label>
+   <label>Đối tượng<select id="d_obj">${selected(doituongs,x.doi_tuong||'Cá nhân')}</select></label>
+ </div>`,`<button id="d_cancel" class="btn light">Hủy</button><button id="d_save" class="btn primary">Lưu</button>`);
+ m.querySelector('#d_cancel').onclick=closeModal;
+ m.querySelector('#d_save').onclick=async()=>{
+   const ma=m.querySelector('#d_ma').value.trim(),name=m.querySelector('#d_name').value.trim(),score=Number(m.querySelector('#d_score').value||0);
+   if(!ma||!name)return toast('Mã hoạt động và tên hoạt động không được để trống.','err');
+   if(score===0)return toast('Điểm không được bằng 0. Hãy nhập điểm cộng hoặc điểm trừ.','err');
+   const payload={ma_hd:ma,ten_hd:name,mang:m.querySelector('#d_mang').value,loai:m.querySelector('#d_loai').value,diem:score,doi_tuong:m.querySelector('#d_obj').value};
+   const q=s?supabase.from('danh_muc_diem').update(payload).eq('ma_hd',s.ma_hd):supabase.from('danh_muc_diem').insert(payload);
+   const {error}=await q;if(error)return toast(error.message,'err');
+   closeModal();toast('Đã lưu tiêu chí.','ok');await criteria(root.querySelector('#adminBody'));
+ };
+}
 async function permissions(b){const {data,error}=await supabase.from('can_bo').select('ma_cb,ho_ten,vai_tro,vai_tro_list,quyen_tabs,trang_thai').order('ho_ten');if(error)return b.innerHTML=`<div class="danger-box">${esc(error.message)}</div>`;let selected=data[0]?.ma_cb||'';const render=()=>{const s=data.find(x=>x.ma_cb===selected);const admin=isAdminStaff(s);const q=admin?PERMISSION_TABS.map(x=>x.key):normalizeTabs(s?.quyen_tabs);b.innerHTML=`<div class="notice"><b>Phân quyền JSONB:</b> chỉ sử dụng <code>can_bo.quyen_tabs</code>. Admin toàn quyền theo vai trò.</div><div class="toolbar"><select id="permUser">${data.map(x=>`<option value="${esc(x.ma_cb)}" ${x.ma_cb===selected?'selected':''}>${esc(x.ho_ten)} — ${esc(x.ma_cb)} — ${esc(x.vai_tro)}</option>`).join('')}</select></div><div class="check-grid">${PERMISSION_TABS.map(p=>`<div class="check-item"><label><input class="perm-check" value="${p.key}" type="checkbox" ${q.includes(p.key)?'checked':''} ${admin?'disabled':''}><span><b>${esc(p.label)}</b><br><small>${p.key}</small></span></label></div>`).join('')}</div>${admin?'<div class="notice" style="margin-top:12px">Tài khoản Admin không cần ghi quyền vào JSONB.</div>':'<div class="action-row"><button id="permSave" class="btn primary">Lưu quyền</button></div>'}`;b.querySelector('#permUser').onchange=e=>{selected=e.target.value;render()};b.querySelector('#permSave')?.addEventListener('click',async()=>{const q=[...b.querySelectorAll('.perm-check:checked')].map(x=>x.value);const {error}=await supabase.from('can_bo').update({quyen_tabs:q}).eq('ma_cb',selected);if(error)return toast(error.message,'err');data.find(x=>x.ma_cb===selected).quyen_tabs=q;toast('Đã lưu quyền.','ok');render()});};render();}
