@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Quản lý nề nếp & thi đua — V3.0.4</title>
-<link rel="stylesheet" href="./css/app.css">
+<link rel="stylesheet" href="./css/app.css?v=3.0.4.1">
 <script src="https://unpkg.com/html5-qrcode" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
 </head>
@@ -14,7 +14,16 @@
     <div class="brand"><div class="brand-icon">🏫</div><h1>Quản lý nề nếp & thi đua</h1><p>THPT Lê Hồng Phong · V3.0.4</p></div>
     <form id="loginForm">
       <label>Mã cán bộ<input id="username" autocomplete="username" required></label>
-      <label>Mật khẩu<input id="password" type="password" autocomplete="current-password" required></label>
+      <label>Mật khẩu
+        <div class="password-wrap">
+          <input id="password" type="password" autocomplete="current-password" required>
+          <button id="togglePassword" class="password-toggle" type="button" aria-label="Hiển thị mật khẩu" title="Hiển thị mật khẩu">👁</button>
+        </div>
+      </label>
+      <label class="remember-row">
+        <input id="rememberMe" type="checkbox">
+        <span>Ghi nhớ mã cán bộ trên thiết bị này</span>
+      </label>
       <button class="btn primary full" type="submit">Đăng nhập</button>
       <div id="loginError" class="error"></div>
     </form>
