@@ -1,8 +1,16 @@
 import {supabase,appConfig,managedClasses,canManageAbsence,roleOf,canMonitorAbsence} from './config.js';
 import {esc,toast,modal,closeModal} from './ui.js';
 
-let root,grades=[],classes=[],students=[];
+let root,grades=[],classes=[],students=[],roster=[];
 let selectedGrade='',selectedClass='',date='',buoi='Sáng',autoBuoi='Sáng',manualBuoi=false;
+
+function normText(v){return String(v??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim()}
+function gradeKey(v){const m=String(v??'').match(/(?:khoi|khối)?\s*(10|11|12)/i);return m?m[1]:normText(v).replace(/[^0-9]/g,'')}
+function gradeLabel(v){const k=gradeKey(v);return k?`Khối ${k}`:String(v??'').trim()}
+function sameGrade(a,b){return gradeKey(a)===gradeKey(b)}
+function activeStudent(r){const s=normText(r?.trang_thai);return !s||['active','dang hoc','đang học','hoc','học','true','1'].includes(s)}
+function classRoster(){return roster.filter(activeStudent).filter(r=>r.lop).map(r=>({lop:String(r.lop).trim(),khoi:gradeLabel(r.khoi||r.lop)}))}
+
 
 async function fetchAll(factory,chunk=1000){
   const all=[]; let from=0;
@@ -22,7 +30,7 @@ export async function init(r){
   date=localDate(now);
   autoBuoi=await detectCurrentSession(now);
   buoi=autoBuoi;
-  selectedGrade=''; selectedClass=''; students=[]; manualBuoi=false;
+  selectedGrade=''; selectedClass=''; students=[]; roster=[]; manualBuoi=false;
   await renderShell();
   await loadGrades();
   if(canMonitorAbsence(window.App?.Auth?.currentUser)) await loadMonitor();
@@ -68,32 +76,31 @@ async function renderShell(){
 
 async function loadGrades(){
   try{
-    const data=await fetchAll(()=>supabase.from('danh_sach').select('khoi').eq('trang_thai','Active').not('khoi','is',null).order('khoi'));
-    grades=[...new Set(data.map(x=>String(x.khoi).trim()).filter(Boolean))].sort(naturalSort);
-    root.querySelector('#absGradeRadios').innerHTML=grades.map(g=>`<label class="absence-grade"><input type="radio" name="absGrade" value="${esc(g)}"><span>${esc(g)}</span></label>`).join('');
+    roster=await fetchAll(()=>supabase.from('danh_sach').select('ma_hs,ho_ten,khoi,lop,ngay_sinh,trang_thai').not('lop','is',null).order('lop'));
+    roster=roster.filter(activeStudent);
+    const keys=[...new Set(roster.map(x=>gradeKey(x.khoi||x.lop)).filter(Boolean))].sort((a,b)=>Number(a)-Number(b));
+    grades=keys.map(k=>`Khối ${k}`);
+    root.querySelector('#absGradeRadios').innerHTML=grades.map(g=>`<label class="absence-grade"><input type="radio" name="absGrade" value="${esc(g)}"><span>${esc(g)}</span></label>`).join('')||'<span class="class-empty">Không tìm thấy học sinh đang học.</span>';
     root.querySelectorAll('input[name="absGrade"]').forEach(r=>r.onchange=()=>onGradeChange(r.value));
   }catch(e){showError(e.message)}
 }
 
 async function onGradeChange(grade){
-  selectedGrade=grade; selectedClass=''; students=[];
+  selectedGrade=gradeLabel(grade); selectedClass=''; students=[];
   const classBox=root.querySelector('#absClassRadios'), count=root.querySelector('#absCount');
   count.disabled=true; count.innerHTML='<option value="">-- Chọn lớp trước --</option>';
   root.querySelector('#absRows').innerHTML='<div class="empty">Hãy chọn lớp và số học sinh vắng.</div>';
-  classBox.innerHTML='<span class="class-empty">Đang tải lớp...</span>';
-  try{
-    const data=await fetchAll(()=>supabase.from('danh_sach').select('lop').eq('trang_thai','Active').eq('khoi',grade).not('lop','is',null).order('lop'));
-    classes=[...new Set(data.map(x=>String(x.lop).trim()).filter(Boolean))].sort(naturalSort);
-    const scope=managedClasses(window.App?.Auth?.currentUser); if(scope!==null)classes=classes.filter(c=>scope.includes(c));
-    classBox.innerHTML=classes.map(c=>`<label class="absence-class"><input type="radio" name="absClass" value="${esc(c)}"><span>${esc(c)}</span></label>`).join('')||'<span class="class-empty">Không có lớp trong phạm vi tài khoản.</span>';
-    root.querySelectorAll('input[name="absClass"]').forEach(r=>r.onchange=()=>onClassChange(r.value));
-  }catch(e){showError(e.message)}
+  const all=classRoster().filter(x=>sameGrade(x.khoi,selectedGrade));
+  classes=[...new Set(all.map(x=>x.lop))].sort(naturalSort);
+  const scope=managedClasses(window.App?.Auth?.currentUser); if(scope!==null)classes=classes.filter(c=>scope.includes(c));
+  classBox.innerHTML=classes.map(c=>`<label class="absence-class"><input type="radio" name="absClass" value="${esc(c)}"><span>${esc(c)}</span></label>`).join('')||'<span class="class-empty">Không có lớp trong phạm vi tài khoản.</span>';
+  root.querySelectorAll('input[name="absClass"]').forEach(r=>r.onchange=()=>onClassChange(r.value));
 }
 
 async function onClassChange(cls){
   selectedClass=cls;
   try{
-    students=await fetchAll(()=>supabase.from('danh_sach').select('ma_hs,ho_ten,khoi,lop,ngay_sinh').eq('trang_thai','Active').eq('khoi',selectedGrade).eq('lop',cls).order('ho_ten'));
+    students=roster.filter(activeStudent).filter(s=>String(s.lop||'').trim()===String(cls).trim() && sameGrade(s.khoi||s.lop,selectedGrade));
     students.sort((a,b)=>String(a.ho_ten||'').localeCompare(String(b.ho_ten||''),'vi',{sensitivity:'base'}));
     const count=root.querySelector('#absCount'); count.disabled=false;
     count.innerHTML='<option value="">-- Chọn số học sinh vắng --</option>'+Array.from({length:students.length+1},(_,i)=>`<option value="${i}">${i}</option>`).join('');
@@ -125,12 +132,23 @@ async function save(){
   const allowed=await classHasSchedule(selectedClass,selectedGrade,date,buoi);
   if(!allowed){rejectWrite('Không ghi báo vắng',`Lớp ${selectedClass} chưa có lịch học ${buoi} ngày ${formatDate(date)} trong TKB. Hệ thống chỉ cho phép báo vắng khi lớp thực sự có lịch học. Vui lòng vào Quản trị → TKB & TG học → Lịch học để khai báo trước. Hệ thống không ghi dữ liệu vào CSDL.`);return;}
   const rows=[...root.querySelectorAll('.absence-row')],payload=[];
-  for(const row of rows){const idx=row.querySelector('.absence-student').value,status=row.querySelector('input[type="radio"]:checked')?.value||'';if(idx==='')return toast(`Dòng ${Number(row.dataset.row)+1}: chưa chọn học sinh.`,'err');if(!status)return toast(`Dòng ${Number(row.dataset.row)+1}: chưa chọn Có phép/Không phép.`,'err');const s=students[Number(idx)];payload.push({ma_hs:s.ma_hs,ho_ten:s.ho_ten,khoi:s.khoi,lop:s.lop,ngay_diem_danh:date,buoi,trang_thai:status,chi_tiet:null,diem:0,ma_nguoi_cap_nhat:u?.ma_cb||null,ten_nguoi_cap_nhat:u?.ho_ten||null,nam_hoc:appConfig.namHoc})}
+  for(const row of rows){const idx=row.querySelector('.absence-student').value,status=row.querySelector('input[type="radio"]:checked')?.value||'';if(idx==='')return toast(`Dòng ${Number(row.dataset.row)+1}: chưa chọn học sinh.`,'err');if(!status)return toast(`Dòng ${Number(row.dataset.row)+1}: chưa chọn Có phép/Không phép.`,'err');const s=students[Number(idx)];payload.push({ma_hs:s.ma_hs,ho_ten:s.ho_ten,khoi:s.khoi,lop:s.lop,ngay_diem_danh:date,buoi,trang_thai:status,chi_tiet:null,diem:0,ma_nguoi_cap_nhat:u?.ma_cb||null,ten_nguoi_cap_nhat:u?.ho_ten||null})}
   const {error}=await supabase.from('diem_danh_master').insert(payload); if(error){ const m=String(error.message||''); const hint=(m.includes('nam_hoc')||m.includes('schema cache'))?' Hãy chạy SQL 011_v3_0_5_8_fix_bao_vang_schema.sql trong Supabase rồi tải lại trang.':''; return toast(`Không ghi được dữ liệu: ${m}${hint}`,'err'); }
   const reportError=await saveClassReport(payload.length,u); if(reportError){return toast(`Đã ghi học sinh nhưng chưa cập nhật trạng thái lớp: ${reportError}`,'err');} toast(`Đã ghi nhận ${payload.length} học sinh vắng.`,'ok'); resetAfterSave();
 }
 async function saveZero(){const u=window.App?.Auth?.currentUser;if(!canManageAbsence(u,selectedClass)){rejectWrite('Không được phép báo vắng',`Tài khoản hiện tại không có quyền báo vắng cho lớp ${selectedClass}. Hệ thống không ghi dữ liệu vào CSDL.`);return;}const allowed=await classHasSchedule(selectedClass,selectedGrade,date,buoi);if(!allowed){rejectWrite('Không ghi báo vắng',`Lớp ${selectedClass} chưa có lịch học ${buoi} ngày ${formatDate(date)} trong TKB. Vì vậy hệ thống không ghi bản ghi “vắng 0”. Vui lòng khai báo TKB trước. Hệ thống không ghi dữ liệu vào CSDL.`);return;}const u=window.App?.Auth?.currentUser;const err=await saveClassReport(0,u);if(err)return toast(err,'err');toast(`Đã xác nhận ${selectedClass}: vắng 0.`, 'ok');resetAfterSave()}
-async function saveClassReport(count,u){const payload={nam_hoc:appConfig.namHoc,ngay_bao:date,buoi,khoi:selectedGrade,lop:selectedClass,so_vang:count,ma_cb:u?.ma_cb||null,ten_cb:u?.ho_ten||null,trang_thai:'Đã báo',updated_at:new Date().toISOString()};const {error}=await supabase.from('bao_vang_lop').upsert(payload,{onConflict:'nam_hoc,ngay_bao,buoi,lop'});return error?.message||null}
+async function saveClassReport(count,u){
+  const base={nam_hoc:appConfig.namHoc,ngay_bao:date,buoi,khoi:selectedGrade,lop:selectedClass,so_vang:count};
+  // Không dùng upsert/onConflict để tương thích cả CSDL cũ và mới; cập nhật bản ghi hiện có hoặc tạo mới.
+  const existing=await supabase.from('bao_vang_lop').select('id').eq('nam_hoc',appConfig.namHoc).eq('ngay_bao',date).eq('buoi',buoi).eq('lop',selectedClass).limit(1);
+  if(existing.error)return `Không đọc được trạng thái báo vắng của lớp: ${existing.error.message}`;
+  if(existing.data?.[0]?.id){
+    const upd=await supabase.from('bao_vang_lop').update({...base,ma_cb:u?.ma_cb||null,ten_cb:u?.ho_ten||null,trang_thai:'Đã báo',updated_at:new Date().toISOString()}).eq('id',existing.data[0].id);
+    return upd.error?.message||null;
+  }
+  const ins=await supabase.from('bao_vang_lop').insert({...base,ma_cb:u?.ma_cb||null,ten_cb:u?.ho_ten||null,trang_thai:'Đã báo'});
+  return ins.error?.message||null;
+}
 function resetAfterSave(){root.querySelector('#absCount').value='';root.querySelector('#absRows').innerHTML='<div class="empty">Đã ghi nhận. Có thể chọn số vắng cho lượt tiếp theo.</div>';if(canMonitorAbsence(window.App?.Auth?.currentUser))loadMonitor()}
 
 async function loadMonitor(){
@@ -152,19 +170,16 @@ async function scheduledClasses(day,session){
   const dow=new Date(`${day}T12:00:00`).getDay(); const thu=dow===0?8:dow+1;
   const q=await supabase.from('thoi_khoa_bieu').select('lop,khoi,thu,buoi,trang_thai').eq('nam_hoc',appConfig.namHoc).eq('thu',thu).eq('buoi',session).eq('trang_thai','Hoạt động');
   if(q.error)throw q.error;
-  const rows=q.data||[]; const out=new Map();
-  let allClasses=null;
-  const addClasses=async(filter,source)=>{
-    const qq=await fetchAll(()=>supabase.from('danh_sach').select('lop,khoi').eq('trang_thai','Active').not('lop','is',null));
-    for(const c of qq){const lop=String(c.lop||'').trim(),khoi=String(c.khoi||'').trim();if(!lop)continue;if(filter(khoi,lop))out.set(lop,{lop,source});}
-  };
+  const rows=q.data||[], out=new Map(), all=classRoster();
   for(const r of rows){
     const khoi=String(r.khoi||'').trim(),lop=String(r.lop||'').trim();
     if(lop){out.set(lop,{lop,source:`Lớp ${lop}`});continue;}
-    if(khoi){await addClasses((g,l)=>g===khoi,`${khoi} — áp dụng toàn khối`);continue;}
-    await addClasses(()=>true,'Toàn trường');
+    if(khoi){for(const c of all){if(sameGrade(c.khoi,khoi))out.set(c.lop,{lop:c.lop,source:`${gradeLabel(khoi)} — áp dụng toàn khối`});}continue;}
+    for(const c of all)out.set(c.lop,{lop:c.lop,source:'Toàn trường'});
   }
-  const scope=managedClasses(window.App?.Auth?.currentUser);let a=[...out.values()];if(scope!==null)a=a.filter(x=>scope.includes(x.lop));return a.sort((a,b)=>naturalSort(a.lop,b.lop));
+  const scope=managedClasses(window.App?.Auth?.currentUser); let a=[...out.values()];
+  if(scope!==null)a=a.filter(x=>scope.includes(x.lop));
+  return a.sort((a,b)=>naturalSort(a.lop,b.lop));
 }
 async function classHasSchedule(cls,grade,day,session){if(!cls||!session)return false;const list=await scheduledClasses(day,session);return list.some(x=>x.lop===String(cls).trim())}
 
