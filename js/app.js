@@ -33,3 +33,5 @@ $('rememberMe').checked=!!Auth.remembered();
 bind();
 if(Auth.restore())session();
 console.info(`QLNN ${APP_VERSION}`,appConfig);
+window.addEventListener('error',e=>console.error('[QLNN ERROR]',e.error||e.message));
+window.addEventListener('unhandledrejection',e=>console.error('[QLNN PROMISE]',e.reason));
