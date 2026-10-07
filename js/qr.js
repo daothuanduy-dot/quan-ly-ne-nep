@@ -1,4 +1,4 @@
-import {supabase} from './config.js';import {esc,toast} from './ui.js';
+import {supabase,appConfig} from './config.js';import {esc,toast,modal,closeModal} from './ui.js';
 let root,student=null,scanner=null,criteria=[];
 export async function init(rootEl){
  root=rootEl;student=null;criteria=[];
@@ -81,12 +81,17 @@ function action(type){
  root.querySelector('#qrSave').onclick=()=>{const c=list.find(x=>x.ma_hd===root.querySelector('#criteriaSelect').value);if(!c)return toast('Hãy chọn nội dung.','err');saveEvent(wantPlus?'Điểm cộng':'Điểm trừ',Number(c.diem),c.ma_hd,c.ten_hd)};
 }
 async function saveEvent(status,score,maHd,detail){
- const u=window.App?.Auth?.currentUser;const now=new Date();const buoi=now.getHours()<12?'Sáng':'Chiều';
+ const u=window.App?.Auth?.currentUser;const now=new Date();const buoi=await detectCurrentSessionForQr(now);
+ const allowed=await classHasSchedule(student?.lop,student?.khoi,now,buoi);
+ if(!allowed){const m=modal('Không ghi nhận đi muộn',`<div class="notice warn">Lớp <b>${esc(student?.lop||'')}</b> không có lịch học <b>${esc(buoi)}</b> hôm nay theo TKB.<br>Thao tác <b>${esc(status)}</b> không hợp lệ nên <b>không ghi dữ liệu vào CSDL</b>.</div>`,`<button id="qrRejectAck" class="btn primary">Đã hiểu</button>`);m.querySelector('#qrRejectAck').onclick=closeModal;return;}
  const payload={ma_hs:student.ma_hs,ho_ten:student.ho_ten,khoi:student.khoi,lop:student.lop,ngay_diem_danh:now.toISOString().slice(0,10),buoi,trang_thai:status,chi_tiet:detail||null,ma_hd:maHd||null,diem:score||0,ma_nguoi_cap_nhat:u?.ma_cb||null,ten_nguoi_cap_nhat:u?.ho_ten||null};
  const {error}=await supabase.from('diem_danh_master').insert(payload);
  if(error)return toast(`Không ghi nhận được: ${error.message}`,'err');
  toast('Đã ghi nhận thành công. Dữ liệu học sinh gốc không thay đổi.','ok');student=null;await init(root);
 }
+async function detectCurrentSessionForQr(now){const t=now.toTimeString().slice(0,8);try{const q=await supabase.from('cai_dat_thoi_gian').select('buoi,gio_bat_dau_diem_danh,gio_ket_thuc_diem_danh').eq('nam_hoc',appConfig.namHoc).eq('trang_thai','Học');const hit=(q.data||[]).find(x=>String(x.gio_bat_dau_diem_danh||'').slice(0,8)<=t&&t<=String(x.gio_ket_thuc_diem_danh||'').slice(0,8));if(hit?.buoi)return hit.buoi}catch{}return now.getHours()<12?'Sáng':'Chiều'}
+async function classHasSchedule(cls,grade,now,session){if(!cls)return false;const dow=now.getDay(),thu=dow===0?8:dow+1;const q=await supabase.from('thoi_khoa_bieu').select('lop,khoi,thu,buoi,trang_thai').eq('nam_hoc',appConfig.namHoc).eq('thu',thu).eq('buoi',session).eq('trang_thai','Hoạt động');if(q.error)return false;return (q.data||[]).some(r=>String(r.lop||'').trim()===String(cls).trim() || (!r.lop&&String(r.khoi||'').trim()===String(grade||'').trim()))}
+
 async function startScanner(){
  if(!window.Html5Qrcode)return toast('Thư viện camera QR chưa tải xong. Có thể dùng nhập mã thủ công.','err');
  if(scanner){try{await scanner.stop()}catch{}}

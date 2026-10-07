@@ -1,5 +1,5 @@
 import {supabase,appConfig,managedClasses,canManageAbsence,roleOf,canMonitorAbsence} from './config.js';
-import {esc,toast} from './ui.js';
+import {esc,toast,modal,closeModal} from './ui.js';
 
 let root,grades=[],classes=[],students=[];
 let selectedGrade='',selectedClass='',date='',buoi='Sáng',autoBuoi='Sáng',manualBuoi=false;
@@ -120,12 +120,14 @@ function updateStudentOptions(){const selects=[...root.querySelectorAll('.absenc
 function updateStatusVisual(){root.querySelectorAll('.absence-row').forEach(row=>{const chosen=row.querySelector('input[type="radio"]:checked')?.value||'';row.classList.toggle('has-permission',chosen==='Vắng có phép');row.classList.toggle('has-no-permission',chosen==='Vắng không phép')})}
 
 async function save(){
+  const allowed=await classHasSchedule(selectedClass,selectedGrade,date,buoi);
+  if(!allowed){rejectWrite('Không ghi báo vắng',`Lớp ${selectedClass} không có lịch học ${buoi} ngày ${formatDate(date)} theo TKB. Báo vắng không hợp lệ.`);return;}
   const u=window.App?.Auth?.currentUser,rows=[...root.querySelectorAll('.absence-row')],payload=[];
   for(const row of rows){const idx=row.querySelector('.absence-student').value,status=row.querySelector('input[type="radio"]:checked')?.value||'';if(idx==='')return toast(`Dòng ${Number(row.dataset.row)+1}: chưa chọn học sinh.`,'err');if(!status)return toast(`Dòng ${Number(row.dataset.row)+1}: chưa chọn Có phép/Không phép.`,'err');const s=students[Number(idx)];payload.push({ma_hs:s.ma_hs,ho_ten:s.ho_ten,khoi:s.khoi,lop:s.lop,ngay_diem_danh:date,buoi,trang_thai:status,chi_tiet:null,diem:0,ma_nguoi_cap_nhat:u?.ma_cb||null,ten_nguoi_cap_nhat:u?.ho_ten||null,nam_hoc:appConfig.namHoc})}
   const {error}=await supabase.from('diem_danh_master').insert(payload); if(error){ const m=String(error.message||''); const hint=(m.includes('nam_hoc')||m.includes('schema cache'))?' Hãy chạy SQL 011_v3_0_5_8_fix_bao_vang_schema.sql trong Supabase rồi tải lại trang.':''; return toast(`Không ghi được dữ liệu: ${m}${hint}`,'err'); }
   await saveClassReport(payload.length,u); toast(`Đã ghi nhận ${payload.length} học sinh vắng.`,'ok'); resetAfterSave();
 }
-async function saveZero(){const u=window.App?.Auth?.currentUser;const err=await saveClassReport(0,u);if(err)return toast(err,'err');toast(`Đã xác nhận ${selectedClass}: vắng 0.`, 'ok');resetAfterSave()}
+async function saveZero(){const allowed=await classHasSchedule(selectedClass,selectedGrade,date,buoi);if(!allowed){rejectWrite('Không ghi báo vắng',`Lớp ${selectedClass} không có lịch học ${buoi} ngày ${formatDate(date)} theo TKB. Vì vậy hệ thống không ghi bản ghi “vắng 0”.`);return;}const u=window.App?.Auth?.currentUser;const err=await saveClassReport(0,u);if(err)return toast(err,'err');toast(`Đã xác nhận ${selectedClass}: vắng 0.`, 'ok');resetAfterSave()}
 async function saveClassReport(count,u){const payload={nam_hoc:appConfig.namHoc,ngay_bao:date,buoi,khoi:selectedGrade,lop:selectedClass,so_vang:count,ma_cb:u?.ma_cb||null,ten_cb:u?.ho_ten||null,trang_thai:'Đã báo',updated_at:new Date().toISOString()};const {error}=await supabase.from('bao_vang_lop').upsert(payload,{onConflict:'nam_hoc,ngay_bao,buoi,lop'});return error?.message||null}
 function resetAfterSave(){root.querySelector('#absCount').value='';root.querySelector('#absRows').innerHTML='<div class="empty">Đã ghi nhận. Có thể chọn số vắng cho lượt tiếp theo.</div>';if(canMonitorAbsence(window.App?.Auth?.currentUser))loadMonitor()}
 
@@ -138,29 +140,21 @@ async function loadMonitor(){
     const reportMap=new Map(reports.map(x=>[String(x.lop),x]));
     const done=scheduled.filter(x=>reportMap.has(x.lop));
     const pending=scheduled.filter(x=>!reportMap.has(x.lop));
-    box.innerHTML=`<div class="panel absence-monitor"><div class="page-head"><div><h3 style="margin:0">📋 Theo dõi báo vắng — ${esc(date)} · ${esc(buoi)}</h3><p>Dựa trên các lớp có lịch học; lớp không có học sinh vắng vẫn phải có bản ghi “vắng 0”.</p></div><button id="monitorRefresh" class="btn light">↻ Cập nhật</button></div><div class="monitor-cards"><button class="monitor-card total"><b>${scheduled.length}</b><span>Số lớp có lịch</span></button><button class="monitor-card done"><b>${done.length}</b><span>Đã báo</span></button><button id="pendingBtn" class="monitor-card pending"><b>${pending.length}</b><span>Chưa báo</span></button></div><div id="pendingList" class="pending-list hidden">${pending.length?pending.map(x=>`<button class="pending-class">${esc(x.lop)}</button>`).join(''):'<span class="empty">Tất cả lớp đã báo.</span>'}</div><div class="table-wrap"><table class="table"><thead><tr><th>Lớp</th><th>Trạng thái</th><th>Số vắng</th><th>Người báo</th></tr></thead><tbody>${scheduled.map(x=>{const r=reportMap.get(x.lop);return `<tr><td><b>${esc(x.lop)}</b></td><td>${r?'<span class="badge ok">Đã báo</span>':'<span class="badge warn">Chưa báo</span>'}</td><td>${r?esc(r.so_vang):'—'}</td><td>${r?esc(r.ten_cb||r.ma_cb||''): '—'}</td></tr>`}).join('')}</tbody></table></div></div>`;
+    box.innerHTML=`<div class="panel absence-monitor"><div class="page-head"><div><h3 style="margin:0">📋 Theo dõi báo vắng — ${esc(date)} · ${esc(buoi)}</h3><p>Dựa trên các lớp có lịch học; lớp không có học sinh vắng vẫn phải có bản ghi “vắng 0”.</p></div><button id="monitorRefresh" class="btn light">↻ Cập nhật</button></div>${scheduled.length===0?'<div class="notice warn"><b>Chưa có dữ liệu lớp có lịch.</b> Hệ thống đang ưu tiên TKB. Nếu TKB chưa nhập, hãy vào Quản trị → TKB & TG học để nhập lịch; cấu hình <code>cai_dat_thoi_gian</code> chỉ là phương án dự phòng.</div>':''}<div class="monitor-cards"><button class="monitor-card total"><b>${scheduled.length}</b><span>Số lớp có lịch</span></button><button class="monitor-card done"><b>${done.length}</b><span>Đã báo</span></button><button id="pendingBtn" class="monitor-card pending"><b>${pending.length}</b><span>Chưa báo</span></button></div><div id="pendingList" class="pending-list ${pending.length?'hidden':''}">${pending.length?pending.map(x=>`<button class="pending-class">${esc(x.lop)}</button>`).join(''):'<span class="empty">${scheduled.length?'Tất cả lớp đã báo.':'Chưa xác định được lớp có lịch. Hãy nhập TKB hoặc cấu hình thời gian học cho năm học 2026-2027.'}</span>'}</div><div class="table-wrap"><table class="table"><thead><tr><th>Lớp</th><th>Trạng thái</th><th>Số vắng</th><th>Người báo</th></tr></thead><tbody>${scheduled.map(x=>{const r=reportMap.get(x.lop);return `<tr><td><b>${esc(x.lop)}</b></td><td>${r?'<span class="badge ok">Đã báo</span>':'<span class="badge warn">Chưa báo</span>'}</td><td>${r?esc(r.so_vang):'—'}</td><td>${r?esc(r.ten_cb||r.ma_cb||''): '—'}</td></tr>`}).join('')}</tbody></table></div></div>`;
     box.querySelector('#monitorRefresh').onclick=loadMonitor;
     box.querySelector('#pendingBtn').onclick=()=>box.querySelector('#pendingList').classList.toggle('hidden');
   }catch(e){box.innerHTML=`<div class="danger-box">Không tải được theo dõi báo vắng: ${esc(e.message)}<br><small>Hãy chạy SQL 011_v3_0_5_8_fix_bao_vang_schema.sql để tạo/cập nhật bảng và làm mới schema cache.</small></div>`}
 }
 
 async function scheduledClasses(day,session){
-  const dow=new Date(`${day}T12:00:00`).getDay(); const thu=dow===0?8:dow+1; // Thứ 2=2 ... Chủ nhật=8
-  try{
-    const {data,error}=await supabase.from('thoi_khoa_bieu').select('lop,thu,tiet,buoi,trang_thai').eq('nam_hoc',appConfig.namHoc).eq('thu',thu).eq('trang_thai','Hoạt động');
-    if(!error && data?.length){
-      // Sáng: tiết 1-5; Chiều: tiết 6 trở đi. Có thể thay đổi trong TKB sau.
-      const rows=data.filter(x=>x.buoi?String(x.buoi).trim()===session:(session==='Sáng'?Number(x.tiet)<=5:Number(x.tiet)>=6));
-      const scope=managedClasses(window.App?.Auth?.currentUser); const out=[...new Set(rows.map(x=>String(x.lop||'').trim()).filter(Boolean))];
-      return (scope===null?out:out.filter(x=>scope.includes(x))).sort(naturalSort).map(lop=>({lop}));
-    }
-  }catch{}
-  // Fallback theo cấu hình thời gian hiện có nếu TKB chưa được nhập.
-  const {data,error}=await supabase.from('cai_dat_thoi_gian').select('lop,buoi,trang_thai').eq('nam_hoc',appConfig.namHoc).eq('buoi',session);
-  if(error)throw error;
-  const scope=managedClasses(window.App?.Auth?.currentUser); let out=[...new Set((data||[]).filter(x=>String(x.trang_thai||'').toLowerCase()!=='nghỉ').map(x=>String(x.lop||'').trim()).filter(Boolean))];
-  if(scope!==null)out=out.filter(x=>scope.includes(x)); return out.sort(naturalSort).map(lop=>({lop}));
+  const dow=new Date(`${day}T12:00:00`).getDay(); const thu=dow===0?8:dow+1;
+  const q=await supabase.from('thoi_khoa_bieu').select('lop,khoi,thu,buoi,trang_thai').eq('nam_hoc',appConfig.namHoc).eq('thu',thu).eq('buoi',session).eq('trang_thai','Hoạt động');
+  if(q.error)throw q.error;
+  const rows=q.data||[]; const out=new Map();
+  for(const r of rows){if(r.lop){out.set(String(r.lop).trim(),{lop:String(r.lop).trim()});continue;} if(r.khoi){const cs=await fetchAll(()=>supabase.from('danh_sach').select('lop').eq('trang_thai','Active').eq('khoi',r.khoi).not('lop','is',null));for(const c of [...new Set(cs.map(x=>String(x.lop||'').trim()).filter(Boolean))])out.set(c,{lop:c});}}
+  const scope=managedClasses(window.App?.Auth?.currentUser);let a=[...out.values()];if(scope!==null)a=a.filter(x=>scope.includes(x.lop));return a.sort((a,b)=>naturalSort(a.lop,b.lop));
 }
+async function classHasSchedule(cls,grade,day,session){const list=await scheduledClasses(day,session);return list.some(x=>x.lop===cls)}
 
 async function detectCurrentSession(now){
   const t=now.toTimeString().slice(0,8);
