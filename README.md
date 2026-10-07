@@ -299,3 +299,17 @@ Nếu xuất hiện lỗi `Could not find the table 'public.bao_vang_lop' in the
 File này bổ sung các bảng/cột còn thiếu và gửi `NOTIFY pgrst, 'reload schema'` để PostgREST làm mới schema cache.
 
 Sau khi SQL chạy thành công, tải lại GitHub Pages bằng `Ctrl + F5`.
+
+
+## V3.0.5.9 — Quản lý người dùng & kích hoạt TKB
+
+- Đổi tên phân hệ **Quản lý cán bộ** thành **Quản lý người dùng**.
+- Bổ sung migration `012_v3_0_5_9_fix_nguoi_dung.sql` để tránh lỗi thiếu `can_bo.ma_hs` và `can_bo.loai_quan_ly_lop` nếu migration 008 chưa chạy.
+- Kích hoạt phân hệ **TKB & TG học**:
+  - Xem thời khóa biểu theo năm học.
+  - Thêm/sửa/xóa tiết TKB.
+  - Gán thứ, tiết, buổi, khối, lớp, môn học và giáo viên.
+  - Kiểm tra nhanh lịch học hôm nay.
+  - Giữ bảng `cai_dat_thoi_gian` cho cửa sổ điểm danh.
+- Sửa theo dõi báo vắng để đọc cả cột `buoi` của TKB.
+- TKB trở thành nguồn chính để xác định lớp có học; khi chưa có TKB thì Báo vắng vẫn dùng fallback `cai_dat_thoi_gian`.
