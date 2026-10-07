@@ -1,22 +1,174 @@
-// js/quantri-phanquyen.js
-import { supabase } from './config.js';
-const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
-const el=id=>document.getElementById(id);let rows=[],editingId=null;
-const tabs=[['qr','Quét QR Đi Muộn'],['baovang','Báo Vắng Học Sinh'],['chamdiem','Chấm Điểm Thi Đua'],['thongke','Thống Kê Biểu Đồ'],['xeploai','Xếp Loại & Danh Hiệu'],['quantri','Quản Trị Hệ Thống']];
-const roles=['admin','ban_giam_hieu','giao_vien','giam_thi','gvcn','doan_doi','van_phong'];
-function render(){
- el('content-permissions').innerHTML=`<div class="panel-pad">
- <div class="notice">Quyền được lưu trực tiếp trên <code>can_bo.quyen_tabs</code> theo dạng JSON. Có thể cấp quyền theo từng người dùng; nhóm vai trò dùng nút thiết lập hàng loạt.</div>
- <div class="toolbar" style="margin:15px 0"><button class="btn btn-primary" id="pq_user">Phân quyền theo cán bộ</button><button class="btn" id="pq_role">Thiết lập quyền theo vai trò</button></div>
- <div class="table-wrap"><table class="data-table"><thead><tr><th>#</th><th>Mã CB</th><th>Họ tên</th><th>Vai trò</th><th>Quyền tab</th><th>Thao tác</th></tr></thead><tbody id="pq_body"></tbody></table></div>
- </div>`;
- el('pq_user').onclick=()=>openUser();el('pq_role').onclick=()=>openRole();load();
+import { supabase, normalizeTabs, isAdminStaff } from './config.js';
+
+export const PERMISSION_TABS = [
+  { key: 'qr', label: 'Quét QR Đi Muộn' },
+  { key: 'baovang', label: 'Báo Vắng Học Sinh' },
+  { key: 'chamdiem', label: 'Chấm Điểm Thi Đua' },
+  { key: 'thongke', label: 'Thống Kê Biểu Đồ' },
+  { key: 'xeploai', label: 'Xếp Loại & Danh Hiệu' },
+  { key: 'quantri', label: 'Quản Trị Hệ Thống' }
+];
+
+let staffRows = [];
+let selectedMaCb = '';
+let searchText = '';
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
 }
-async function load(){const {data,error}=await supabase.from('can_bo').select('id,ma_cb,ho_ten,vai_tro,vai_tro_list,quyen_tabs').order('ho_ten');if(error){window.ui.toast(error.message,'error');return}rows=data||[];el('pq_body').innerHTML=rows.length?rows.map((r,i)=>{const q=Array.isArray(r.quyen_tabs)?r.quyen_tabs:[];return `<tr><td>${i+1}</td><td>${esc(r.ma_cb)}</td><td><b>${esc(r.ho_ten)}</b></td><td>${esc((r.vai_tro_list||[r.vai_tro]).join(', '))}</td><td>${q.length}/${tabs.length}</td><td><button class="btn btn-sm" data-edit="${r.id}">Thiết lập</button></td></tr>`}).join(''):`<tr><td colspan="6" class="empty">Chưa có cán bộ.</td></tr>`;el('pq_body').querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>openUser(rows.find(x=>String(x.id)===b.dataset.edit)))}
-function checks(selected=[]){return `<div class="check-grid">${tabs.map(([k,t])=>`<label class="check"><input type="checkbox" class="pq_chk" value="${k}" ${selected.includes(k)?'checked':''}>${t}</label>`).join('')}</div>`}
-function openUser(r=null){editingId=r?.id||null;if(!r){return window.ui.modal.open('Phân quyền theo cán bộ',`<div class="field"><label>Chọn cán bộ</label><select id="pq_cb">${rows.map(x=>`<option value="${x.id}">${esc(x.ma_cb)} - ${esc(x.ho_ten)}</option>`).join('')}</select></div><div style="margin-top:15px">${checks([])}</div>`,`<button class="btn" id="pq_cancel">Hủy</button><button class="btn btn-primary" id="pq_save">Lưu</button>`),bindSave();}
- window.ui.modal.open(`Phân quyền: ${r.ho_ten}`,checks(Array.isArray(r.quyen_tabs)?r.quyen_tabs:[]),`<button class="btn" id="pq_cancel">Hủy</button><button class="btn btn-primary" id="pq_save">Lưu</button>`);bindSave()
+
+function isAdmin(row) {
+  return isAdminStaff(row);
 }
-function bindSave(){el('pq_cancel').onclick=window.ui.modal.close;el('pq_save').onclick=async()=>{const id=el('pq_cb')?.value||editingId;const q=[...document.querySelectorAll('.pq_chk:checked')].map(x=>x.value);if(!id)return window.ui.toast('Chưa chọn cán bộ.','error');const {error}=await supabase.from('can_bo').update({quyen_tabs:q}).eq('id',id);if(error)return window.ui.toast(error.message,'error');window.ui.modal.close();window.ui.toast('Đã cập nhật quyền.','success');load()}}
-function openRole(){window.ui.modal.open('Thiết lập quyền theo vai trò',`<div class="field"><label>Vai trò</label><select id="pq_role_name">${roles.map(x=>`<option>${x}</option>`).join('')}</select></div><div style="margin-top:15px">${checks(tabs.map(x=>x[0]))}</div><div class="hint" style="margin-top:10px">Nút này cập nhật tất cả cán bộ đang có vai trò được chọn. Hãy kiểm tra kỹ trước khi lưu.</div>`,`<button class="btn" id="pq_cancel">Hủy</button><button class="btn btn-warning" id="pq_save">Áp dụng cho vai trò</button>`);el('pq_cancel').onclick=window.ui.modal.close;el('pq_save').onclick=async()=>{const role=el('pq_role_name').value,q=[...document.querySelectorAll('.pq_chk:checked')].map(x=>x.value), targets=rows.filter(r=>(r.vai_tro_list||[r.vai_tro]).includes(role));if(!targets.length)return window.ui.toast('Không có cán bộ thuộc vai trò này.','error');if(!confirm(`Cập nhật quyền cho ${targets.length} cán bộ vai trò ${role}?`))return;for(const r of targets){const {error}=await supabase.from('can_bo').update({quyen_tabs:q}).eq('id',r.id);if(error)return window.ui.toast(error.message,'error')}window.ui.modal.close();window.ui.toast('Đã áp dụng quyền theo vai trò.','success');load()}}
-export function initPermissions(){render()}
+
+function toast(message, type = '') {
+  window.App?.toast?.(message, type);
+}
+
+function render(root) {
+  const filtered = staffRows.filter(r => {
+    const q = searchText.toLowerCase();
+    return !q ||
+      String(r.ma_cb ?? '').toLowerCase().includes(q) ||
+      String(r.ho_ten ?? '').toLowerCase().includes(q) ||
+      String(r.vai_tro ?? '').toLowerCase().includes(q);
+  });
+
+  const selected = staffRows.find(r => r.ma_cb === selectedMaCb) || null;
+  const selectedAdmin = selected ? isAdmin(selected) : false;
+  const selectedTabs = selectedAdmin ? PERMISSION_TABS.map(x => x.key) : normalizeTabs(selected?.quyen_tabs);
+
+  root.innerHTML = `
+    <div class="notice">
+      <strong>V3.0.2:</strong> quyền sử dụng chức năng chỉ đọc/ghi tại
+      <code>can_bo.quyen_tabs</code>. Không đọc và không ghi bất kỳ cột
+      <code>quyen_xep_loai</code> nào trong <code>danh_sach</code>.
+    </div>
+
+    <div class="toolbar">
+      <input id="permSearch" placeholder="Tìm mã cán bộ, họ tên, vai trò..." value="${escapeHtml(searchText)}">
+      <button id="permReload" class="btn secondary">Tải lại</button>
+      <span class="badge">${filtered.length} cán bộ</span>
+    </div>
+
+    <div class="grid">
+      <div class="stat"><div class="n">${staffRows.length}</div><div class="l">Tổng cán bộ</div></div>
+      <div class="stat"><div class="n">${staffRows.filter(isAdmin).length}</div><div class="l">Tài khoản Admin</div></div>
+      <div class="stat"><div class="n">${staffRows.filter(r => !isAdmin(r) && normalizeTabs(r.quyen_tabs).length).length}</div><div class="l">Có phân quyền riêng</div></div>
+    </div>
+
+    <div style="height:14px"></div>
+
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>Mã CB</th><th>Họ tên</th><th>Vai trò</th><th>Quyền</th><th></th></tr></thead>
+        <tbody>
+          ${filtered.map(r => {
+            const admin = isAdmin(r);
+            const count = admin ? PERMISSION_TABS.length : normalizeTabs(r.quyen_tabs).length;
+            return `<tr>
+              <td>${escapeHtml(r.ma_cb)}</td>
+              <td>${escapeHtml(r.ho_ten)}</td>
+              <td>${escapeHtml(r.vai_tro)} ${admin ? '<span class="badge admin">Admin</span>' : ''}</td>
+              <td>${count}/${PERMISSION_TABS.length}</td>
+              <td><button class="btn secondary perm-select" data-ma="${escapeHtml(r.ma_cb)}">Phân quyền</button></td>
+            </tr>`;
+          }).join('')}
+          ${!filtered.length ? '<tr><td colspan="5">Không tìm thấy cán bộ.</td></tr>' : ''}
+        </tbody>
+      </table>
+    </div>
+
+    <div style="height:16px"></div>
+
+    <div class="panel" style="padding:15px;background:#f8fafc">
+      <div class="page-title">
+        <div>
+          <h2 style="font-size:17px">${selected ? `Phân quyền: ${escapeHtml(selected.ho_ten)} (${escapeHtml(selected.ma_cb)})` : 'Chọn cán bộ để phân quyền'}</h2>
+          <p>${selected ? (selectedAdmin ? 'Tài khoản Admin được toàn quyền theo vai trò; không cần lưu từng checkbox.' : 'Đánh dấu các chức năng được phép sử dụng, sau đó bấm Lưu quyền.') : 'Quyền được lưu trực tiếp vào trường can_bo.quyen_tabs.'}</p>
+        </div>
+        ${selected && !selectedAdmin ? '<button id="savePerm" class="btn">Lưu quyền</button>' : ''}
+      </div>
+
+      ${selected ? `
+        ${selectedAdmin ? '<div class="notice">Tài khoản này là <strong>Admin</strong>. Hệ thống V3.0.2 tự động cho phép toàn bộ 6 chức năng chính.</div>' : ''}
+        <div class="check-grid">
+          ${PERMISSION_TABS.map(p => `
+            <div class="check-item">
+              <label>
+                <input type="checkbox" class="perm-check" value="${p.key}" ${selectedTabs.includes(p.key) ? 'checked' : ''} ${selectedAdmin ? 'disabled' : ''}>
+                <span><strong>${escapeHtml(p.label)}</strong><br><small>${p.key}</small></span>
+              </label>
+            </div>`).join('')}
+        </div>
+      ` : '<div class="placeholder">Chưa chọn cán bộ.</div>'}
+    </div>
+  `;
+
+  root.querySelector('#permSearch')?.addEventListener('input', e => {
+    searchText = e.target.value;
+    render(root);
+    const input = root.querySelector('#permSearch');
+    input?.focus();
+    input?.setSelectionRange(searchText.length, searchText.length);
+  });
+
+  root.querySelector('#permReload')?.addEventListener('click', () => load(root));
+
+  root.querySelectorAll('.perm-select').forEach(btn => {
+    btn.addEventListener('click', () => {
+      selectedMaCb = btn.dataset.ma;
+      render(root);
+    });
+  });
+
+  root.querySelector('#savePerm')?.addEventListener('click', async () => {
+    const row = staffRows.find(r => r.ma_cb === selectedMaCb);
+    if (!row || isAdmin(row)) return;
+
+    const q = [...root.querySelectorAll('.perm-check:checked')].map(x => x.value);
+
+    const { error } = await supabase
+      .from('can_bo')
+      .update({ quyen_tabs: q })
+      .eq('ma_cb', selectedMaCb);
+
+    if (error) {
+      console.error('save permissions:', error);
+      toast(`Không lưu được phân quyền: ${error.message}`, 'err');
+      return;
+    }
+
+    row.quyen_tabs = q;
+    toast('Đã lưu phân quyền vào can_bo.quyen_tabs.', 'ok');
+    render(root);
+  });
+}
+
+async function load(root) {
+  root.innerHTML = '<div class="placeholder">Đang tải danh sách cán bộ...</div>';
+
+  const { data, error } = await supabase
+    .from('can_bo')
+    .select('ma_cb,ho_ten,vai_tro,vai_tro_list,quyen_tabs,trang_thai')
+    .order('ho_ten', { ascending: true });
+
+  if (error) {
+    console.error('load permissions:', error);
+    root.innerHTML = `<div class="danger-box"><strong>Không tải được phân quyền.</strong><br>${escapeHtml(error.message)}<br><br>V3.0.2 chỉ truy vấn can_bo; nếu lỗi vẫn nhắc tới danh_sach.quyen_xep_loai, cần kiểm tra policy/view/function cũ trong Supabase.</div>`;
+    return;
+  }
+
+  staffRows = data ?? [];
+  if (!selectedMaCb && staffRows.length) selectedMaCb = staffRows[0].ma_cb;
+  render(root);
+}
+
+export async function initPermissions(root) {
+  await load(root);
+}
