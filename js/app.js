@@ -11,8 +11,10 @@ function bind(){
    const er=$('loginError');
    er.textContent='';
    const remember=$('rememberMe')?.checked===true;
-   const r=await Auth.login($('username').value,$('password').value,remember);
-   if(!r.ok)return er.textContent=r.message;
+   let r;
+   try{r=await Auth.login($('username').value,$('password').value,remember);}
+   catch(err){console.error('[QLNN LOGIN UNHANDLED]',err);r={ok:false,message:`Lỗi đăng nhập: ${err?.message||String(err)}`};}
+   if(!r.ok){er.textContent=r.message;return;}
    session();
  };
  $('togglePassword')?.addEventListener('click',()=>{
