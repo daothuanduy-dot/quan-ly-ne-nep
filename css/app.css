@@ -21,3 +21,15 @@ main{max-width:1500px;margin:auto;padding:18px}.panel{background:#fff;border:1px
 .remember-row{display:flex;align-items:center;gap:8px;font-weight:500;margin:12px 0 4px;color:#475569;cursor:pointer}
 .remember-row input{width:16px;height:16px;margin:0;accent-color:var(--p)}
 .login-card form{margin-top:4px}
+
+.score-radio-group{display:flex;gap:12px;flex-wrap:wrap;margin-top:7px}
+.score-radio{position:relative;display:flex;align-items:center;gap:9px;min-width:190px;padding:12px 15px;border:1px solid var(--line);border-radius:11px;background:#fff;cursor:pointer;font-weight:750}
+.score-radio input{position:absolute;opacity:0;pointer-events:none}
+.score-radio .radio-dot{width:18px;height:18px;border:2px solid #94a3b8;border-radius:50%;display:grid;place-items:center;flex:none}
+.score-radio input:checked + .radio-dot{border-color:var(--p)}
+.score-radio input:checked + .radio-dot:after{content:"";width:8px;height:8px;border-radius:50%;background:var(--p)}
+.score-radio.plus:has(input:checked){border-color:#86efac;background:#f0fdf4;color:#166534}
+.score-radio.minus:has(input:checked){border-color:#fecaca;background:#fef2f2;color:#991b1b}
+.score-student-select{min-height:48px}
+.score-no-criteria{padding:13px 15px;background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:10px;margin-top:12px}
+.score-db-note{padding:11px 14px;background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af;border-radius:10px;margin-top:12px}
