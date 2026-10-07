@@ -1,33 +1,40 @@
-# Quản lý nề nếp & thi đua — V3.0.2
+# Quản lý nề nếp & thi đua — V3.0.2.2
 
-## Mục tiêu của V3.0.2
+## Trạng thái
 
-V3.0.2 khóa lại kiến trúc frontend theo một entry point duy nhất và xử lý dứt điểm lỗi:
+V3.0.2.2 được xây dựng sau khi xác nhận trực tiếp schema Supabase:
 
-> Không tải được phân quyền: column `danh_sach.quyen_xep_loai` does not exist
+```text
+public.can_bo.quyen_tabs
+data_type = jsonb
+jsonb_typeof(quyen_tabs) = array
+```
 
-### Kiến trúc
+Dữ liệu thực tế đã xác nhận:
+- Admin có `vai_tro = Admin`, `quyen_tabs = []` → hợp lệ, được toàn quyền theo vai trò.
+- Cán bộ thường có thể có dạng `["qr","baovang","thongke"]` → hợp lệ.
+
+## Kiến trúc
 
 ```text
 index.html
-   │
-   └── js/app.js  ← entry point duy nhất
-        ├── js/config.js
-        │     └── Supabase client
-        ├── js/auth.js
-        │     └── RPC public.login_can_bo()
-        └── js/quantri-phanquyen.js
-              └── can_bo.quyen_tabs
+   ↓
+js/app.js
+   ├── js/config.js
+   ├── js/auth.js
+   │     └── RPC login_can_bo()
+   └── js/quantri-phanquyen.js
+         └── public.can_bo.quyen_tabs (jsonb)
 ```
 
-Không còn:
+Không sử dụng:
 - `api_login.php`
 - `ma_can_bo`
 - `window.supabaseClient`
 - `window.CONFIG`
-- load `config.js` như classic script
-- load đồng thời các module cũ và module mới
-- quyền `quyen_xep_loai` trong `danh_sach`
+- `danh_sach.quyen_xep_loai`
+- `array_agg()`
+- `unnest()` trong cơ chế phân quyền.
 
 ## 6 tab chính
 
@@ -38,25 +45,19 @@ Không còn:
 5. Xếp Loại & Danh Hiệu
 6. Quản Trị Hệ Thống
 
-### 7 chức năng trong Tab 6
+7 chức năng là sub-tab của Tab 6:
 
-- Quản lý học sinh
-- Nhập học sinh từ Excel
-- Quản lý cán bộ
-- TKB và TG học
-- Kết chuyển năm và TN
-- Quản lý tiêu chí
-- Phân quyền sử dụng chức năng
+1. Quản lý học sinh
+2. Nhập học sinh từ Excel
+3. Quản lý cán bộ
+4. TKB và TG học
+5. Kết chuyển năm và TN
+6. Quản lý tiêu chí
+7. Phân quyền sử dụng chức năng
 
-## Cơ chế phân quyền
+## Phân quyền
 
-Quyền của cán bộ được lưu tại:
-
-```text
-public.can_bo.quyen_tabs
-```
-
-Các mã quyền:
+Mã quyền:
 
 ```text
 qr
@@ -67,49 +68,42 @@ xeploai
 quantri
 ```
 
-Tài khoản có vai trò `Admin` hoặc `Admin` trong `vai_tro_list` được coi là toàn quyền.
+### Admin
 
-Ví dụ tài khoản thường:
+Nếu `vai_tro` hoặc `vai_tro_list` xác định tài khoản là Admin, hệ thống cấp toàn quyền. `quyen_tabs = []` vẫn hợp lệ.
+
+### Cán bộ thường
+
+Ví dụ:
 
 ```json
-["qr", "baovang", "thongke"]
+["qr","baovang","thongke"]
 ```
 
-## Cài đặt
+chỉ cho phép 3 chức năng tương ứng.
 
-### Bước 1 — Supabase
+## Cài đặt SQL
 
-Mở SQL Editor và chạy:
+Do `quyen_tabs` đã tồn tại và đúng kiểu `jsonb`, **không chạy ALTER TABLE**.
+
+Mở:
 
 ```text
-sql/002_phan_quyen_v3_0_2.sql
+sql/003_v3_0_2_2.sql
 ```
 
-Nếu `can_bo.quyen_tabs` đã tồn tại, script không đổi kiểu cột.
+và chạy trong Supabase SQL Editor.
 
-### Bước 2 — Kiểm tra RPC
+Script:
+- kiểm tra schema;
+- kiểm tra JSONB;
+- cập nhật RPC đăng nhập;
+- kiểm tra RPC;
+- tìm object cũ còn tham chiếu `quyen_xep_loai`.
 
-Chạy:
+Script không thêm cột và không thay đổi cấu trúc bảng.
 
-```sql
-SELECT public.login_can_bo('3103016229','123456');
-```
-
-Kết quả cần có dạng:
-
-```json
-{
-  "ma_cb": "3103016229",
-  "ho_ten": "Đào Thuận Duy",
-  "vai_tro": "Admin",
-  "quyen_tabs": [],
-  "trang_thai": true
-}
-```
-
-Không được có `mat_khau` trong kết quả.
-
-### Bước 3 — GitHub
+## Cập nhật GitHub
 
 Thay các file:
 
@@ -119,69 +113,112 @@ js/config.js
 js/auth.js
 js/app.js
 js/quantri-phanquyen.js
-sql/002_phan_quyen_v3_0_2.sql
+sql/003_v3_0_2_2.sql
 README.md
 ```
 
-Không giữ các `<script>` cũ của hệ thống trước đây trong `index.html`.
-
-Đặc biệt, không được còn:
-
-```html
-<script src="./js/config.js"></script>
-<script src="./js/auth.js"></script>
-```
-
-mà phải chỉ có:
+`index.html` chỉ nạp:
 
 ```html
 <script type="module" src="./js/app.js"></script>
 ```
 
-## Kiểm thử lỗi `danh_sach.quyen_xep_loai`
+Không giữ các script cũ của phiên bản trước.
 
-Sau khi deploy:
+## Kiểm thử
 
-1. Đăng nhập tài khoản Admin.
-2. Chọn `Quản Trị Hệ Thống`.
-3. Chọn `Phân quyền sử dụng chức năng`.
-4. Danh sách cán bộ phải tải từ `can_bo`.
-5. Không có truy vấn nào đến `danh_sach.quyen_xep_loai`.
-6. Chọn cán bộ thường, đánh dấu quyền và lưu.
-7. Kiểm tra lại:
+### 1. SQL
+
+Chạy:
 
 ```sql
-SELECT ma_cb, ho_ten, quyen_tabs
-FROM public.can_bo
-ORDER BY ho_ten;
+SELECT public.login_can_bo('3103016229','123456');
 ```
 
-## Nếu vẫn xuất hiện `danh_sach.quyen_xep_loai`
+Không được trả `mat_khau`.
 
-Khi đó lỗi không còn nằm trong code V3.0.2 mà gần như chắc chắn còn một object cũ trong Supabase (policy/view/function) hoặc trình duyệt đang chạy bundle cũ.
+### 2. Admin
 
-Chạy 3 truy vấn ở cuối file:
+Đăng nhập:
 
 ```text
-sql/002_phan_quyen_v3_0_2.sql
+3103016229
 ```
 
-để tìm object còn chứa chuỗi `quyen_xep_loai`.
+Sau đó:
 
-Sau khi deploy GitHub Pages, hãy hard refresh:
+```text
+Quản Trị Hệ Thống
+→ Phân quyền sử dụng chức năng
+```
+
+Admin phải nhìn thấy toàn bộ quyền.
+
+### 3. GVCN
+
+Tài khoản:
+
+```text
+3123013067
+```
+
+đang có:
+
+```json
+["qr","baovang","thongke"]
+```
+
+Sau khi đăng nhập:
+- thấy Quét QR;
+- thấy Báo Vắng;
+- thấy Thống Kê;
+- không thấy Chấm Điểm;
+- không thấy Xếp Loại;
+- không thấy Quản Trị.
+
+### 4. Lưu quyền
+
+Trong Tab 6 → Phân quyền:
+- chọn cán bộ;
+- tích/bỏ quyền;
+- bấm Lưu quyền.
+
+Frontend cập nhật:
+
+```text
+public.can_bo.quyen_tabs
+```
+
+bằng JSONB.
+
+## Nếu vẫn thấy lỗi
+
+Nếu sau khi thay toàn bộ frontend mà trình duyệt vẫn báo:
+
+```text
+column danh_sach.quyen_xep_loai does not exist
+```
+
+thì lỗi không nằm trong module phân quyền V3.0.2.2.
+
+Khi đó chạy phần 6 trong:
+
+```text
+sql/003_v3_0_2_2.sql
+```
+
+để tìm policy/view/function cũ có chứa `quyen_xep_loai`.
+
+Đồng thời dùng:
 
 ```text
 Ctrl + F5
 ```
 
-hoặc mở cửa sổ ẩn danh để loại cache.
+hoặc cửa sổ ẩn danh để loại cache GitHub Pages.
 
-## Lưu ý bảo mật
+## Phạm vi V3.0.2.2
 
-`supabaseAnonKey` là publishable/anon key và có thể xuất hiện ở frontend. Tuyệt đối không đưa `service_role` key vào GitHub Pages.
+V3.0.2.2 khóa nền tảng đăng nhập + phân quyền theo schema thực tế.
 
-Tài khoản cán bộ hiện tại đang xác thực qua RPC và bảng `can_bo`. Đây là kiến trúc tương thích với hệ thống hiện tại; nếu triển khai xác thực production chuẩn hơn, có thể chuyển sang Supabase Auth ở phiên bản sau.
-
-## Phạm vi V3.0.2
-
-V3.0.2 ưu tiên ổn định nền tảng, đăng nhập và phân quyền. Các module nghiệp vụ khác được giữ dưới dạng shell để tránh tiếp tục trộn mã cũ với mã mới. Các module sẽ được đưa trở lại từng bước theo cùng kiến trúc module V3.0.2.
+Các module nghiệp vụ khác được giữ trong shell để tránh đưa code cũ vào lại. Sau khi xác nhận phân quyền ổn định, từng module trong 7 sub-tab sẽ được tích hợp lại theo cùng kiến trúc module V3.
