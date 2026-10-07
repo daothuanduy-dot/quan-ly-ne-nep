@@ -122,7 +122,7 @@ function updateStatusVisual(){root.querySelectorAll('.absence-row').forEach(row=
 async function save(){
   const u=window.App?.Auth?.currentUser,rows=[...root.querySelectorAll('.absence-row')],payload=[];
   for(const row of rows){const idx=row.querySelector('.absence-student').value,status=row.querySelector('input[type="radio"]:checked')?.value||'';if(idx==='')return toast(`Dòng ${Number(row.dataset.row)+1}: chưa chọn học sinh.`,'err');if(!status)return toast(`Dòng ${Number(row.dataset.row)+1}: chưa chọn Có phép/Không phép.`,'err');const s=students[Number(idx)];payload.push({ma_hs:s.ma_hs,ho_ten:s.ho_ten,khoi:s.khoi,lop:s.lop,ngay_diem_danh:date,buoi,trang_thai:status,chi_tiet:null,diem:0,ma_nguoi_cap_nhat:u?.ma_cb||null,ten_nguoi_cap_nhat:u?.ho_ten||null,nam_hoc:appConfig.namHoc})}
-  const {error}=await supabase.from('diem_danh_master').insert(payload); if(error)return toast(`Không ghi được dữ liệu: ${error.message}`,'err');
+  const {error}=await supabase.from('diem_danh_master').insert(payload); if(error){ const m=String(error.message||''); const hint=(m.includes('nam_hoc')||m.includes('schema cache'))?' Hãy chạy SQL 011_v3_0_5_8_fix_bao_vang_schema.sql trong Supabase rồi tải lại trang.':''; return toast(`Không ghi được dữ liệu: ${m}${hint}`,'err'); }
   await saveClassReport(payload.length,u); toast(`Đã ghi nhận ${payload.length} học sinh vắng.`,'ok'); resetAfterSave();
 }
 async function saveZero(){const u=window.App?.Auth?.currentUser;const err=await saveClassReport(0,u);if(err)return toast(err,'err');toast(`Đã xác nhận ${selectedClass}: vắng 0.`, 'ok');resetAfterSave()}
@@ -141,13 +141,13 @@ async function loadMonitor(){
     box.innerHTML=`<div class="panel absence-monitor"><div class="page-head"><div><h3 style="margin:0">📋 Theo dõi báo vắng — ${esc(date)} · ${esc(buoi)}</h3><p>Dựa trên các lớp có lịch học; lớp không có học sinh vắng vẫn phải có bản ghi “vắng 0”.</p></div><button id="monitorRefresh" class="btn light">↻ Cập nhật</button></div><div class="monitor-cards"><button class="monitor-card total"><b>${scheduled.length}</b><span>Số lớp có lịch</span></button><button class="monitor-card done"><b>${done.length}</b><span>Đã báo</span></button><button id="pendingBtn" class="monitor-card pending"><b>${pending.length}</b><span>Chưa báo</span></button></div><div id="pendingList" class="pending-list hidden">${pending.length?pending.map(x=>`<button class="pending-class">${esc(x.lop)}</button>`).join(''):'<span class="empty">Tất cả lớp đã báo.</span>'}</div><div class="table-wrap"><table class="table"><thead><tr><th>Lớp</th><th>Trạng thái</th><th>Số vắng</th><th>Người báo</th></tr></thead><tbody>${scheduled.map(x=>{const r=reportMap.get(x.lop);return `<tr><td><b>${esc(x.lop)}</b></td><td>${r?'<span class="badge ok">Đã báo</span>':'<span class="badge warn">Chưa báo</span>'}</td><td>${r?esc(r.so_vang):'—'}</td><td>${r?esc(r.ten_cb||r.ma_cb||''): '—'}</td></tr>`}).join('')}</tbody></table></div></div>`;
     box.querySelector('#monitorRefresh').onclick=loadMonitor;
     box.querySelector('#pendingBtn').onclick=()=>box.querySelector('#pendingList').classList.toggle('hidden');
-  }catch(e){box.innerHTML=`<div class="danger-box">Không tải được theo dõi báo vắng: ${esc(e.message)}<br><small>Hãy chạy SQL 010 để tạo bảng theo dõi và lịch học.</small></div>`}
+  }catch(e){box.innerHTML=`<div class="danger-box">Không tải được theo dõi báo vắng: ${esc(e.message)}<br><small>Hãy chạy SQL 011_v3_0_5_8_fix_bao_vang_schema.sql để tạo/cập nhật bảng và làm mới schema cache.</small></div>`}
 }
 
 async function scheduledClasses(day,session){
   const dow=new Date(`${day}T12:00:00`).getDay(); const thu=dow===0?8:dow+1; // Thứ 2=2 ... Chủ nhật=8
   try{
-    const {data,error}=await supabase.from('thoi_khoa_bieu').select('lop,thu,tiet,trang_thai').eq('nam_hoc',appConfig.namHoc).eq('thu',thu).eq('trang_thai','Hoạt động');
+    const {data,error}=await supabase.from('thoi_khoa_bieu').select('lop,thu,tiet,buoi,trang_thai').eq('nam_hoc',appConfig.namHoc).eq('thu',thu).eq('trang_thai','Hoạt động');
     if(!error && data?.length){
       // Sáng: tiết 1-5; Chiều: tiết 6 trở đi. Có thể thay đổi trong TKB sau.
       const rows=data.filter(x=>x.buoi?String(x.buoi).trim()===session:(session==='Sáng'?Number(x.tiet)<=5:Number(x.tiet)>=6));
