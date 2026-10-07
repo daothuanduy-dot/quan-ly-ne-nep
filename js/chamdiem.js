@@ -30,7 +30,7 @@ async function renderShell(){
       <div class="score-selector-box">
         <div class="score-selector-title">Chọn khối</div>
         <div id="scoreGradeRadios" class="grade-radio-group">
-          <span class="class-empty">Đang tải khối...</span>
+          <span class="class-empty">Đang tải danh sách khối...</span>
         </div>
       </div>
 
@@ -38,6 +38,9 @@ async function renderShell(){
         <div class="score-selector-title">Chọn lớp</div>
         <div id="scoreClassRadios" class="class-radio-group">
           <span class="class-empty">Hãy chọn khối trước.</span>
+        </div>
+        <div id="scoreClassHint" class="score-class-hint">
+          Các lớp sẽ hiển thị theo khối đã chọn.
         </div>
       </div>
     </div>
@@ -150,6 +153,8 @@ async function onGradeChange(grade){
 
     if(!classes.length){
       classBox.innerHTML='<span class="class-empty">Khối này chưa có lớp.</span>';
+      const hint=root.querySelector('#scoreClassHint');
+      if(hint) hint.textContent='Chưa có lớp thuộc khối này.';
       return;
     }
 
@@ -159,6 +164,9 @@ async function onGradeChange(grade){
         <span>${esc(c)}</span>
       </label>
     `).join('');
+
+    const hint=root.querySelector('#scoreClassHint');
+    if(hint) hint.textContent=`${classes.length} lớp thuộc ${grade} · Chọn một lớp để bắt đầu chấm.`;
 
     classBox.querySelectorAll('input[name="scoreClass"]').forEach(r=>{
       r.onchange=()=>onClassChange(r.value);
