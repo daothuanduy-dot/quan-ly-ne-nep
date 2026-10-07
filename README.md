@@ -1,40 +1,33 @@
-# Quản lý nề nếp & thi đua — V3.0.2.2
+# Quản lý nề nếp & thi đua — V3.0.4
 
-## Trạng thái
+## Mục tiêu
 
-V3.0.2.2 được xây dựng sau khi xác nhận trực tiếp schema Supabase:
+V3.0.4 là bản **để kiểm tra giao diện + luồng nghiệp vụ thực tế** sau khi đã xác nhận schema Supabase.
 
-```text
-public.can_bo.quyen_tabs
-data_type = jsonb
-jsonb_typeof(quyen_tabs) = array
-```
-
-Dữ liệu thực tế đã xác nhận:
-- Admin có `vai_tro = Admin`, `quyen_tabs = []` → hợp lệ, được toàn quyền theo vai trò.
-- Cán bộ thường có thể có dạng `["qr","baovang","thongke"]` → hợp lệ.
-
-## Kiến trúc
+### Luồng QR mới
 
 ```text
-index.html
-   ↓
-js/app.js
-   ├── js/config.js
-   ├── js/auth.js
-   │     └── RPC login_can_bo()
-   └── js/quantri-phanquyen.js
-         └── public.can_bo.quyen_tabs (jsonb)
+Quét QR / nhập mã
+      ↓
+Tìm danh_sach bằng ma_qr hoặc ma_hs
+      ↓
+Hiển thị thông tin học sinh (CHỈ ĐỌC)
+      ↓
+┌──────────────────────────────────┐
+│ Đi muộn không phép               │
+│ Đi muộn có phép                  │
+│ Điểm cộng                        │
+│ Điểm trừ                         │
+└──────────────────────────────────┘
+      ↓
+Nếu cộng/trừ → dropdown danh_muc_diem
+      ↓
+Xác nhận
+      ↓
+INSERT diem_danh_master
 ```
 
-Không sử dụng:
-- `api_login.php`
-- `ma_can_bo`
-- `window.supabaseClient`
-- `window.CONFIG`
-- `danh_sach.quyen_xep_loai`
-- `array_agg()`
-- `unnest()` trong cơ chế phân quyền.
+**Không UPDATE dữ liệu gốc học sinh khi quét QR.**
 
 ## 6 tab chính
 
@@ -45,180 +38,170 @@ Không sử dụng:
 5. Xếp Loại & Danh Hiệu
 6. Quản Trị Hệ Thống
 
-7 chức năng là sub-tab của Tab 6:
+Tab 6 gồm 7 sub-tab:
 
-1. Quản lý học sinh
-2. Nhập học sinh từ Excel
-3. Quản lý cán bộ
-4. TKB và TG học
-5. Kết chuyển năm và TN
-6. Quản lý tiêu chí
-7. Phân quyền sử dụng chức năng
+- Quản lý học sinh
+- Nhập học sinh từ Excel
+- Quản lý cán bộ
+- TKB và TG học
+- Kết chuyển năm và TN
+- Quản lý tiêu chí
+- Phân quyền sử dụng chức năng
 
-## Phân quyền
+## Những chức năng có thể kiểm tra ngay
 
-Mã quyền:
+### Quét QR
+
+- Camera QR nếu trình duyệt cho phép.
+- Nhập mã QR thủ công.
+- Tìm bằng `ma_qr` hoặc `ma_hs`.
+- Hiển thị thông tin học sinh chỉ đọc.
+- Đi muộn có phép/không phép.
+- Điểm cộng/trừ.
+- Dropdown tiêu chí lấy từ `danh_muc_diem`.
+- Ghi lịch sử vào `diem_danh_master`.
+
+### Báo vắng
+
+- Tải học sinh Active.
+- Chọn ngày/buổi.
+- Chọn vắng có phép/không phép.
+- Ghi vào `diem_danh_master`.
+
+### Chấm điểm
+
+- Tải học sinh.
+- Chọn tiêu chí.
+- Ghi điểm vào `diem_danh_master`.
+
+### Thống kê
+
+- Số học sinh.
+- Số lượt ghi nhận.
+- Điểm cộng/trừ.
+- Lượt đi muộn.
+- Quy mô theo khối.
+
+### Xếp loại
+
+Bản thử nghiệm tổng hợp điểm từ `diem_danh_master`, chưa ghi kết quả xếp loại vào `danh_sach`.
+
+### Quản trị
+
+Các module học sinh, cán bộ, tiêu chí và phân quyền có thao tác thật trên Supabase. TKB/kết chuyển được giữ ở chế độ an toàn cho đến khi chốt đầy đủ nghiệp vụ.
+
+## Cài đặt
+
+Không cần chạy SQL để dùng frontend nếu schema hiện tại đã đúng.
+
+File:
 
 ```text
-qr
-baovang
-chamdiem
-thongke
-xeploai
-quantri
+sql/005_v3_0_4_readonly_check.sql
 ```
 
-### Admin
+chỉ để kiểm tra.
 
-Nếu `vai_tro` hoặc `vai_tro_list` xác định tài khoản là Admin, hệ thống cấp toàn quyền. `quyen_tabs = []` vẫn hợp lệ.
+### GitHub Pages
 
-### Cán bộ thường
-
-Ví dụ:
-
-```json
-["qr","baovang","thongke"]
-```
-
-chỉ cho phép 3 chức năng tương ứng.
-
-## Cài đặt SQL
-
-Do `quyen_tabs` đã tồn tại và đúng kiểu `jsonb`, **không chạy ALTER TABLE**.
-
-Mở:
-
-```text
-sql/003_v3_0_2_2.sql
-```
-
-và chạy trong Supabase SQL Editor.
-
-Script:
-- kiểm tra schema;
-- kiểm tra JSONB;
-- cập nhật RPC đăng nhập;
-- kiểm tra RPC;
-- tìm object cũ còn tham chiếu `quyen_xep_loai`.
-
-Script không thêm cột và không thay đổi cấu trúc bảng.
-
-## Cập nhật GitHub
-
-Thay các file:
+Thay toàn bộ:
 
 ```text
 index.html
-js/config.js
-js/auth.js
-js/app.js
-js/quantri-phanquyen.js
-sql/003_v3_0_2_2.sql
-README.md
+css/
+js/
 ```
 
-`index.html` chỉ nạp:
+Không cần chạy `ALTER TABLE`.
 
-```html
-<script type="module" src="./js/app.js"></script>
-```
-
-Không giữ các script cũ của phiên bản trước.
-
-## Kiểm thử
-
-### 1. SQL
-
-Chạy:
-
-```sql
-SELECT public.login_can_bo('3103016229','123456');
-```
-
-Không được trả `mat_khau`.
-
-### 2. Admin
-
-Đăng nhập:
-
-```text
-3103016229
-```
-
-Sau đó:
-
-```text
-Quản Trị Hệ Thống
-→ Phân quyền sử dụng chức năng
-```
-
-Admin phải nhìn thấy toàn bộ quyền.
-
-### 3. GVCN
-
-Tài khoản:
-
-```text
-3123013067
-```
-
-đang có:
-
-```json
-["qr","baovang","thongke"]
-```
-
-Sau khi đăng nhập:
-- thấy Quét QR;
-- thấy Báo Vắng;
-- thấy Thống Kê;
-- không thấy Chấm Điểm;
-- không thấy Xếp Loại;
-- không thấy Quản Trị.
-
-### 4. Lưu quyền
-
-Trong Tab 6 → Phân quyền:
-- chọn cán bộ;
-- tích/bỏ quyền;
-- bấm Lưu quyền.
-
-Frontend cập nhật:
-
-```text
-public.can_bo.quyen_tabs
-```
-
-bằng JSONB.
-
-## Nếu vẫn thấy lỗi
-
-Nếu sau khi thay toàn bộ frontend mà trình duyệt vẫn báo:
-
-```text
-column danh_sach.quyen_xep_loai does not exist
-```
-
-thì lỗi không nằm trong module phân quyền V3.0.2.2.
-
-Khi đó chạy phần 6 trong:
-
-```text
-sql/003_v3_0_2_2.sql
-```
-
-để tìm policy/view/function cũ có chứa `quyen_xep_loai`.
-
-Đồng thời dùng:
+Sau khi deploy:
 
 ```text
 Ctrl + F5
 ```
 
-hoặc cửa sổ ẩn danh để loại cache GitHub Pages.
+## Lưu ý
 
-## Phạm vi V3.0.2.2
+1. QR chỉ xác định học sinh.
+2. Không sửa `danh_sach` khi ghi nhận sự kiện.
+3. Quyền người dùng nằm tại `can_bo.quyen_tabs`.
+4. Admin toàn quyền theo vai trò.
+5. Điểm cộng/trừ lấy từ `danh_muc_diem`.
+6. Lịch sử sự kiện ghi vào `diem_danh_master`.
 
-V3.0.2.2 khóa nền tảng đăng nhập + phân quyền theo schema thực tế.
+## Hướng phát triển tiếp
 
-Các module nghiệp vụ khác được giữ trong shell để tránh đưa code cũ vào lại. Sau khi xác nhận phân quyền ổn định, từng module trong 7 sub-tab sẽ được tích hợp lại theo cùng kiến trúc module V3.
+Sau khi kiểm tra UI V3.0.4, khóa tiếp:
+- nghiệp vụ cửa sổ thời gian QR;
+- chống ghi trùng;
+- báo vắng theo tiết;
+- bảng tổng hợp tuần;
+- thuật toán xếp loại;
+- danh hiệu;
+- kết chuyển hàng loạt;
+- phân quyền chi tiết theo vai trò/lớp.
+
+
+## V3.0.4.1 — Sửa giao diện đăng nhập
+
+- Bổ sung nút 👁 hiển thị/ẩn mật khẩu.
+- Bổ sung checkbox ghi nhớ mã cán bộ.
+- Không lưu mật khẩu vào localStorage.
+- Phiên đăng nhập dùng sessionStorage.
+- Thêm cache-busting cho `app.css`.
+- Khi cập nhật GitHub phải upload cả thư mục `css/`, đặc biệt `css/app.css`.
+
+
+## V3.0.5 — Chấm điểm thi đua
+
+Tab **Chấm Điểm Thi Đua** được thiết kế theo luồng:
+
+```text
+Chọn khối
+   ↓
+Chọn lớp
+   ↓
+┌─────────────────────┐
+│ Chấm tập thể        │
+│ Chấm cá nhân        │
+└─────────────────────┘
+```
+
+### Tập thể
+- Chỉ lấy tiêu chí có `doi_tuong` là `Tập thể`.
+- Chọn điểm cộng/trừ.
+- Chọn nội dung tương ứng.
+- Ghi bản ghi cho lớp vào `diem_danh_master`.
+
+### Cá nhân
+- Chỉ lấy học sinh thuộc lớp đã chọn.
+- Hiển thị thông tin học sinh dạng chỉ đọc.
+- Chọn điểm cộng/trừ.
+- Chọn nội dung tương ứng từ `danh_muc_diem`.
+- Ghi bản ghi cho học sinh vào `diem_danh_master`.
+
+SQL `006_v3_0_5_doi_tuong_diem.sql` thêm cột `doi_tuong` vào `diem_danh_master` nếu chưa có, để dữ liệu lịch sử phân biệt được tập thể/cá nhân.
+
+
+## V3.0.5.1 — Sửa giới hạn 1.000 học sinh và giao diện điểm
+
+### Đã sửa
+
+- Không còn dùng `limit(1000)` cho danh sách học sinh.
+- Dùng phân trang `.range()` theo từng 1.000 dòng, nên tổng dữ liệu >1.000 vẫn được tải đầy đủ.
+- Danh sách học sinh chỉ hiển thị **Họ tên — Ngày sinh**, không hiển thị mã định danh.
+- Điểm cộng/điểm trừ chuyển thành **radio button**.
+- Chỉ hiển thị tiêu chí đúng với đối tượng `Cá nhân` hoặc `Tập thể`.
+- Khi chấm tập thể, nếu CSDL chưa có tiêu chí `Tập thể`, giao diện báo rõ nguyên nhân thay vì để dropdown rỗng không giải thích.
+- Bản ghi chấm tập thể/cá nhân gửi `doi_tuong` vào `diem_danh_master` nếu cột đã được tạo bởi SQL 006; nếu chưa tạo, frontend có fallback để vẫn ghi được dữ liệu cũ.
+- Thêm SQL `007_v3_0_5_1_kiem_tra_tieu_chi_tap_the.sql` để kiểm tra chính xác các giá trị `danh_muc_diem.doi_tuong`.
+
+### Kiểm tra tiêu chí tập thể
+
+Chạy file SQL 007 để biết CSDL hiện có thực sự các giá trị:
+- `Cá nhân`
+- `Tập thể`
+- `Tập thể lớp`
+- hoặc giá trị khác.
+
+Không tự động biến tiêu chí cá nhân thành tiêu chí tập thể.
