@@ -1,4 +1,4 @@
-import {supabase} from './config.js';
+import {supabase,managedClasses,canViewAllStats,roleOf} from './config.js';
 import {esc} from './ui.js';
 
 async function fetchAll(factory, chunk=1000){
@@ -22,7 +22,7 @@ export async function init(root){
         <h2>Thống Kê Biểu Đồ</h2>
         <p>Tổng hợp dữ liệu học sinh và lịch sử nề nếp/thi đua.</p>
       </div>
-      <span class="badge ok">Đồng bộ toàn bộ dữ liệu</span>
+      <span class="badge ok">${roleOf(window.App?.Auth?.currentUser)==='GVCN'?'Toàn trường':'Theo phạm vi được phân công'}</span>
     </div>
     <div id="stats"><div class="empty">Đang tải...</div></div>
   `;
@@ -44,6 +44,13 @@ async function load(root){
         .select('id,trang_thai,diem,lop,ngay_diem_danh,doi_tuong')
         .order('id'))
     ]);
+
+    const user=window.App?.Auth?.currentUser;
+    const scope=managedClasses(user);
+    if(scope!==null){
+      students.splice(0,students.length,...students.filter(x=>scope.includes(String(x.lop||'').trim())));
+      events.splice(0,events.length,...events.filter(x=>scope.includes(String(x.lop||'').trim())));
+    }
 
     const byGrade={};
     students.forEach(x=>{

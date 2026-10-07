@@ -1,4 +1,4 @@
-import {supabase} from './config.js';
+import {supabase,managedClasses,canManageAbsence,roleOf} from './config.js';
 import {esc,toast} from './ui.js';
 
 let root;
@@ -144,6 +144,8 @@ async function onGradeChange(grade){
 
     classes=[...new Set(data.map(x=>String(x.lop).trim()).filter(Boolean))]
       .sort(naturalSort);
+    const scope=managedClasses(window.App?.Auth?.currentUser);
+    if(scope!==null) classes=classes.filter(c=>scope.includes(c));
 
     classBox.innerHTML=classes.map(c=>`
       <label class="absence-class">

@@ -1,4 +1,4 @@
-import {supabase} from './config.js';
+import {supabase,managedClasses,roleOf,canScore} from './config.js';
 import {esc,toast} from './ui.js';
 
 let root;
@@ -51,7 +51,7 @@ async function renderShell(){
         Chọn hình thức chấm.
       </div>
       <div class="score-mode">
-        <button type="button" data-mode="collective">
+        <button type="button" data-mode="collective" id="collectiveModeBtn">
           👥 Chấm cho tập thể
           <small style="display:block;color:var(--muted);margin-top:5px;font-weight:500">
             Ghi nhận điểm cho cả lớp.
@@ -72,6 +72,13 @@ async function renderShell(){
   `;
 
   // Các nút chọn đối tượng chấm vẫn dùng hàng ngang vì tên ngắn.
+  const role=roleOf(window.App?.Auth?.currentUser);
+  const collectiveBtn=root.querySelector('#collectiveModeBtn');
+  if(role==='Cán bộ lớp'){
+    collectiveBtn.disabled=true;
+    collectiveBtn.title='Cán bộ lớp chỉ được chấm điểm cá nhân.';
+    collectiveBtn.style.opacity='.5';
+  }
   root.querySelectorAll('[data-mode]').forEach(b=>{
     b.onclick=()=>setMode(b.dataset.mode);
   });
@@ -150,6 +157,8 @@ async function onGradeChange(grade){
 
     classes=[...new Set(data.map(x=>String(x.lop).trim()).filter(Boolean))]
       .sort(naturalSort);
+    const scope=managedClasses(window.App?.Auth?.currentUser);
+    if(scope!==null) classes=classes.filter(c=>scope.includes(c));
 
     if(!classes.length){
       classBox.innerHTML='<span class="class-empty">Khối này chưa có lớp.</span>';
@@ -229,6 +238,7 @@ async function loadCriteria(){
 }
 
 function setMode(next){
+  if(next==='collective' && roleOf(window.App?.Auth?.currentUser)==='Cán bộ lớp')return toast('Cán bộ lớp chỉ được chấm điểm cá nhân.','err');
   mode=next;
   root.querySelectorAll('[data-mode]').forEach(b=>{
     b.classList.toggle('active',b.dataset.mode===mode);

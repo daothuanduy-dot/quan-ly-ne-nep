@@ -1,7 +1,7 @@
 import {supabase,normalizeTabs,isAdminStaff} from './config.js';
 
-const SESSION_KEY='qlnn_v3041_user';
-const REMEMBER_KEY='qlnn_v3041_username';
+const SESSION_KEY='qlnn_v3055_user';
+const REMEMBER_KEY='qlnn_v3055_username';
 
 const norm=d=>d?{
  ma_cb:String(d.ma_cb??'').trim(),
@@ -10,6 +10,8 @@ const norm=d=>d?{
  vai_tro_list:Array.isArray(d.vai_tro_list)?d.vai_tro_list:normalizeTabs(d.vai_tro_list),
  lop_quan_ly:d.lop_quan_ly??'',
  lop_giang_day:d.lop_giang_day??[],
+ ma_hs:d.ma_hs??'',
+ loai_quan_ly_lop:d.loai_quan_ly_lop??'',
  quyen_tabs:normalizeTabs(d.quyen_tabs),
  trang_thai:d.trang_thai
 }:null;
