@@ -271,3 +271,21 @@ Chạy:
 
 Migration 008 thêm `can_bo.ma_hs` và `can_bo.loai_quan_ly_lop`.
 Migration 009 chuẩn bị `tuan_hoc`, `tiet`, `mon_hoc`, `nguon_cham` cho lịch sử điểm và tạo bảng `tuan_hoc_tot` cho đăng ký của GVCN.
+
+
+## V3.0.5.6 — Năm học và kiểm soát báo vắng
+
+- Hiển thị năm học 2026-2027 trên giao diện.
+- Sửa migration `tuan_hoc_tot`/`diem_danh_master`: dùng `ADD COLUMN IF NOT EXISTS` để xử lý CSDL đã tồn tại nhưng thiếu `nam_hoc`.
+- Buổi báo vắng mặc định tự xác định theo thời gian hệ thống/cấu hình giờ điểm danh; chỉ mở lựa chọn Sáng/Chiều khi người dùng bật “Báo bổ sung / chọn lại buổi”.
+- Mỗi lớp phải tạo bản ghi `bao_vang_lop`, kể cả `so_vang = 0`.
+- Bổ sung vai trò `Trực`, có quyền theo dõi tình trạng báo vắng.
+- Theo dõi: tổng số lớp có lịch, số lớp đã báo, số lớp chưa báo; nhấn “Chưa báo” để mở danh sách lớp chưa báo.
+- Bổ sung bảng `thoi_khoa_bieu` để xác định lớp có lịch học theo thứ/ngày. Nếu TKB chưa nhập, hệ thống tạm fallback sang `cai_dat_thoi_gian`.
+
+
+## V3.0.5.7
+- Mảng, Loại và Đối tượng trong Quản lý tiêu chí được chuẩn hóa bằng dropdown.
+- QR scanner hỗ trợ QR chứa mã học sinh thuần, chuỗi có nhãn "Mã HS:", URL, JSON hoặc chuỗi thẻ có kèm thông tin học sinh.
+- Khi QR được đọc, hệ thống tự trích mã học sinh, tra cứu `ma_qr`/`ma_hs` và hiển thị hồ sơ học sinh; không dùng nguyên chuỗi QR làm mã tra cứu duy nhất.
+- Giao diện chỉ hiển thị mã HS sau khi đã nhận diện thành công; không hiển thị nguyên payload QR dài.
