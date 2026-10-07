@@ -33,3 +33,170 @@ main{max-width:1500px;margin:auto;padding:18px}.panel{background:#fff;border:1px
 .score-student-select{min-height:48px}
 .score-no-criteria{padding:13px 15px;background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:10px;margin-top:12px}
 .score-db-note{padding:11px 14px;background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af;border-radius:10px;margin-top:12px}
+
+/* =========================================================
+   V3.0.5.3 - Chọn khối/lớp dạng card/chip, không xếp dọc
+   ========================================================= */
+.score-class-selector{
+  display:grid;
+  grid-template-columns:240px minmax(0,1fr);
+  gap:16px;
+  align-items:stretch;
+  margin-bottom:16px;
+}
+.score-selector-box{
+  border:1px solid #dce5ea;
+  border-radius:16px;
+  background:linear-gradient(180deg,#ffffff 0%,#f8fbfc 100%);
+  padding:15px;
+  box-shadow:0 4px 16px rgba(15,23,42,.05);
+}
+.score-selector-title{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  font-size:14px;
+  font-weight:800;
+  color:#334155;
+  margin-bottom:11px;
+}
+.score-selector-title:before{
+  content:"";
+  width:4px;
+  height:18px;
+  border-radius:4px;
+  background:var(--p);
+}
+.grade-radio-group{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:8px;
+}
+.grade-radio{
+  position:relative;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  min-height:48px;
+  padding:9px 13px;
+  border:1px solid #dbe4e8;
+  border-radius:11px;
+  background:#fff;
+  cursor:pointer;
+  font-weight:800;
+  color:#334155;
+  transition:.16s ease;
+}
+.grade-radio:hover{
+  border-color:#8bd3cb;
+  transform:translateY(-1px);
+  box-shadow:0 3px 10px rgba(15,118,110,.08);
+}
+.grade-radio input{
+  position:absolute;
+  opacity:0;
+  pointer-events:none;
+}
+.grade-radio .radio-dot{
+  width:17px;
+  height:17px;
+  border:2px solid #94a3b8;
+  border-radius:50%;
+  display:grid;
+  place-items:center;
+  flex:none;
+}
+.grade-radio input:checked + .radio-dot{
+  border-color:var(--p);
+}
+.grade-radio input:checked + .radio-dot:after{
+  content:"";
+  width:7px;
+  height:7px;
+  border-radius:50%;
+  background:var(--p);
+}
+.grade-radio:has(input:checked){
+  border-color:#66c7bd;
+  background:#effcf9;
+  color:#0f766e;
+  box-shadow:0 3px 10px rgba(15,118,110,.10);
+}
+
+/* Lớp: grid card/chip nhiều cột, tận dụng toàn bộ chiều ngang */
+.class-radio-group{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(78px,1fr));
+  gap:8px;
+  max-height:none;
+  overflow:visible;
+}
+.class-radio{
+  position:relative;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  min-height:43px;
+  padding:7px 9px;
+  border:1px solid #dbe4e8;
+  border-radius:10px;
+  background:#fff;
+  cursor:pointer;
+  font-size:14px;
+  font-weight:800;
+  color:#334155;
+  transition:.16s ease;
+}
+.class-radio:hover{
+  border-color:#8bd3cb;
+  background:#f7fffd;
+  transform:translateY(-1px);
+}
+.class-radio input{
+  position:absolute;
+  opacity:0;
+  pointer-events:none;
+}
+.class-radio:has(input:checked){
+  background:linear-gradient(135deg,#0f766e,#15998f);
+  border-color:#0f766e;
+  color:#fff;
+  box-shadow:0 4px 10px rgba(15,118,110,.18);
+}
+.class-radio:has(input:checked):after{
+  content:"✓";
+  position:absolute;
+  top:4px;
+  right:6px;
+  font-size:10px;
+  opacity:.9;
+}
+.class-empty{
+  display:flex;
+  align-items:center;
+  min-height:43px;
+  color:#64748b;
+  font-size:13px;
+}
+.score-class-hint{
+  margin-top:9px;
+  color:#64748b;
+  font-size:12px;
+}
+.score-selected-line{
+  margin-top:10px;
+  padding:8px 11px;
+  border-radius:9px;
+  background:#effcf9;
+  color:#0f766e;
+  font-size:13px;
+  font-weight:700;
+}
+@media(max-width:900px){
+  .score-class-selector{grid-template-columns:1fr}
+  .grade-radio-group{grid-template-columns:repeat(3,1fr)}
+}
+@media(max-width:560px){
+  .grade-radio-group{grid-template-columns:1fr}
+  .class-radio-group{grid-template-columns:repeat(3,1fr)}
+}
