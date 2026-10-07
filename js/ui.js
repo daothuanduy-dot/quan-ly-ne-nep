@@ -1,0 +1,5 @@
+export function esc(v){return String(v??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'","&#039;")}
+export function toast(msg,type=''){const e=document.getElementById('toast');e.textContent=msg;e.className=`toast ${type}`.trim();e.classList.remove('hidden');clearTimeout(window.__toast);window.__toast=setTimeout(()=>e.classList.add('hidden'),3200)}
+export function modal(title,body,actions=''){const r=document.getElementById('modalRoot');r.innerHTML=`<div class="modal-backdrop"><div class="modal"><div class="modal-head"><h3>${title}</h3><button class="btn light" data-close>✕</button></div><div>${body}</div><div class="modal-actions">${actions}</div></div></div>`;r.querySelector('[data-close]')?.addEventListener('click',closeModal);r.querySelector('.modal-backdrop')?.addEventListener('click',e=>{if(e.target.classList.contains('modal-backdrop'))closeModal()});return r.querySelector('.modal')}
+export function closeModal(){document.getElementById('modalRoot').innerHTML=''}
+export function fmtDate(d){if(!d)return'';return new Date(d+'T00:00:00').toLocaleDateString('vi-VN')}
