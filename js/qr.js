@@ -89,14 +89,16 @@ async function saveEvent(status,score,maHd,detail){
  if(error)return toast(`Không ghi nhận được: ${error.message}`,'err');
  toast('Đã ghi nhận thành công. Dữ liệu học sinh gốc không thay đổi.','ok');student=null;await init(root);
 }
-async function detectCurrentSessionForQr(now){const t=now.toTimeString().slice(0,8);try{const q=await supabase.from('cai_dat_thoi_gian').select('buoi,gio_bat_dau_diem_danh,gio_ket_thuc_diem_danh').eq('nam_hoc',appConfig.namHoc).eq('trang_thai','Học');const hit=(q.data||[]).find(x=>String(x.gio_bat_dau_diem_danh||'').slice(0,8)<=t&&t<=String(x.gio_ket_thuc_diem_danh||'').slice(0,8));if(hit?.buoi)return hit.buoi}catch{}return now.getHours()<12?'Sáng':'Chiều'}
-async function classHasSchedule(cls,grade,now,session){if(!cls)return false;const dow=now.getDay(),thu=dow===0?8:dow+1;const q=await supabase.from('thoi_khoa_bieu').select('lop,khoi,thu,buoi,trang_thai').eq('nam_hoc',appConfig.namHoc).eq('thu',thu).eq('buoi',session).eq('trang_thai','Hoạt động');if(q.error)return false;return (q.data||[]).some(r=>String(r.lop||'').trim()===String(cls).trim() || (!r.lop&&String(r.khoi||'').trim()===String(grade||'').trim()))}
-
-async function startScanner(){
- if(!window.Html5Qrcode)return toast('Thư viện camera QR chưa tải xong. Có thể dùng nhập mã thủ công.','err');
- if(scanner){try{await scanner.stop()}catch{}}
- scanner=new Html5Qrcode('reader');
- const st=root.querySelector('#qrStatus'); if(st)st.innerHTML='<div class="badge">Đang đọc QR...</div>';
- try{await scanner.start({facingMode:'environment'},{fps:10,qrbox:{width:240,height:240}},async decoded=>{await scanner.stop();root.querySelector('#qrManual').value=decoded;await findStudent(decoded)},()=>{})}
- catch(e){toast('Không mở được camera. Hãy kiểm tra quyền camera hoặc dùng nhập mã QR.','err')}
+async function detectCurrentSessionForQr(now){
+ const t=now.toTimeString().slice(0,8);
+ try{const q=await supabase.from('cai_dat_thoi_gian').select('buoi,gio_bat_dau_diem_danh,gio_ket_thuc_diem_danh').eq('nam_hoc',appConfig.namHoc).eq('trang_thai','Học');if(!q.error){const hit=(q.data||[]).find(x=>{const a=String(x.gio_bat_dau_diem_danh||'').slice(0,8),b=String(x.gio_ket_thuc_diem_danh||'').slice(0,8);return a&&b&&a<=t&&t<=b});if(hit?.buoi)return hit.buoi;}}catch{}
+ const hm=now.getHours()*60+now.getMinutes();return hm>=14*60?'Chiều':'Sáng';
+}
+async function classHasSchedule(cls,grade,now,session){
+ if(!cls||!session)return false;
+ const dow=now.getDay(),thu=dow===0?8:dow+1;
+ const q=await supabase.from('thoi_khoa_bieu').select('lop,khoi,thu,buoi,trang_thai').eq('nam_hoc',appConfig.namHoc).eq('thu',thu).eq('buoi',session).eq('trang_thai','Hoạt động');
+ if(q.error)return false;
+ const target=String(cls).trim(),g=String(grade||'').trim();
+ return (q.data||[]).some(r=>{const l=String(r.lop||'').trim(),k=String(r.khoi||'').trim();return l===target || (!l&&k===g) || (!l&&!k);});
 }
