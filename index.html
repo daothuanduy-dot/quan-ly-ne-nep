@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Quản lý nề nếp & thi đua — V3.0.4</title>
+<title>Quản lý nề nếp & thi đua — V3.0.5.4</title>
 <link rel="stylesheet" href="./css/app.css?v=3.0.4.1">
 <script src="https://unpkg.com/html5-qrcode" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
@@ -11,7 +11,7 @@
 <body>
 <div id="loginView" class="login-wrap">
   <div class="login-card">
-    <div class="brand"><div class="brand-icon">🏫</div><h1>Quản lý nề nếp & thi đua</h1><p>THPT Lê Hồng Phong · V3.0.4</p></div>
+    <div class="brand"><div class="brand-icon">🏫</div><h1>Quản lý nề nếp & thi đua</h1><p>THPT Lê Hồng Phong · V3.0.5.4</p></div>
     <form id="loginForm">
       <label>Mã cán bộ<input id="username" autocomplete="username" required></label>
       <label>Mật khẩu
@@ -32,7 +32,7 @@
 
 <div id="appView" class="app hidden">
   <header class="topbar">
-    <div class="brand-mini"><span class="brand-icon small">🏫</span><div><b>THPT Lê Hồng Phong</b><small>Quản lý nề nếp & thi đua · V3.0.4</small></div></div>
+    <div class="brand-mini"><span class="brand-icon small">🏫</span><div><b>THPT Lê Hồng Phong</b><small>Quản lý nề nếp & thi đua · V3.0.5.4</small></div></div>
     <div class="top-actions"><div id="userBox"></div><button id="logoutBtn" class="btn light">Đăng xuất</button></div>
   </header>
   <nav id="mainTabs" class="main-tabs">
@@ -52,16 +52,6 @@
     <section id="page-xeploai" class="page hidden"></section>
     <section id="page-quantri" class="page hidden">
       <div class="panel">
-        <div class="page-head"><div><h2>Quản Trị Hệ Thống</h2><p>7 chức năng quản trị được tổ chức thành sub-tab.</p></div></div>
-        <div id="adminTabs" class="subtabs">
-          <button data-admin="students">👨‍🎓 Quản lý học sinh</button>
-          <button data-admin="import">📥 Nhập học sinh từ Excel</button>
-          <button data-admin="staff">👥 Quản lý cán bộ</button>
-          <button data-admin="schedule">🕒 TKB và TG học</button>
-          <button data-admin="transfer">🔄 Kết chuyển năm và TN</button>
-          <button data-admin="criteria">📝 Quản lý tiêu chí</button>
-          <button data-admin="permissions">🔐 Phân quyền sử dụng chức năng</button>
-        </div>
         <div id="adminContent"></div>
       </div>
     </section>

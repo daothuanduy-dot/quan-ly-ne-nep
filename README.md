@@ -227,3 +227,31 @@ Không tự động biến tiêu chí cá nhân thành tiêu chí tập thể.
 - Lớp được chọn có màu nổi bật và dấu ✓.
 - Responsive: màn hình nhỏ tự giảm số cột.
 - Không thay đổi logic CSDL, phân trang học sinh, tiêu chí hoặc phân quyền.
+
+
+## V3.0.5.4 — Quản trị, thống kê và báo vắng
+
+### Quản trị hệ thống
+- Loại bỏ hàng sub-tab bị lặp trong `index.html`.
+- Chỉ còn **một hàng** 7 chức năng quản trị, do `admin.js` quản lý.
+
+### Thống kê
+- Không còn giới hạn 1.000 học sinh.
+- Thống kê học sinh và lịch sử được phân trang theo 1.000 dòng cho đến khi hết dữ liệu.
+- Các chỉ số tổng số học sinh, lượt ghi nhận, điểm cộng, điểm trừ và đi muộn được tính trên toàn bộ dữ liệu đã tải.
+
+### Báo vắng
+Luồng mới:
+
+`Ngày + Buổi → Khối → Lớp → Số vắng → Danh sách học sinh → Có phép/Không phép → Ghi CSDL`
+
+- Chọn khối.
+- Chọn lớp thuộc khối.
+- Chọn số học sinh vắng.
+- Hệ thống tự tạo đúng số dòng tương ứng.
+- Mỗi dòng có một dropdown chọn học sinh, hiển thị **Họ tên + ngày sinh**, không hiển thị mã học sinh.
+- Mỗi học sinh bắt buộc chọn một trong hai trạng thái:
+  - Vắng có phép
+  - Vắng không phép
+- Không cho chọn trùng cùng một học sinh trong các dòng.
+- Dữ liệu được ghi vào `diem_danh_master`.
