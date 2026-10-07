@@ -1,7 +1,7 @@
 import {supabase,appConfig,normalizeTabs,isAdminStaff} from './config.js';
 
-const SESSION_KEY='qlnn_v30513_user';
-const REMEMBER_KEY='qlnn_v30513_username';
+const SESSION_KEY='qlnn_v30514_user';
+const REMEMBER_KEY='qlnn_v30514_username';
 
 const norm=d=>d?{
  ma_cb:String(d.ma_cb??'').trim(),
