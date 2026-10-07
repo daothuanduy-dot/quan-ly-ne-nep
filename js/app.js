@@ -1,125 +1,984 @@
-// ================================================================= //
-// FILE: app.js                                                      //
-// PHIÊN BẢN: v2.2.0                                                 //
-// MÔ TẢ: Xử lý Đăng nhập, Truy vấn can_bo, Ghi nhớ & Sub-tabs       //
-// ================================================================= //
+/**
+ * ============================================================
+ * APP.JS
+ * Điều khiển ứng dụng chính
+ * THPT Lê Hồng Phong
+ *
+ * Không xử lý đăng nhập trực tiếp.
+ *
+ * Đăng nhập:
+ *     auth.js
+ *
+ * Cấu hình:
+ *     config.js
+ *
+ * App:
+ *     app.js
+ *
+ * ============================================================
+ */
 
-// 1. TỰ ĐỘNG KIỂM TRA THÔNG TIN GHI NHỚ ĐĂNG NHẬP KHI TẢI TRANG
-document.addEventListener('DOMContentLoaded', () => {
-  const savedUsername = localStorage.getItem('remembered_username');
-  if (savedUsername) {
-    const usernameInput = document.getElementById('username');
-    const rememberCheckbox = document.getElementById('rememberMe');
-    if (usernameInput && rememberCheckbox) {
-      usernameInput.value = savedUsername;
-      rememberCheckbox.checked = true;
+import Auth from './auth.js';
+
+import {
+    appConfig,
+    supabase
+} from './config.js';
+
+
+/* ============================================================
+   APP
+============================================================= */
+
+const App = {
+
+    currentUser: null,
+
+
+    /**
+     * ========================================================
+     * INIT
+     * ========================================================
+     */
+    async init() {
+
+        console.log(
+            '[APP] Khởi tạo ứng dụng...'
+        );
+
+
+        /*
+         * Lấy user hiện tại
+         */
+
+        this.currentUser =
+            Auth.getCurrentUser();
+
+
+        /*
+         * Thiết lập giao diện
+         */
+
+        this.bindEvents();
+
+
+        /*
+         * Thiết lập sub-tab quản trị
+         */
+
+        this.initAdminTabs();
+
+
+        /*
+         * Theo dõi sự kiện đăng nhập
+         */
+
+        document.addEventListener(
+            'auth-login',
+            event => {
+
+                this.currentUser =
+                    event.detail.user;
+
+                this.onLogin(
+                    this.currentUser
+                );
+
+            }
+        );
+
+
+        /*
+         * Theo dõi logout
+         */
+
+        document.addEventListener(
+            'auth-logout',
+            () => {
+
+                this.currentUser =
+                    null;
+
+                this.onLogout();
+
+            }
+        );
+
+
+        /*
+         * Nếu đã đăng nhập
+         */
+
+        if (
+            this.currentUser
+        ) {
+
+            this.onLogin(
+                this.currentUser
+            );
+
+        }
+
+
+        console.log(
+            '[APP] Ứng dụng đã khởi tạo.'
+        );
+
+    },
+
+
+    /**
+     * ========================================================
+     * EVENTS
+     * ========================================================
+     */
+    bindEvents() {
+
+
+        /*
+         * Nút logout
+         */
+
+        const logoutButtons =
+            document.querySelectorAll(
+                '#btnLogout, #btn-logout'
+            );
+
+
+        logoutButtons.forEach(
+            button => {
+
+                button.addEventListener(
+                    'click',
+                    event => {
+
+                        event.preventDefault();
+
+                        Auth.logout();
+
+                    }
+                );
+
+            }
+        );
+
+
+        /*
+         * Toggle password
+         */
+
+        const passwordToggle =
+            document.getElementById(
+                'togglePassword'
+            );
+
+
+        if (passwordToggle) {
+
+            passwordToggle.addEventListener(
+                'click',
+                () => {
+
+                    this.togglePassword();
+
+                }
+            );
+
+        }
+
+
+        /*
+         * Nút refresh
+         */
+
+        const refreshButton =
+            document.getElementById(
+                'btnRefresh'
+            );
+
+
+        if (refreshButton) {
+
+            refreshButton.addEventListener(
+                'click',
+                () => {
+
+                    window.location.reload();
+
+                }
+            );
+
+        }
+
+    },
+
+
+    /**
+     * ========================================================
+     * PASSWORD
+     * ========================================================
+     */
+    togglePassword() {
+
+        const input =
+            document.getElementById(
+                'password'
+            );
+
+
+        if (!input) {
+
+            return;
+
+        }
+
+
+        const icon =
+            document.getElementById(
+                'eyeIcon'
+            );
+
+
+        if (
+            input.type ===
+            'password'
+        ) {
+
+            input.type =
+                'text';
+
+
+            if (icon) {
+
+                icon.textContent =
+                    '🙈';
+
+            }
+
+        } else {
+
+            input.type =
+                'password';
+
+
+            if (icon) {
+
+                icon.textContent =
+                    '👁️';
+
+            }
+
+        }
+
+    },
+
+
+    /**
+     * ========================================================
+     * LOGIN
+     * ========================================================
+     */
+    onLogin(user) {
+
+        this.currentUser =
+            user;
+
+
+        console.log(
+            '[APP] User:',
+            user
+        );
+
+
+        /*
+         * Cập nhật thông tin người dùng
+         */
+
+        Auth.updateUI();
+
+
+        /*
+         * Phân quyền giao diện
+         */
+
+        this.applyPermissions();
+
+
+        /*
+         * Khởi tạo các module
+         */
+
+        this.initializeModules();
+
+    },
+
+
+    /**
+     * ========================================================
+     * LOGOUT
+     * ========================================================
+     */
+    onLogout() {
+
+        console.log(
+            '[APP] User đã đăng xuất.'
+        );
+
+
+        /*
+         * Có thể reset các module
+         * nếu cần.
+         */
+
+        this.currentUser =
+            null;
+
+    },
+
+
+    /**
+     * ========================================================
+     * KHỞI TẠO CÁC MODULE
+     * ========================================================
+     */
+    initializeModules() {
+
+
+        /*
+         * Tab 1
+         */
+
+        if (
+            window.Tab1QR &&
+            typeof
+            window.Tab1QR.init ===
+            'function'
+        ) {
+
+            try {
+
+                window.Tab1QR.init();
+
+            } catch (error) {
+
+                console.error(
+                    '[APP] Tab1QR:',
+                    error
+                );
+
+            }
+
+        }
+
+
+        /*
+         * Các module khác của hệ thống
+         * sẽ tự khởi tạo nếu đã có.
+         */
+
+        const modules = [
+
+            'Tab2BaoVang',
+
+            'Tab3ChamDiem',
+
+            'Tab4ThongKe',
+
+            'Tab5XepLoai',
+
+            'QuanTriHocSinh',
+
+            'QuanTriImport',
+
+            'QuanTriCanBo',
+
+            'QuanTriTKB',
+
+            'QuanTriKetChuyen',
+
+            'QuanTriTieuChi',
+
+            'QuanTriPhanQuyen'
+
+        ];
+
+
+        modules.forEach(
+            moduleName => {
+
+                const module =
+                    window[
+                        moduleName
+                    ];
+
+
+                if (
+                    module &&
+                    typeof module.init ===
+                    'function'
+                ) {
+
+                    try {
+
+                        module.init();
+
+                    } catch (error) {
+
+                        console.error(
+                            `[APP] ${moduleName}:`,
+                            error
+                        );
+
+                    }
+
+                }
+
+            }
+        );
+
+    },
+
+
+    /**
+     * ========================================================
+     * PHÂN QUYỀN GIAO DIỆN
+     * ========================================================
+     */
+    applyPermissions() {
+
+        const user =
+            Auth.getCurrentUser();
+
+
+        if (!user) {
+
+            return;
+
+        }
+
+
+        /*
+         * Admin:
+         * hiển thị tất cả.
+         */
+
+        const isAdmin =
+            Auth.isAdmin(
+                user
+            );
+
+
+        /*
+         * ==================================================
+         * QUYỀN CÁC TAB CHÍNH
+         * ==================================================
+         */
+
+        const mainTabPermissions = {
+
+            'tab1':
+                'qr',
+
+            'tab2':
+                'baovang',
+
+            'tab3':
+                'chamdiem',
+
+            'tab4':
+                'thongke',
+
+            'tab5':
+                'xeploai',
+
+            'tab6':
+                'admin'
+
+        };
+
+
+        Object.entries(
+            mainTabPermissions
+        ).forEach(
+            ([tabId, permission]) => {
+
+                const elements =
+                    document.querySelectorAll(
+                        `[data-permission="${permission}"]`
+                    );
+
+
+                elements.forEach(
+                    element => {
+
+                        const allowed =
+                            isAdmin ||
+                            Auth.hasTabPermission(
+                                permission,
+                                user
+                            );
+
+
+                        element.style.display =
+                            allowed
+                                ? ''
+                                : 'none';
+
+                    }
+                );
+
+            }
+        );
+
+
+        /*
+         * ==================================================
+         * QUYỀN 7 SUB TAB QUẢN TRỊ
+         * ==================================================
+         */
+
+        const adminTabs =
+            document.querySelectorAll(
+                '.admin-tab[data-tab]'
+            );
+
+
+        adminTabs.forEach(
+            tab => {
+
+                const permission =
+                    tab.dataset.tab;
+
+
+                const allowed =
+                    isAdmin ||
+                    Auth.hasTabPermission(
+                        permission,
+                        user
+                    );
+
+
+                tab.style.display =
+                    allowed
+                        ? ''
+                        : 'none';
+
+            }
+        );
+
+
+        /*
+         * ==================================================
+         * Nếu tab hiện tại bị cấm
+         * thì chọn tab đầu tiên được phép.
+         * ==================================================
+         */
+
+        this.selectFirstAllowedAdminTab();
+
+    },
+
+
+    /**
+     * ========================================================
+     * CHỌN SUB TAB ĐƯỢC PHÉP
+     * ========================================================
+     */
+    selectFirstAllowedAdminTab() {
+
+        const visible =
+            Array.from(
+                document.querySelectorAll(
+                    '.admin-tab[data-tab]'
+                )
+            )
+            .filter(
+                tab =>
+                    tab.style.display !==
+                    'none'
+            );
+
+
+        if (!visible.length) {
+
+            return;
+
+        }
+
+
+        const active =
+            document.querySelector(
+                '.admin-tab.active'
+            );
+
+
+        if (
+            active &&
+            active.style.display !==
+            'none'
+        ) {
+
+            return;
+
+        }
+
+
+        visible[0].click();
+
+    },
+
+
+    /**
+     * ========================================================
+     * KHỞI TẠO 7 SUB TAB QUẢN TRỊ
+     * ========================================================
+     */
+    initAdminTabs() {
+
+        const buttons =
+            document.querySelectorAll(
+                '.admin-tab[data-tab]'
+            );
+
+
+        const contents =
+            document.querySelectorAll(
+                '.admin-content'
+            );
+
+
+        buttons.forEach(
+            button => {
+
+                button.addEventListener(
+                    'click',
+                    () => {
+
+                        const target =
+                            button.dataset.tab;
+
+
+                        /*
+                         * Nếu user không có quyền
+                         */
+
+                        if (
+                            this.currentUser &&
+                            !Auth.isAdmin(
+                                this.currentUser
+                            ) &&
+                            !Auth.hasTabPermission(
+                                target,
+                                this.currentUser
+                            )
+                        ) {
+
+                            if (
+                                typeof window.showToast ===
+                                'function'
+                            ) {
+
+                                window.showToast(
+                                    'Bạn không có quyền sử dụng chức năng này.',
+                                    'error'
+                                );
+
+                            }
+
+                            return;
+
+                        }
+
+
+                        /*
+                         * Active button
+                         */
+
+                        buttons.forEach(
+                            btn => {
+
+                                btn.classList.remove(
+                                    'active'
+                                );
+
+                            }
+                        );
+
+
+                        button.classList.add(
+                            'active'
+                        );
+
+
+                        /*
+                         * Active content
+                         */
+
+                        contents.forEach(
+                            content => {
+
+                                content.classList.remove(
+                                    'active'
+                                );
+
+                            }
+                        );
+
+
+                        const content =
+                            document.getElementById(
+                                `content-${target}`
+                            );
+
+
+                        if (content) {
+
+                            content.classList.add(
+                                'active'
+                            );
+
+                        }
+
+
+                        /*
+                         * Thông báo module
+                         */
+
+                        document.dispatchEvent(
+
+                            new CustomEvent(
+                                'admin-tab-changed',
+                                {
+                                    detail: {
+                                        tab:
+                                            target
+                                    }
+                                }
+                            )
+
+                        );
+
+                    }
+                );
+
+            }
+        );
+
+    },
+
+
+    /**
+     * ========================================================
+     * CHUYỂN SUB TAB BẰNG JAVASCRIPT
+     * ========================================================
+     */
+    switchAdminTab(
+        tabName
+    ) {
+
+        const button =
+            document.querySelector(
+                `.admin-tab[data-tab="${tabName}"]`
+            );
+
+
+        if (!button) {
+
+            console.warn(
+                '[APP] Không tìm thấy tab:',
+                tabName
+            );
+
+            return;
+
+        }
+
+
+        if (
+            button.style.display ===
+            'none'
+        ) {
+
+            if (
+                typeof window.showToast ===
+                'function'
+            ) {
+
+                window.showToast(
+                    'Bạn không có quyền sử dụng chức năng này.',
+                    'error'
+                );
+
+            }
+
+            return;
+
+        }
+
+
+        button.click();
+
+    },
+
+
+    /**
+     * ========================================================
+     * KIỂM TRA QUYỀN
+     * ========================================================
+     */
+    can(permission) {
+
+        const user =
+            Auth.getCurrentUser();
+
+
+        if (!user) {
+
+            return false;
+
+        }
+
+
+        if (
+            Auth.isAdmin(
+                user
+            )
+        ) {
+
+            return true;
+
+        }
+
+
+        return Auth.hasTabPermission(
+            permission,
+            user
+        );
+
     }
-  }
 
-  // Kiểm tra phiên đăng nhập hiện tại
-  const currentUser = sessionStorage.getItem('currentUser');
-  if (currentUser) {
-    showDashboard(JSON.parse(currentUser));
-  }
-});
+};
 
-// 2. HÀM ẨN / HIỆN MẬT KHẨU
-function togglePasswordVisibility() {
-  const passwordInput = document.getElementById('password');
-  const eyeIcon = document.getElementById('eyeIcon');
-  
-  if (passwordInput.type === 'password') {
-    passwordInput.type = 'text';
-    eyeIcon.textContent = '🙈';
-  } else {
-    passwordInput.type = 'password';
-    eyeIcon.textContent = '👁️';
-  }
-}
 
-// 3. XỬ LÝ ĐĂNG NHẬP (TRUY VẤN BẢNG `can_bo`)
-async function handleLogin(event) {
-  event.preventDefault();
+/* ============================================================
+   GLOBAL
+============================================================= */
 
-  const usernameInput = document.getElementById('username').value.trim();
-  const passwordInput = document.getElementById('password').value;
-  const rememberMe = document.getElementById('rememberMe').checked;
+window.App = App;
 
-  if (!usernameInput || !passwordInput) {
-    alert('Vui lòng nhập đầy đủ Tài khoản và Mật khẩu!');
-    return;
-  }
 
-  try {
-    // Gọi API Backend truy vấn bảng `can_bo`
-    const response = await fetch('api_login.php', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        username: usernameInput,
-        password: passwordInput
-      })
-    });
+/* ============================================================
+   BACKWARD COMPATIBILITY
+============================================================= */
 
-    const result = await response.json();
+/*
+ * Một số code cũ có thể gọi:
+ *
+ * switchSubTab(event, id)
+ *
+ * Giữ lại hàm này để tránh làm hỏng code cũ.
+ */
 
-    if (result.success) {
-      const user = result.user;
+window.switchSubTab = function(
+    event,
+    subTabId
+) {
 
-      // Xử lý Ghi nhớ đăng nhập
-      if (rememberMe) {
-        localStorage.setItem('remembered_username', usernameInput);
-      } else {
-        localStorage.removeItem('remembered_username');
-      }
+    if (event) {
 
-      // Lưu thông tin người dùng và vai trò vào Session
-      sessionStorage.setItem('currentUser', JSON.stringify(user));
+        event.preventDefault();
 
-      alert(`Đăng nhập thành công! Vai trò của bạn: ${user.vai_tro}`);
-      showDashboard(user);
-    } else {
-      alert(result.message || 'Tài khoản hoặc mật khẩu không chính xác!');
     }
-  } catch (error) {
-    console.error('Lỗi kết nối cơ sở dữ liệu:', error);
-    alert('Không thể kết nối đến máy chủ! Vui lòng kiểm tra lại.');
-  }
-}
 
-// 4. HIỂN THỊ MÀN HÌNH DASHBOARD
-function showDashboard(user) {
-  document.getElementById('login-screen').style.display = 'none';
-  document.getElementById('app-screen').style.display = 'block';
 
-  document.getElementById('display-user-name').textContent = `Xin chào, ${user.ho_ten}`;
-  document.getElementById('display-user-role').textContent = user.vai_tro;
-}
+    /*
+     * Code cũ dùng ID trực tiếp.
+     */
 
-// 5. ĐĂNG XUẤT
-function handleLogout() {
-  sessionStorage.removeItem('currentUser');
-  document.getElementById('app-screen').style.display = 'none';
-  document.getElementById('login-screen').style.display = 'flex';
-  document.getElementById('password').value = '';
-}
+    document
+        .querySelectorAll(
+            '.sub-tab-btn'
+        )
+        .forEach(
+            btn =>
+                btn.classList.remove(
+                    'active'
+                )
+        );
 
-// 6. XỬ LÝ CHUYỂN SUB-TABS TRONG TAB 6 QUẢN TRỊ HỆ THỐNG
-function switchSubTab(event, subTabId) {
-  // Bỏ active tất cả các nút sub-tab
-  const subTabButtons = document.querySelectorAll('.sub-tab-btn');
-  subTabButtons.forEach(btn => btn.classList.remove('active'));
 
-  // Ẩn tất cả nội dung sub-tab
-  const subTabPanes = document.querySelectorAll('.sub-tab-pane');
-  subTabPanes.forEach(pane => pane.classList.remove('active'));
+    document
+        .querySelectorAll(
+            '.sub-tab-pane'
+        )
+        .forEach(
+            pane =>
+                pane.classList.remove(
+                    'active'
+                )
+        );
 
-  // Kích hoạt sub-tab được chọn
-  event.currentTarget.classList.add('active');
-  const targetPane = document.getElementById(subTabId);
-  if (targetPane) {
-    targetPane.classList.add('active');
-  }
-}
+
+    if (
+        event &&
+        event.currentTarget
+    ) {
+
+        event.currentTarget.classList.add(
+            'active'
+        );
+
+    }
+
+
+    const pane =
+        document.getElementById(
+            subTabId
+        );
+
+
+    if (pane) {
+
+        pane.classList.add(
+            'active'
+        );
+
+    }
+
+};
+
+
+/* ============================================================
+   DOM READY
+============================================================= */
+
+document.addEventListener(
+    'DOMContentLoaded',
+    async function() {
+
+        try {
+
+            await App.init();
+
+        } catch (error) {
+
+            console.error(
+                '[APP] Lỗi khởi tạo:',
+                error
+            );
+
+        }
+
+    }
+);
+
+
+/* ============================================================
+   EXPORT
+============================================================= */
+
+export default App;
+
+export {
+    App
+};
