@@ -1,4 +1,4 @@
-# Quản lý nề nếp & thi đua – V3.0.5.20
+# Quản lý nề nếp & thi đua – V3.0.5.22
 
 Bản này tập trung kích hoạt và sửa hoàn chỉnh luồng **Báo Vắng Học Sinh**.
 
@@ -11,4 +11,4 @@ Bản này tập trung kích hoạt và sửa hoàn chỉnh luồng **Báo Vắn
 - Giữ quyền báo vắng theo phạm vi lớp của tài khoản.
 
 ## SQL bắt buộc
-Chạy `sql/018_v3_0_5_20_kich_hoat_bao_vang.sql` trong Supabase SQL Editor, sau đó tải lại GitHub Pages bằng Ctrl+F5.
+Chạy `sql/018_v3.0.5.22_kich_hoat_bao_vang.sql` trong Supabase SQL Editor, sau đó tải lại GitHub Pages bằng Ctrl+F5.
