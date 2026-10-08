@@ -1,9 +1,9 @@
-/* QLNN V3.0.5.25.14 - login bootstrap
+/* QLNN V3.0.5.25.15 - login bootstrap
    Purpose: login must work even if a feature module has a separate loading error.
    This file is intentionally classic JS and does not depend on any ES module/CDN. */
 (function(){
   'use strict';
-  const VERSION='3.0.5.25.14';
+  const VERSION='3.0.5.25.15';
   const SUPABASE_URL='https://vbhtgkvvmwfztswxlvnl.supabase.co';
   const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZiaHRna3Z2bXdmenRzd3hsdm5sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEwMjE2MzgsImV4cCI6MjEwNjU5NzYzOH0.CqsEoBOVB4CS9UphogsIRtR1syY82kx5uzvcz_K_luo';
   const SESSION_KEY='qlnn_v30516_user';
