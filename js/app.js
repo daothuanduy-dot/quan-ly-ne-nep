@@ -1,8 +1,8 @@
-import {APP_VERSION,appConfig} from './config.js';import {Auth} from './auth.js';import {toast} from './ui.js';
+import {APP_VERSION,appConfig,supabase,managedClasses,canManageAbsence,canMonitorAbsence,esc} from './config.js';import {Auth} from './auth.js';import {toast} from './ui.js';
 const modules={};
 async function loadFeature(k){
  if(modules[k]) return modules[k];
- const map={qr:'./qr-v24.js',baovang:'./baovang-v24.js',chamdiem:'./chamdiem.js',thongke:'./thongke.js',xeploai:'./xeploai.js',quantri:'./admin.js'};
+ const map={qr:'./qr-v24.js',baovang:'./baovang-v25.js',chamdiem:'./chamdiem.js',thongke:'./thongke.js',xeploai:'./xeploai.js',quantri:'./admin.js'};
  if(!map[k]) throw new Error('Không tìm thấy module '+k);
  modules[k]=await import(map[k]+'?v='+APP_VERSION);
  return modules[k];
@@ -37,7 +37,7 @@ function bind(){
  $('logoutBtn').onclick=()=>{Auth.logout();location.reload()};
  document.querySelectorAll('.main-tab').forEach(b=>b.onclick=()=>open(b.dataset.tab));
 }
-window.App={Auth,toast,open};
+window.App={Auth,toast,open,supabase,appConfig,managedClasses,canManageAbsence,canMonitorAbsence,esc};
 $('username').value=Auth.remembered();
 $('rememberMe').checked=!!Auth.remembered();
 bind();
