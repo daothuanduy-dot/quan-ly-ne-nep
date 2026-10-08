@@ -74,7 +74,7 @@ async function renderShell(){
   // Các nút chọn đối tượng chấm vẫn dùng hàng ngang vì tên ngắn.
   const role=roleOf(window.App?.Auth?.currentUser);
   const collectiveBtn=root.querySelector('#collectiveModeBtn');
-  if(role==='Cán bộ lớp'){
+  if(role==='Cán bộ lớp'||role==='Cờ đỏ'){
     collectiveBtn.disabled=true;
     collectiveBtn.title='Cán bộ lớp chỉ được chấm điểm cá nhân.';
     collectiveBtn.style.opacity='.5';
@@ -238,7 +238,7 @@ async function loadCriteria(){
 }
 
 function setMode(next){
-  if(next==='collective' && roleOf(window.App?.Auth?.currentUser)==='Cán bộ lớp')return toast('Cán bộ lớp chỉ được chấm điểm cá nhân.','err');
+  if(next==='collective' && ['Cán bộ lớp','Cờ đỏ'].includes(roleOf(window.App?.Auth?.currentUser)))return toast(roleOf(window.App?.Auth?.currentUser)==='Cờ đỏ'?'Cờ đỏ chỉ được chấm điểm cá nhân.':'Cán bộ lớp chỉ được chấm điểm cá nhân.','err');
   mode=next;
   root.querySelectorAll('[data-mode]').forEach(b=>{
     b.classList.toggle('active',b.dataset.mode===mode);

@@ -12,3 +12,6 @@ Bản này tập trung kích hoạt và sửa hoàn chỉnh luồng **Báo Vắn
 
 ## SQL bắt buộc
 Chạy `sql/018_v3.0.5.23_kich_hoat_bao_vang.sql` trong Supabase SQL Editor, sau đó tải lại GitHub Pages bằng Ctrl+F5.
+
+
+V3.0.5.25.2: Bổ sung vai trò Cờ đỏ (học sinh); sửa form Cán bộ lớp/Cờ đỏ để luôn hiển thị liên kết lớp + học sinh; giữ quyền chấm điểm cá nhân và thống kê lớp. Không thay đổi schema CSDL.

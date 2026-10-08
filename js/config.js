@@ -26,6 +26,7 @@ export const STAFF_ROLES=[
  {key:'GVCN',label:'Giáo viên chủ nhiệm'},
  {key:'Giáo viên',label:'Giáo viên giảng dạy'},
  {key:'Cán bộ lớp',label:'Cán bộ lớp (học sinh)'},
+ {key:'Cờ đỏ',label:'Cờ đỏ (học sinh)'},
  {key:'Trực',label:'Cán bộ trực'}
 ];
 export const CLASS_MANAGEMENT_TYPES=[
@@ -38,6 +39,7 @@ export function roleOf(s){
  if(roles.some(x=>['admin','quantri','quản trị','quản trị hệ thống'].includes(x)))return 'Admin';
  if(roles.some(x=>['gvcn','giáo viên chủ nhiệm','giao vien chu nhiem'].includes(x)))return 'GVCN';
  if(roles.some(x=>['cán bộ lớp','can bo lop'].includes(x)))return 'Cán bộ lớp';
+ if(roles.some(x=>['cờ đỏ','co do','cờ do','cỏ đỏ','co do (hoc sinh)'].includes(x)))return 'Cờ đỏ';
  if(roles.some(x=>['trực','truc','cán bộ trực','can bo truc'].includes(x)))return 'Trực';
  if(roles.some(x=>['giáo viên','giao vien','gv'].includes(x)))return 'Giáo viên';
  return String(s?.vai_tro||'').trim();
@@ -47,7 +49,7 @@ export function managedClasses(s){
  const role=roleOf(s);
  if(role==='Admin')return null; // null = toàn trường
  if(role==='GVCN')return s.lop_quan_ly?[String(s.lop_quan_ly).trim()]:[];
- if(role==='Cán bộ lớp')return s.lop_quan_ly?[String(s.lop_quan_ly).trim()]:[];
+ if(role==='Cán bộ lớp'||role==='Cờ đỏ')return s.lop_quan_ly?[String(s.lop_quan_ly).trim()]:[];
  const a=Array.isArray(s.lop_giang_day)?s.lop_giang_day:normalizeTabs(s.lop_giang_day);
  return a.map(String).map(x=>x.trim()).filter(Boolean);
 }
@@ -61,7 +63,7 @@ export function canManageAbsence(s,lop){
 export function canScore(s,lop,target='Cá nhân'){
  const role=roleOf(s); if(role==='Admin')return true;
  if(!canManageClass(s,lop))return false;
- if(role==='Cán bộ lớp')return target==='Cá nhân';
+ if(role==='Cán bộ lớp'||role==='Cờ đỏ')return target==='Cá nhân';
  return role==='GVCN'||role==='Giáo viên';
 }
 export function canViewAllStats(s){return roleOf(s)==='Admin'||roleOf(s)==='GVCN';}

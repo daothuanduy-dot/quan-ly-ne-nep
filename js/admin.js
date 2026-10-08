@@ -32,6 +32,7 @@ function scopeLabel(x){
  if(role==='GVCN')return x.lop_quan_ly?`Chủ nhiệm: ${x.lop_quan_ly}`:'Chưa phân lớp';
  if(role==='Giáo viên')return Array.isArray(x.lop_giang_day)&&x.lop_giang_day.length?`Giảng dạy: ${x.lop_giang_day.join(', ')}`:'Chưa phân lớp';
  if(role==='Cán bộ lớp')return x.lop_quan_ly?`Cán bộ lớp: ${x.lop_quan_ly}`:'Chưa phân lớp';
+ if(role==='Cờ đỏ')return x.lop_quan_ly?`Cờ đỏ: ${x.lop_quan_ly}`:'Chưa phân lớp';
  if(role==='Trực')return 'Theo dõi báo vắng';
  return 'Toàn hệ thống';
 }
@@ -46,37 +47,30 @@ function staffForm(s,classes){
  </div></div>
  <div class="staff-section"><div class="staff-section-title">Phạm vi lớp</div>
  <div id="classScopeArea"></div></div>
- <div class="staff-section hidden" id="studentLinkSection"><div class="staff-section-title">Liên kết tài khoản học sinh</div>
- <label>Học sinh thuộc lớp <select id="c_student"><option value="">-- Chọn học sinh --</option></select></label>
- <div class="notice">Tài khoản này là <b>Cán bộ lớp (học sinh)</b>. Hệ thống chỉ cho phép cập nhật điểm <b>cá nhân</b> và xem thống kê của lớp được phân công.</div>
- </div>
  <div class="staff-section"><div class="grid"><label>Trạng thái<select id="c_status"><option value="true" ${x.trang_thai!==false?'selected':''}>Hoạt động</option><option value="false" ${x.trang_thai===false?'selected':''}>Khóa</option></select></label></div></div>
  </div>`,`<button id="c_cancel" class="btn light">Hủy</button><button id="c_save" class="btn primary">Lưu</button>`);
  const roleEl=m.querySelector('#c_role');
  const area=m.querySelector('#classScopeArea');
- const studentSection=m.querySelector('#studentLinkSection');
  const studentEl=m.querySelector('#c_student');
  function renderScope(){
   const r=roleEl.value;
   if(r==='GVCN'){
    area.innerHTML=`<label>Lớp chủ nhiệm<select id="c_class">${classOptions(classes,x.lop_quan_ly)}</select></label><div class="scope-help">GVCN có quyền cập nhật điểm/báo vắng cho lớp chủ nhiệm và xem thống kê toàn trường.</div>`;
-   studentSection.classList.add('hidden');
   }else if(r==='Giáo viên'){
    const selected=Array.isArray(x.lop_giang_day)?x.lop_giang_day:normalizeTabs(x.lop_giang_day);
    area.innerHTML=`<label>Các lớp giảng dạy<select id="c_classes" multiple size="6">${classes.map(c=>`<option value="${esc(c)}" ${selected.includes(c)?'selected':''}>${esc(c)}</option>`).join('')}</select></label><div class="scope-help">Giáo viên chỉ được cập nhật điểm và báo vắng trong các lớp được chọn.</div>`;
-   studentSection.classList.add('hidden');
-  }else if(r==='Cán bộ lớp'){
-   area.innerHTML=`<label>Lớp cán bộ lớp<select id="c_class">${classOptions(classes,x.lop_quan_ly)}</select></label><div class="scope-help">Tài khoản học sinh chỉ được chấm điểm cá nhân cho học sinh cùng lớp.</div>`;
-   studentSection.classList.remove('hidden');
+  }else if(r==='Cán bộ lớp'||r==='Cờ đỏ'){
+   const title=r==='Cờ đỏ'?'Lớp phụ trách cờ đỏ':'Lớp cán bộ lớp';
+   const note=r==='Cờ đỏ'?'Tài khoản học sinh Cờ đỏ được liên kết với một học sinh cụ thể và chỉ được chấm điểm cá nhân trong lớp được phân công.':'Tài khoản học sinh Cán bộ lớp được liên kết với một học sinh cụ thể và chỉ được chấm điểm cá nhân trong lớp được phân công.';
+   area.innerHTML=`<label>${title}<select id="c_class">${classOptions(classes,x.lop_quan_ly)}</select></label><label style="margin-top:10px;display:block">Học sinh liên kết<select id="c_student"><option value="">-- Chọn học sinh --</option></select></label><div class="scope-help">${note}</div>`;
    loadStudentsForClass(m,x.lop_quan_ly||'');
   }else if(r==='Trực'){
    area.innerHTML=`<div class="notice"><b>Cán bộ trực:</b> theo dõi tình trạng báo vắng của các lớp theo lịch học. Không được sửa điểm hoặc báo vắng thay cho giáo viên.</div>`;
-   studentSection.classList.add('hidden');
   }else{
    area.innerHTML=`<div class="notice">Admin có phạm vi toàn hệ thống, không cần gán lớp.</div>`;
-   studentSection.classList.add('hidden');
   }
-  const cls=m.querySelector('#c_class'); if(cls)cls.onchange=()=>{if(roleEl.value==='Cán bộ lớp')loadStudentsForClass(m,cls.value)};
+  const cls=m.querySelector('#c_class');
+  if(cls)cls.onchange=()=>{if(roleEl.value==='Cán bộ lớp'||roleEl.value==='Cờ đỏ')loadStudentsForClass(m,cls.value)};
  }
  async function loadStudentsForClass(mod,cls){
   const el=mod.querySelector('#c_student');if(!el)return;
@@ -93,7 +87,7 @@ function staffForm(s,classes){
   const pw=m.querySelector('#c_pw').value;if(pw)payload.mat_khau=pw;
   if(r==='GVCN'){payload.lop_quan_ly=m.querySelector('#c_class')?.value||null;payload.lop_giang_day=[];payload.loai_quan_ly_lop='Chủ nhiệm';payload.ma_hs=null}
   else if(r==='Giáo viên'){payload.lop_quan_ly=null;payload.lop_giang_day=[...(m.querySelector('#c_classes')?.selectedOptions||[])].map(o=>o.value);payload.loai_quan_ly_lop='Giảng dạy';payload.ma_hs=null}
-  else if(r==='Cán bộ lớp'){payload.lop_quan_ly=m.querySelector('#c_class')?.value||null;payload.lop_giang_day=[];payload.loai_quan_ly_lop='Cán bộ lớp';payload.ma_hs=m.querySelector('#c_student')?.value||null;if(!payload.lop_quan_ly||!payload.ma_hs)return toast('Cán bộ lớp phải có lớp và học sinh liên kết.','err')}
+  else if(r==='Cán bộ lớp'||r==='Cờ đỏ'){payload.lop_quan_ly=m.querySelector('#c_class')?.value||null;payload.lop_giang_day=[];payload.loai_quan_ly_lop=r;payload.ma_hs=m.querySelector('#c_student')?.value||null;if(!payload.lop_quan_ly||!payload.ma_hs)return toast(r+' phải có lớp và học sinh liên kết.','err')}
   else if(r==='Trực'){payload.lop_quan_ly=null;payload.lop_giang_day=[];payload.loai_quan_ly_lop='Trực';payload.ma_hs=null}
   else{payload.lop_quan_ly='ALL';payload.lop_giang_day=[];payload.loai_quan_ly_lop='';payload.ma_hs=null}
   if(!s)payload.quyen_tabs=defaultTabsForRole(r);
@@ -103,7 +97,7 @@ function staffForm(s,classes){
 }
 function classOptions(classes,selected){return '<option value="">-- Chọn lớp --</option>'+classes.map(c=>`<option value="${esc(c)}" ${c===selected?'selected':''}>${esc(c)}</option>`).join('')}
 function formatDate(v){const m=String(v||'').match(/^(\d{4})-(\d{2})-(\d{2})/);return m?`${m[3]}/${m[2]}/${m[1]}`:''}
-function defaultTabsForRole(r){if(r==='Admin')return PERMISSION_TABS.map(x=>x.key);if(r==='GVCN')return ['baovang','chamdiem','thongke','xeploai'];if(r==='Giáo viên')return ['baovang','chamdiem','thongke'];if(r==='Cán bộ lớp')return ['chamdiem','thongke'];if(r==='Trực')return ['baovang'];return []}
+function defaultTabsForRole(r){if(r==='Admin')return PERMISSION_TABS.map(x=>x.key);if(r==='GVCN')return ['baovang','chamdiem','thongke','xeploai'];if(r==='Giáo viên')return ['baovang','chamdiem','thongke'];if(r==='Cán bộ lớp'||r==='Cờ đỏ')return ['chamdiem','thongke'];if(r==='Trực')return ['baovang'];return []}
 async function schedule(b){
   let view='grid';
   let rows=[];
