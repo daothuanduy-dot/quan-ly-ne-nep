@@ -1,4 +1,4 @@
-/* QLNN V3.0.5.25.10 - Bao vang - standalone module */
+/* QLNN V3.0.5.25.11 - Bao vang - standalone module */
 var BV25 = (function(){
   var root = null;
   var roster = [];
@@ -27,7 +27,7 @@ var BV25 = (function(){
   function dateText(v){ if(!v)return ''; var m=String(v).match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? m[3]+'/'+m[2]+'/'+m[1] : String(v); }
   function sortText(a,b){ return String(a).localeCompare(String(b),'vi',{numeric:true,sensitivity:'base'}); }
   function showError(msg){ if(root){ var box=root.querySelector('#absRows'); if(box)box.innerHTML='<div class="danger-box">'+esc(msg)+'</div>'; } }
-  function reject(title,msg){ toast(title+': '+msg,'err'); }
+  function reject(title,msg,type){ toast(title+': '+msg,type || 'err'); }
 
   async function allRows(factory){
     var out=[], from=0, size=1000;
@@ -88,26 +88,28 @@ var BV25 = (function(){
 
   function render(){
     root.innerHTML =
-      '<div class="page-head"><div><h2>Báo Vắng Học Sinh</h2><p>Chọn ngày → buổi → khối → lớp → số học sinh vắng. Lớp có học nhưng vắng 0 vẫn phải được ghi nhận.</p></div><span class="badge ok">Năm học '+esc(cfg().namHoc)+'</span></div>'+
-      '<div class="absence-top-grid">'+
-      '<div class="absence-box"><div class="selector-title">📅 Thời gian báo vắng</div><div class="absence-inline"><label>Ngày<input id="bvDate" type="date" value="'+esc(reportDate)+'"></label></div><div class="auto-session-line"><b>Buổi hệ thống:</b> <span id="bvAuto">'+esc(autoSession)+'</span> <span class="badge">Tự động</span></div><div class="selector-hint">Buổi chiều bắt đầu từ 14:00, tiết 2. Có thể chọn báo bổ sung.</div><label class="manual-session-toggle"><input id="bvManual" type="checkbox"> Báo bổ sung / chọn lại buổi</label><select id="bvSession" disabled><option value="Sáng">Sáng</option><option value="Chiều">Chiều</option></select></div>'+ 
-      '<div class="absence-box"><div class="selector-title">👥 Chọn khối</div><div id="bvGrades" class="absence-grade-grid"><span class="class-empty">Đang tải...</span></div></div>'+ 
-      '<div class="absence-box"><div class="selector-title">🏫 Chọn lớp</div><div id="bvClasses" class="absence-class-grid"><span class="class-empty">Hãy chọn khối trước.</span></div></div>'+ 
-      '<div class="absence-box"><div class="selector-title">👤 Số vắng</div><select id="bvCount" disabled><option value="">-- Chọn lớp trước --</option></select><div id="bvInfo" class="selector-hint">Chưa chọn lớp.</div></div></div>'+ 
-      '<div id="absRows"><div class="empty">Hãy chọn khối, lớp và số học sinh vắng.</div></div>';
+      '<div class="absence-hero">'+
+        '<div class="absence-hero-icon">📋</div><div class="absence-hero-copy"><div class="absence-kicker">ĐIỂM DANH VẮNG</div><h2>Báo vắng học sinh</h2><p>Chọn ngày, buổi và lớp. Hệ thống chỉ ghi nhận khi lớp có lịch học trong TKB.</p></div><span class="absence-year">Năm học '+esc(cfg().namHoc)+'</span>'+ 
+      '</div>'+ 
+      '<div class="absence-steps">'+
+        '<div class="absence-step active"><b>1</b><span>Thời gian</span></div><div class="absence-step"><b>2</b><span>Chọn lớp</span></div><div class="absence-step"><b>3</b><span>Số vắng</span></div><div class="absence-step"><b>4</b><span>Xác nhận</span></div>'+ 
+      '</div>'+ 
+      '<div class="absence-top-grid modern-absence-grid">'+
+        '<div class="absence-box absence-box-time"><div class="selector-title"><span class="selector-icon blue">📅</span> Thời gian</div><label class="big-field">Ngày<input id="bvDate" type="date" value="'+esc(reportDate)+'"></label><div class="session-pill"><span>Buổi hệ thống</span><b id="bvAuto">'+esc(autoSession)+'</b><em>Tự động</em></div><label class="manual-session-toggle modern-toggle"><input id="bvManual" type="checkbox"> <span>Báo bổ sung / chọn lại buổi</span></label><select id="bvSession" disabled><option value="Sáng">Sáng</option><option value="Chiều">Chiều</option></select></div>'+ 
+        '<div class="absence-box"><div class="selector-title"><span class="selector-icon purple">👥</span> Chọn khối</div><div id="bvGrades" class="absence-grade-grid modern-choice-grid"><span class="class-empty">Đang tải...</span></div><div class="box-note">Chạm vào một khối để tiếp tục.</div></div>'+ 
+        '<div class="absence-box"><div class="selector-title"><span class="selector-icon green">🏫</span> Chọn lớp</div><div id="bvClasses" class="absence-class-grid modern-choice-grid"><span class="class-empty">Hãy chọn khối trước.</span></div><div id="bvSchedule" class="schedule-status idle"><span>💡</span><div><b>Chưa chọn lớp</b><small>Hãy chọn lớp để kiểm tra lịch học.</small></div></div></div>'+ 
+        '<div class="absence-box absence-box-count"><div class="selector-title"><span class="selector-icon pink">👤</span> Số học sinh vắng</div><div class="count-select-wrap"><select id="bvCount" disabled><option value="">-- Chọn lớp trước --</option></select><span>học sinh</span></div><div id="bvInfo" class="selector-hint">Chưa chọn lớp.</div><div class="box-note">Chọn <b>0</b> nếu cả lớp đi học đầy đủ.</div></div>'+ 
+      '</div>'+ 
+      '<div id="absRows"><div class="absence-empty-hero"><div>📝</div><h3>Chưa bắt đầu báo vắng</h3><p>Chọn khối → lớp → số học sinh vắng để nhập danh sách.</p></div></div>';
 
-    root.querySelector('#bvDate').onchange=function(e){reportDate=e.target.value;};
+    root.querySelector('#bvDate').onchange=function(e){reportDate=e.target.value; if(selectedClass)checkScheduleNotice();};
     root.querySelector('#bvManual').onchange=function(e){
-      manualSession=e.target.checked;
-      var s=root.querySelector('#bvSession');
-      s.disabled=!manualSession;
-      if(manualSession)s.value=sessionName; else {sessionName=autoSession;s.value=autoSession;}
-      checkScheduleNotice();
+      manualSession=e.target.checked; var s=root.querySelector('#bvSession'); s.disabled=!manualSession;
+      if(manualSession)s.value=sessionName; else {sessionName=autoSession;s.value=autoSession;} if(selectedClass)checkScheduleNotice();
     };
-    root.querySelector('#bvSession').onchange=function(e){sessionName=e.target.value;checkScheduleNotice();};
+    root.querySelector('#bvSession').onchange=function(e){sessionName=e.target.value;if(selectedClass)checkScheduleNotice();};
     root.querySelector('#bvCount').onchange=renderRows;
   }
-
   async function loadRoster(){
     try{
       roster=await allRows(function(){return sb().from('danh_sach').select('ma_hs,ho_ten,khoi,lop,ngay_sinh,trang_thai').not('lop','is',null).order('lop');});
@@ -155,16 +157,20 @@ var BV25 = (function(){
   async function checkScheduleNotice(){
     if(!selectedClass)return;
     var ok=await hasSchedule(selectedClass,reportDate,sessionName);
-    var info=root.querySelector('#bvInfo');
-    if(info){
-      info.innerHTML='<b>'+esc(selectedClass)+'</b> · '+students.length+' học sinh · '+(ok?'<span class="badge ok">Có lịch học</span>':'<span class="badge warn">Chưa có lịch học</span>');
+    var info=root.querySelector('#bvInfo'); var box=root.querySelector('#bvSchedule');
+    if(info){info.innerHTML='<b>'+esc(selectedClass)+'</b> · '+students.length+' học sinh';}
+    if(box){
+      box.className='schedule-status '+(ok?'ready':'blocked');
+      box.innerHTML=ok?'<span class="schedule-ok-icon">✓</span><div><b>Có lịch học</b><small>'+esc(dateText(reportDate))+' · '+esc(sessionName)+' · Có thể ghi báo vắng.</small></div>':'<span class="schedule-warn-icon">!</span><div><b>Chưa có lịch học</b><small>'+esc(dateText(reportDate))+' · '+esc(sessionName)+' · Hệ thống sẽ không ghi dữ liệu.</small></div>';
     }
+    var saveBtns=root.querySelectorAll('#bvSave,#bvSaveZero');
+    saveBtns.forEach(function(btn){btn.disabled=!ok;btn.classList.toggle('disabled',!ok);});
   }
 
   function row(i){
     var opts='<option value="">-- Chọn học sinh --</option>';
     for(var j=0;j<students.length;j++)opts+='<option value="'+j+'">'+esc(students[j].ho_ten)+' — '+esc(students[j].ngay_sinh || '')+'</option>';
-    return '<div class="absence-row" data-row="'+i+'"><div class="absence-index">'+(i+1)+'</div><div class="absence-student-wrap"><label>Học sinh<select class="absence-student">'+opts+'</select></label></div><div class="absence-status"><span class="status-label">Trạng thái</span><label><input type="radio" name="bvStatus_'+i+'" value="Vắng có phép"> ✓ Có phép</label><label><input type="radio" name="bvStatus_'+i+'" value="Vắng không phép"> ✕ Không phép</label></div></div>';
+    return '<div class="absence-row" data-row="'+i+'"><div class="absence-index">'+(i+1)+'</div><div class="absence-student-wrap"><label>Học sinh<select class="absence-student">'+opts+'</select></label></div><div class="absence-status"><span class="status-label">Trạng thái</span><label class="absence-status-radio allowed"><input type="radio" name="bvStatus_'+i+'" value="Vắng có phép"><span>✓ Có phép</span></label><label class="absence-status-radio notallowed"><input type="radio" name="bvStatus_'+i+'" value="Vắng không phép"><span>✕ Không phép</span></label></div></div>';
   }
 
   function renderRows(){
@@ -172,8 +178,8 @@ var BV25 = (function(){
     if(c.value===''){box.innerHTML='<div class="empty">Hãy chọn số học sinh vắng.</div>';return;}
     var n=Number(c.value||0);
     if(n===0){
-      box.innerHTML='<div class="absence-panel zero-report"><h3>Không có học sinh vắng</h3><p>Lớp <b>'+esc(selectedClass)+'</b> sẽ được ghi nhận vắng 0 cho '+esc(sessionName)+' ngày '+dateText(reportDate)+'.</p><button id="bvSaveZero" class="btn primary">💾 Xác nhận lớp không có học sinh vắng</button></div>';
-      root.querySelector('#bvSaveZero').onclick=saveZero;
+      box.innerHTML='<div class="absence-panel zero-report"><div class="zero-icon">✓</div><div><h3>Không có học sinh vắng</h3><p>Lớp <b>'+esc(selectedClass)+'</b> sẽ được ghi nhận vắng 0 cho '+esc(sessionName)+' ngày '+dateText(reportDate)+'.</p><button id="bvSaveZero" class="btn primary">💾 Xác nhận lớp không có học sinh vắng</button></div>';
+      root.querySelector('#bvSaveZero').onclick=saveZero; checkScheduleNotice();
       return;
     }
     var html='<div class="absence-panel"><h3>Danh sách học sinh vắng — '+esc(selectedClass)+'</h3><p>'+n+' học sinh cần xác nhận trạng thái.</p><div class="absence-list">';
@@ -181,7 +187,7 @@ var BV25 = (function(){
     html+='</div><div class="action-row"><button id="bvSave" class="btn primary">💾 Ghi nhận '+n+' học sinh vắng</button></div></div>';
     box.innerHTML=html;
     root.querySelectorAll('.absence-student').forEach(function(s){s.onchange=disableDuplicates;});
-    root.querySelector('#bvSave').onclick=save;
+    root.querySelector('#bvSave').onclick=save; checkScheduleNotice();
   }
 
   function disableDuplicates(){
@@ -192,14 +198,15 @@ var BV25 = (function(){
 
   async function hasSchedule(cls,day,session){
     var d=new Date(day+'T12:00:00'); var dow=d.getDay(); var thu=dow===0?8:dow+1;
-    var q=await sb().from('thoi_khoa_bieu').select('lop,khoi,thu,buoi,trang_thai').eq('nam_hoc',cfg().namHoc).eq('thu',thu).eq('buoi',session);
+    var q=await sb().from('thoi_khoa_bieu').select('lop,khoi,thu,buoi,trang_thai').eq('nam_hoc',cfg().namHoc).eq('thu',thu);
     if(q.error){toast('Không kiểm tra được TKB: '+q.error.message,'err');return false;}
-    var rows=q.data || [];
+    var rows=q.data || []; var wantedSession=norm(session); var wantedClass=String(cls||'').trim();
     for(var i=0;i<rows.length;i++){
-      var r=rows[i]; var st=norm(r.trang_thai);
-      if(st && st!=='hoat dong' && st!=='active' && st!=='true' && st!=='1')continue;
+      var r=rows[i]; var st=norm(r.trang_thai); var buoi=norm(r.buoi);
+      if(buoi!==wantedSession)continue;
+      if(st && st!=='hoat dong' && st!=='active' && st!=='true' && st!=='1' && st!=='hoc')continue;
       var lop=String(r.lop||'').trim(); var khoi=String(r.khoi||'').trim();
-      if(lop && lop===String(cls).trim())return true;
+      if(lop && lop===wantedClass)return true;
       if(!lop && khoi && sameGrade(khoi,selectedGrade))return true;
       if(!lop && !khoi)return true;
     }
@@ -213,7 +220,7 @@ var BV25 = (function(){
 
   async function save(){
     if(!canReport()){reject('Không được phép báo vắng','Tài khoản hiện tại không có quyền báo vắng cho lớp '+selectedClass+'. Không ghi dữ liệu.');return;}
-    if(!(await hasSchedule(selectedClass,reportDate,sessionName))){reject('Không ghi báo vắng','Lớp '+selectedClass+' chưa có lịch học '+sessionName+' ngày '+dateText(reportDate)+' trong TKB. Không ghi dữ liệu.');return;}
+    if(!(await hasSchedule(selectedClass,reportDate,sessionName))){reject('Chưa thể ghi báo vắng','Lớp '+selectedClass+' chưa có lịch học '+sessionName+' ngày '+dateText(reportDate)+' trong TKB. Vui lòng kiểm tra TKB hoặc chọn báo bổ sung đúng buổi. Dữ liệu chưa được ghi.','warn');return;}
     var rows=Array.prototype.slice.call(root.querySelectorAll('.absence-row')); var payload=[];
     for(var i=0;i<rows.length;i++){
       var idx=rows[i].querySelector('.absence-student').value; var radio=rows[i].querySelector('input[type="radio"]:checked');
@@ -231,7 +238,7 @@ var BV25 = (function(){
 
   async function saveZero(){
     if(!canReport()){reject('Không được phép báo vắng','Tài khoản hiện tại không có quyền báo vắng cho lớp '+selectedClass+'. Không ghi dữ liệu.');return;}
-    if(!(await hasSchedule(selectedClass,reportDate,sessionName))){reject('Không ghi báo vắng','Lớp '+selectedClass+' chưa có lịch học '+sessionName+' ngày '+dateText(reportDate)+' trong TKB. Không ghi dữ liệu.');return;}
+    if(!(await hasSchedule(selectedClass,reportDate,sessionName))){reject('Chưa thể ghi báo vắng','Lớp '+selectedClass+' chưa có lịch học '+sessionName+' ngày '+dateText(reportDate)+' trong TKB. Vui lòng kiểm tra TKB hoặc chọn báo bổ sung đúng buổi. Dữ liệu chưa được ghi.','warn');return;}
     var e=await saveClassReport(0);
     if(e){toast('Không ghi được trạng thái lớp: '+e,'err');return;}
     toast('Đã xác nhận '+selectedClass+': vắng 0.','ok');
