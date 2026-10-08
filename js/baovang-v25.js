@@ -1,4 +1,4 @@
-/* QLNN V3.0.5.25.11 - Bao vang - standalone module */
+/* QLNN V3.0.5.25.12 - Bao vang - standalone module */
 var BV25 = (function(){
   var root = null;
   var roster = [];
@@ -196,21 +196,60 @@ var BV25 = (function(){
     sels.forEach(function(s){Array.prototype.forEach.call(s.options,function(o){if(o.value)o.disabled=!!chosen[o.value] && o.value!==s.value;});});
   }
 
+  function cleanText(v){ return norm(v).replace(/\s+/g,' '); }
+  function sameClassName(a,b){ return cleanText(a)===cleanText(b); }
+  function sameYear(a,b){ return cleanText(a)===cleanText(b); }
+  function validScheduleStatus(v){
+    var st=cleanText(v);
+    return !st || st==='hoat dong' || st==='active' || st==='true' || st==='1' || st==='hoc' || st==='dang hoc';
+  }
+  function scheduleSession(v){
+    var x=cleanText(v);
+    if(x==='chieu') return 'chieu';
+    if(x==='sang') return 'sang';
+    return x;
+  }
+  async function getScheduleRowsByDay(thu){
+    var q=await sb().from('thoi_khoa_bieu').select('nam_hoc,thu,buoi,khoi,lop,trang_thai').eq('thu',thu);
+    if(q.error) throw q.error;
+    return q.data || [];
+  }
   async function hasSchedule(cls,day,session){
-    var d=new Date(day+'T12:00:00'); var dow=d.getDay(); var thu=dow===0?8:dow+1;
-    var q=await sb().from('thoi_khoa_bieu').select('lop,khoi,thu,buoi,trang_thai').eq('nam_hoc',cfg().namHoc).eq('thu',thu);
-    if(q.error){toast('Không kiểm tra được TKB: '+q.error.message,'err');return false;}
-    var rows=q.data || []; var wantedSession=norm(session); var wantedClass=String(cls||'').trim();
-    for(var i=0;i<rows.length;i++){
-      var r=rows[i]; var st=norm(r.trang_thai); var buoi=norm(r.buoi);
-      if(buoi!==wantedSession)continue;
-      if(st && st!=='hoat dong' && st!=='active' && st!=='true' && st!=='1' && st!=='hoc')continue;
-      var lop=String(r.lop||'').trim(); var khoi=String(r.khoi||'').trim();
-      if(lop && lop===wantedClass)return true;
-      if(!lop && khoi && sameGrade(khoi,selectedGrade))return true;
-      if(!lop && !khoi)return true;
+    var d=new Date(String(day)+'T12:00:00');
+    if(isNaN(d.getTime())) return false;
+    var dow=d.getDay();
+    var thu=dow===0?8:dow+1;
+    var wantedSession=scheduleSession(session);
+    var wantedClass=cleanText(cls);
+    var wantedYear=cleanText(cfg().namHoc);
+    try{
+      var rows=await getScheduleRowsByDay(thu);
+      /*
+       * Do NOT filter nam_hoc in the Supabase query. Some older TKB rows were
+       * created before nam_hoc was standardized, and the admin screen can
+       * still display them. We normalize/filter here so Bao Vắng sees the
+       * exact same schedule that the administrator sees.
+       */
+      var yearRows=rows.filter(function(r){
+        var y=cleanText(r.nam_hoc);
+        return !y || sameYear(y,wantedYear);
+      });
+      var sessionRows=yearRows.filter(function(r){
+        return scheduleSession(r.buoi)===wantedSession && validScheduleStatus(r.trang_thai);
+      });
+      for(var i=0;i<sessionRows.length;i++){
+        var r=sessionRows[i];
+        var lop=cleanText(r.lop);
+        var khoi=cleanText(r.khoi);
+        if(lop && sameClassName(lop,wantedClass)) return true;
+        if(!lop && khoi && sameGrade(khoi,selectedGrade)) return true;
+        if(!lop && !khoi) return true;
+      }
+      return false;
+    }catch(e){
+      toast('Không kiểm tra được TKB: '+(e.message || e),'err');
+      return false;
     }
-    return false;
   }
 
   function canReport(){

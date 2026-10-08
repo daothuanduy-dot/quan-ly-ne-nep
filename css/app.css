@@ -364,7 +364,7 @@ main{max-width:1500px;margin:auto;padding:18px}.panel{background:#fff;border:1px
 
 
 /* =========================================================
-   V3.0.5.25.11 - Modern Youthful Responsive UI
+   V3.0.5.25.12 - Modern Youthful Responsive UI
    Bright school dashboard inspired by the new Chấm điểm layout.
    ========================================================= */
 :root{
@@ -419,7 +419,7 @@ main{max-width:1540px;padding:20px clamp(12px,2.4vw,32px) 38px}.page{animation:p
 @media(max-width:390px){.main-tab{font-size:12px;padding:11px 9px}.class-radios{grid-template-columns:repeat(2,1fr)}main{padding-left:8px;padding-right:8px}}
 
 /* =========================================================
-   V3.0.5.25.11 - Báo vắng bright / friendly responsive UI
+   V3.0.5.25.12 - Báo vắng bright / friendly responsive UI
    ========================================================= */
 .absence-hero{display:flex;align-items:center;gap:16px;padding:20px 24px;margin-bottom:14px;border:1px solid #d8eaff;border-radius:22px;background:linear-gradient(110deg,#eef8ff 0%,#f5f0ff 48%,#effcf8 100%);box-shadow:0 8px 28px rgba(45,91,130,.06);position:relative;overflow:hidden}
 .absence-hero:after{content:"";position:absolute;width:180px;height:180px;border-radius:50%;right:-45px;top:-80px;background:rgba(95,185,233,.10)}
