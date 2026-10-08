@@ -204,56 +204,77 @@ async function load(root){
       const ev=selectedEvents();
       const study=selectedStudy();
       let rows=[];
-      let scopeTitle='Toàn trường → Khối';
-      if(state.view==='school'){
-        const m=groupBy(ev,e=>gradeNorm(e.khoi||studentMap.get(String(e.ma_hs))?.khoi));
-        const sm=aggregateStudy(study,r=>gradeNorm(r.khoi||studentMap.get(String(r.ma_hs))?.khoi));
-        rows=[...new Set([...m.keys(),...sm.keys()].filter(Boolean))].map(name=>({name,stats:statsFor(m.get(name)||[]),study:studyStats(sm.get(name)||[])}));
-        scopeTitle='Toàn trường → từng khối';
-      }else if(state.view==='grade'){
-        const m=groupBy(ev,e=>classNorm(e.lop||studentMap.get(String(e.ma_hs))?.lop));
-        const sm=aggregateStudy(study,r=>classNorm(r.lop||studentMap.get(String(r.ma_hs))?.lop));
-        rows=[...new Set([...m.keys(),...sm.keys()].filter(Boolean))].map(name=>({name,stats:statsFor(m.get(name)||[]),study:studyStats(sm.get(name)||[])}));
-        scopeTitle=`Khối ${state.grade||'tất cả'} → từng lớp`;
-      }else{
-        // Không đưa từng học sinh lên biểu đồ vì số lượng quá lớn.
-        // Khi chọn lớp, biểu đồ chỉ thể hiện chính lớp đang xem.
-        const targetClass=state.cls||'';
-        if(targetClass){
-          const classEvents=ev.filter(e=>classNorm(e.lop||studentMap.get(String(e.ma_hs))?.lop)===classNorm(targetClass));
-          const classStudy=study.filter(r=>classNorm(r.lop||studentMap.get(String(r.ma_hs))?.lop)===classNorm(targetClass));
-          rows=[{name:targetClass,sub:`${selectedStudents().length} học sinh`,stats:statsFor(classEvents),study:studyStats(classStudy)}];
-        }else{
-          // Nếu chưa chọn lớp, vẫn biểu diễn theo lớp thay vì theo từng học sinh.
-          const m=groupBy(ev,e=>classNorm(e.lop||studentMap.get(String(e.ma_hs))?.lop));
-          const sm=aggregateStudy(study,r=>classNorm(r.lop||studentMap.get(String(r.ma_hs))?.lop));
-          rows=[...new Set([...m.keys(),...sm.keys()].filter(Boolean))].map(name=>({name,stats:statsFor(m.get(name)||[]),study:studyStats(sm.get(name)||[])}));
-          scopeTitle='Theo lớp → điểm tổng hợp';
-        }
-      }
-      rows.sort((a,b)=>(b.stats.total-a.stats.total)||(b.study.avg-a.study.avg));
-      const sumPlus=rows.reduce((a,r)=>a+r.stats.plus,0),sumMinus=rows.reduce((a,r)=>a+r.stats.minus,0),sumStudy=rows.filter(r=>r.study.total).reduce((a,r)=>a+r.study.avg,0),nStudy=rows.filter(r=>r.study.total).length;
-      root.querySelector('#scoreSummary').innerHTML=`<div class="score-mini-grid"><div><span>Điểm cộng nề nếp</span><b>+${fmt(sumPlus)}</b></div><div><span>Điểm trừ nề nếp</span><b>${fmt(sumMinus)}</b></div><div><span>Điểm sau cộng/trừ</span><b>${sumPlus+sumMinus>0?'+':''}${fmt(sumPlus+sumMinus)}</b></div><div><span>ĐTB học tập CB lớp</span><b>${nStudy?fmt(sumStudy/nStudy):'—'}</b></div></div>`;
+      let scopeTitle='Toàn trường → tất cả các lớp';
 
-      // Biểu đồ cột đứng: chỉ biểu diễn đối tượng cấp khối/lớp, không biểu diễn từng học sinh.
+      // Quy ước: phạm vi Toàn trường và Theo khối luôn lấy TOÀN BỘ lớp từ danh sách học sinh,
+      // kể cả lớp chưa phát sinh điểm trong khoảng thời gian đang chọn. Vì vậy lớp không biến động
+      // vẫn phải xuất hiện với Cộng = 0, Trừ = 0, Điểm = 0.
+      const classUniverse=()=>{
+        let arr=[...byClass.keys()];
+        if(state.view==='grade' && state.grade) arr=arr.filter(c=>gradeNorm((byClass.get(c)||[])[0]?.khoi)===state.grade);
+        return arr.sort((a,b)=>a.localeCompare(b,'vi',{numeric:true}));
+      };
+      const classEventMap=groupBy(ev,e=>classNorm(e.lop||studentMap.get(String(e.ma_hs))?.lop));
+      const classStudyMap=aggregateStudy(study,r=>classNorm(r.lop||studentMap.get(String(r.ma_hs))?.lop));
+      const makeClassRows=classes=>classes.map(name=>({
+        id:name,
+        name,
+        sub:`${byClass.get(name)?.length||0} học sinh`,
+        stats:statsFor(classEventMap.get(name)||[]),
+        study:studyStats(classStudyMap.get(name)||[])
+      }));
+
+      if(state.view==='school'){
+        rows=makeClassRows(classUniverse());
+        scopeTitle='Toàn trường → tất cả các lớp';
+      }else if(state.view==='grade'){
+        rows=makeClassRows(classUniverse());
+        scopeTitle=`Khối ${state.grade||'tất cả'} → tất cả các lớp`;
+      }else{
+        // Khi xem Theo lớp: không dùng biểu đồ vì số học sinh có thể rất lớn.
+        // Thay vào đó hiển thị bảng thi đua của từng học sinh trong lớp.
+        if(!state.cls){
+          root.querySelector('#scoreSummary').innerHTML='';
+          root.querySelector('#scoreChart').innerHTML='<div class="empty">👆 Hãy chọn một lớp để xem danh sách thi đua của học sinh trong lớp.</div>';
+          return;
+        }
+        const classStudents=selectedStudents().filter(s=>classNorm(s.lop)===classNorm(state.cls));
+        rows=classStudents.map(s=>{
+          const id=String(s.ma_hs);
+          const sev=eventByStudent.get(id)||[];
+          const sstudy=studyByStudent.get(id)||[];
+          return {id,name:s.ho_ten||id,sub:`${s.ma_hs} · ${s.lop||''}`,cls:s.lop||'',stats:statsFor(sev),study:studyStats(sstudy)};
+        }).sort((a,b)=>(b.stats.total-a.stats.total)||(b.study.avg-a.study.avg)||String(a.name).localeCompare(String(b.name),'vi'));
+        const sumPlus=rows.reduce((a,r)=>a+r.stats.plus,0),sumMinus=rows.reduce((a,r)=>a+r.stats.minus,0);
+        root.querySelector('#scoreSummary').innerHTML=`<div class="score-mini-grid"><div><span>Điểm cộng</span><b>+${fmt(sumPlus)}</b></div><div><span>Điểm trừ</span><b>${fmt(sumMinus)}</b></div><div><span>Điểm</span><b>${sumPlus+sumMinus>0?'+':''}${fmt(sumPlus+sumMinus)}</b></div><div><span>Học sinh</span><b>${rows.length}</b></div></div>`;
+        root.querySelector('#scoreChart').innerHTML=`<div class="class-student-ranking"><div class="score-table-shell"><div class="score-table-head"><span>Học sinh</span><span>Cộng</span><span>Trừ</span><span>Điểm</span><span>ĐTB học tập</span></div><div class="score-detail-scroll">${rows.length?rows.map((r,i)=>`<button type="button" class="score-detail-row" data-detail-id="${esc(r.id)}"><span class="score-object"><b><i>${i+1}</i>${esc(r.name)}</b><small>${esc(r.sub)}</small></span><strong class="plus-text">+${fmt(r.stats.plus)}</strong><strong class="minus-text">${fmt(r.stats.minus)}</strong><strong class="net-text">${r.stats.total>0?'+':''}${fmt(r.stats.total)}</strong><strong class="study-text">${r.study.total?fmt(r.study.avg):'—'}</strong></button>`).join(''):'<div class="empty">Lớp chưa có học sinh.</div>'}</div></div>`;
+        root.querySelectorAll('.score-detail-row').forEach(btn=>btn.onclick=()=>showDetail(btn.dataset.detailId,rows));
+        return;
+      }
+
+      // Toàn trường / Theo khối: biểu đồ cột đứng theo lớp. Không loại bỏ lớp có Điểm = 0.
+      const sumPlus=rows.reduce((a,r)=>a+r.stats.plus,0),sumMinus=rows.reduce((a,r)=>a+r.stats.minus,0),sumStudy=rows.filter(r=>r.study.total).reduce((a,r)=>a+r.study.avg,0),nStudy=rows.filter(r=>r.study.total).length;
+      root.querySelector('#scoreSummary').innerHTML=`<div class="score-mini-grid"><div><span>Điểm cộng</span><b>+${fmt(sumPlus)}</b></div><div><span>Điểm trừ</span><b>${fmt(sumMinus)}</b></div><div><span>Điểm</span><b>${sumPlus+sumMinus>0?'+':''}${fmt(sumPlus+sumMinus)}</b></div><div><span>Số lớp</span><b>${rows.length}</b></div></div>`;
+
       const maxAbs=Math.max(1,...rows.map(r=>Math.abs(r.stats.total)));
       const chartRows=rows.map(r=>{
         const net=Number(r.stats.total||0);
-        const h=Math.max(3,Math.round(Math.abs(net)/maxAbs*100));
+        const h=net===0?2:Math.max(3,Math.round(Math.abs(net)/maxAbs*100));
         const dir=net>=0?'positive':'negative';
         return `<div class="vertical-score-col" title="${esc(r.name)}: ${net>0?'+':''}${fmt(net)} điểm (cộng ${fmt(r.stats.plus)}, trừ ${fmt(r.stats.minus)})">
           <div class="vertical-score-value ${dir}">${net>0?'+':''}${fmt(net)}</div>
           <div class="vertical-score-stage"><div class="vertical-zero-line"></div><div class="vertical-score-bar ${dir}" style="height:${h}%"></div></div>
-          <div class="vertical-score-label"><b>${esc(r.name)}</b><small>${esc(r.sub||'Điểm sau cộng/trừ')}</small></div>
+          <div class="vertical-score-label"><b>${esc(r.name)}</b><small>${esc(r.sub)}</small></div>
         </div>`;
       }).join('');
-      root.querySelector('#scoreChart').innerHTML=rows.length?`<div class="score-chart-card vertical-score-card"><div class="score-chart-head"><div><h4>📊 Biểu đồ điểm sau khi cộng và trừ</h4><p>${esc(scopeTitle)} · chỉ hiển thị đối tượng tổng hợp, không xếp từng học sinh trên biểu đồ.</p></div></div><div class="vertical-score-chart">${chartRows}</div><div class="vertical-score-legend"><span><i class="legend-dot positive"></i>Điểm dương</span><span><i class="legend-dot negative"></i>Điểm âm</span></div></div><div class="score-table-head"><span>Đối tượng</span><span>Cộng</span><span>Trừ</span><span>Điểm</span><span>ĐTB học tập</span></div>${rows.map(r=>`<button type="button" class="score-detail-row" data-detail-id="${esc(r.id||r.name)}"><span class="score-object"><b>${esc(r.name)}</b><small>${esc(r.sub||'Nhấn để xem chi tiết')}</small></span><strong class="plus-text">+${fmt(r.stats.plus)}</strong><strong class="minus-text">${fmt(r.stats.minus)}</strong><strong class="net-text">${r.stats.total>0?'+':''}${fmt(r.stats.total)}</strong><strong class="study-text">${r.study.total?fmt(r.study.avg):'—'}</strong></button>`).join('')}`:'<div class="empty">Chưa có dữ liệu điểm trong phạm vi này.</div>';
+      root.querySelector('#scoreChart').innerHTML=`<div class="score-chart-card vertical-score-card"><div class="score-chart-head"><div><h4>📊 Biểu đồ điểm</h4><p>${esc(scopeTitle)} · các lớp không phát sinh biến động vẫn được hiển thị với Điểm = 0.</p></div></div><div class="vertical-score-chart">${chartRows}</div><div class="vertical-score-legend"><span><i class="legend-dot positive"></i>Điểm dương</span><span><i class="legend-dot negative"></i>Điểm âm</span></div></div><div class="score-table-shell"><div class="score-table-head"><span>Đối tượng</span><span>Cộng</span><span>Trừ</span><span>Điểm</span><span>ĐTB học tập</span></div><div class="score-detail-scroll">${rows.map(r=>`<button type="button" class="score-detail-row" data-detail-id="${esc(r.id)}"><span class="score-object"><b>${esc(r.name)}</b><small>${esc(r.sub)}</small></span><strong class="plus-text">+${fmt(r.stats.plus)}</strong><strong class="minus-text">${fmt(r.stats.minus)}</strong><strong class="net-text">${r.stats.total>0?'+':''}${fmt(r.stats.total)}</strong><strong class="study-text">${r.study.total?fmt(r.study.avg):'—'}</strong></button>`).join('')}</div></div>`;
       root.querySelectorAll('.score-detail-row').forEach(btn=>btn.onclick=()=>showDetail(btn.dataset.detailId,rows));
     }
     function showDetail(id,rows){
       const r=rows.find(x=>String(x.id||x.name)===String(id));if(!r)return;
-      const ev=r.id?((eventByStudent.get(String(r.id))||[])):scopedEvents.filter(e=>{const key=state.view==='school'?gradeNorm(e.khoi):state.view==='grade'?classNorm(e.lop):classNorm(e.lop);return key===r.name});
-      const st=r.id?(studyByStudent.get(String(r.id))||[]):(studyByClass.get(classNorm(r.name))||[]);
+      const isStudentView=state.view==='class';
+      const ev=isStudentView?(eventByStudent.get(String(r.id))||[]):scopedEvents.filter(e=>classNorm(e.lop||studentMap.get(String(e.ma_hs))?.lop)===classNorm(r.name));
+      const st=isStudentView?(studyByStudent.get(String(r.id))||[]):(studyByClass.get(classNorm(r.name))||[]);
       const counts=studyStats(st).counts;
       const details=[...new Map(ev.map(e=>[String(e.id||JSON.stringify(e)),e])).values()];
       root.querySelector('#statsDetailModal').classList.remove('hidden');
@@ -306,7 +327,7 @@ async function load(root){
         return;
       }
       const studentRows=[...g.students.values()].sort((a,b)=>(b.count-a.count)||(a.total-b.total)||String(a.student.ho_ten||'').localeCompare(String(b.student.ho_ten||''),'vi'));
-      root.querySelector('#alertList').innerHTML=`<div class="criterion-alert-summary"><div><span>Tiêu chí</span><b>${esc(g.name)}</b><small>${esc(g.mang)}</small></div><div><span>Học sinh vi phạm</span><b>${studentRows.length}</b></div><div><span>Tổng số lần</span><b>${g.count}</b></div><div><span>Tổng điểm trừ</span><b class="minus-text">${fmt(g.total)}</b></div></div><div class="criterion-student-head"><span>Học sinh</span><span>Lớp</span><span>Số lần vi phạm</span><span>Điểm trừ</span></div>${studentRows.map((x,i)=>`<button type="button" class="criterion-student-row" data-student-id="${esc(x.student.ma_hs)}"><span><i>${i+1}</i><b>${esc(x.student.ho_ten||x.student.ma_hs)}</b><small>${esc(x.student.ma_hs||'')}</small></span><span>${esc(x.student.lop||'')}</span><strong>${x.count} lần</strong><strong class="minus-text">${fmt(x.total)}</strong></button>`).join('')}`;
+      root.querySelector('#alertList').innerHTML=`<div class="criterion-alert-summary"><div><span>Tiêu chí</span><b>${esc(g.name)}</b><small>${esc(g.mang)}</small></div><div><span>Học sinh vi phạm</span><b>${studentRows.length}</b></div><div><span>Tổng số lần</span><b>${g.count}</b></div><div><span>Tổng điểm trừ</span><b class="minus-text">${fmt(g.total)}</b></div></div><div class="criterion-student-scroll"><div class="criterion-student-head"><span>Học sinh</span><span>Lớp</span><span>Số lần vi phạm</span><span>Điểm trừ</span></div>${studentRows.map((x,i)=>`<button type="button" class="criterion-student-row" data-student-id="${esc(x.student.ma_hs)}"><span><i>${i+1}</i><b>${esc(x.student.ho_ten||x.student.ma_hs)}</b><small>${esc(x.student.ma_hs||'')}</small></span><span>${esc(x.student.lop||'')}</span><strong>${x.count} lần</strong><strong class="minus-text">${fmt(x.total)}</strong></button>`).join('')}</div>`;
       root.querySelectorAll('.criterion-student-row').forEach(b=>b.onclick=()=>showCriterionStudentDetail(b.dataset.studentId,g));
     }
     function showCriterionStudentDetail(studentId,g){
