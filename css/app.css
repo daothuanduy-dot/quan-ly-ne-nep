@@ -361,3 +361,59 @@ main{max-width:1500px;margin:auto;padding:18px}.panel{background:#fff;border:1px
 #reader canvas{max-width:100%!important}
 #reader__dashboard{width:100%!important}
 @media(max-width:600px){#reader{max-width:100%}#reader video{max-height:48vh!important}}
+
+
+/* =========================================================
+   V3.0.5.25.10 - Modern Youthful Responsive UI
+   Bright school dashboard inspired by the new Chấm điểm layout.
+   ========================================================= */
+:root{
+  --p:#0b8f83;--p2:#08766d;--bg:#f4f9fc;--card:#ffffff;--line:#dce8f1;
+  --text:#132238;--muted:#60758f;--blue:#1683e8;--purple:#7657e8;--pink:#d83b8d;
+  --yellow:#f6b51b;--green:#16a77b;--soft-blue:#eef7ff;--soft-green:#effcf7;
+  --soft-purple:#f4f0ff;--soft-pink:#fff1f8;--soft-yellow:#fff8e8;
+}
+html{scroll-behavior:smooth}body{background:linear-gradient(180deg,#f7fbff 0,#f1f7fb 48%,#f7fbff 100%);color:var(--text);font-family:Inter,Segoe UI,system-ui,-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif}
+button,input,select,textarea{font-family:inherit}
+.topbar{padding:10px clamp(12px,2.5vw,30px);background:rgba(255,255,255,.96);border-bottom:1px solid #dce8f0;box-shadow:0 2px 16px rgba(31,61,91,.06);backdrop-filter:blur(10px)}
+.brand-mini{gap:11px}.brand-icon.small{width:43px;height:43px;border-radius:14px;background:linear-gradient(135deg,#e7fbf7,#edf5ff);box-shadow:0 5px 14px rgba(16,118,111,.09)}.brand-mini b{font-size:17px;letter-spacing:-.2px}.brand-mini small{font-size:12px;color:#6c8098}
+.top-actions{gap:10px}.year-badge{padding:9px 13px;border-radius:12px;background:#eafaf6;border:1px solid #bfece2;color:#08766d;font-size:12px}.userbox strong{font-size:14px}.userbox small{font-size:12px}.top-actions .btn{border-radius:12px;padding:10px 15px}
+.main-tabs{position:sticky;top:64px;z-index:19;padding:0 clamp(6px,1.8vw,24px);box-shadow:0 3px 15px rgba(35,67,95,.045);scrollbar-width:none}.main-tabs::-webkit-scrollbar{display:none}.main-tab{position:relative;padding:15px 16px 13px;color:#52677f;font-size:15px;border:0;border-bottom:3px solid transparent;transition:.18s ease;background:transparent}.main-tab:hover{color:#08766d;background:#f5fcfb}.main-tab.active{color:#078276;border-bottom-color:#078f83;font-weight:800;background:linear-gradient(180deg,#fff,#f3fcfa)}
+main{max-width:1540px;padding:20px clamp(12px,2.4vw,32px) 38px}.page{animation:pageIn .22s ease}@keyframes pageIn{from{opacity:.35;transform:translateY(5px)}to{opacity:1;transform:none}}
+.panel,.score-form,.score-select-panel,.absence-panel,.absence-box,.action-card,.stat,.staff-section{border:1px solid #dce8f1;border-radius:18px;background:rgba(255,255,255,.96);box-shadow:0 8px 28px rgba(34,72,108,.055)}
+.page-head{padding:6px 2px 14px}.page-head h2{font-size:26px;letter-spacing:-.6px;color:#102a52}.page-head p{font-size:14px;line-height:1.55}.page-head .badge{align-self:flex-start}
+.badge{padding:6px 10px;border-radius:999px}.badge.ok{background:#dcf8e9;color:#087449}.badge.admin{background:#f0e9ff;color:#6c45cf}
+.toolbar{padding:10px 0}.toolbar input,.toolbar select{min-height:42px;border-radius:12px;border-color:#d5e2ec;box-shadow:inset 0 1px 2px rgba(26,55,82,.03)}.toolbar input:focus,.toolbar select:focus,label input:focus,label select:focus,label textarea:focus{border-color:#53bdb3;box-shadow:0 0 0 3px rgba(15,143,131,.1)}
+.btn{border-radius:11px;padding:10px 14px;transition:.16s ease;box-shadow:0 2px 7px rgba(20,44,67,.05)}.btn:hover{transform:translateY(-1px)}.btn.primary{background:linear-gradient(135deg,#0b9588,#08796f)}.btn.light{background:#eef3f7}.btn.blue{background:#eaf4ff}.btn.success{background:#e9fbf2}.btn.warn{background:#fff3df}.btn.danger{background:#fff0f0}
+.grid{gap:16px}.stat{padding:19px}.stat .num{font-size:30px;color:#12345c}.stat .label{font-size:13px}.cards{gap:16px}.action-card{padding:19px}.action-card h3{font-size:17px}.action-card p{line-height:1.55}
+.table-wrap{border-radius:15px;box-shadow:0 4px 18px rgba(34,72,108,.035)}.table th{background:#f2f7fb;color:#3f5872;font-size:12px;text-transform:none}.table td,.table th{padding:11px 12px}.table tr:hover td{background:#f7fcff}
+.subtabs{gap:8px;padding:4px 0 14px}.subtabs button{border-radius:12px;padding:10px 13px;background:#f8fbfd;color:#536a83;border-color:#d9e6ef}.subtabs button:hover{border-color:#80cfc6}.subtabs button.active{background:#eafaf7;border-color:#72c9bf;color:#08776e;box-shadow:0 4px 10px rgba(15,118,110,.08)}
+.notice{border-radius:14px;background:#eefcf9;border-color:#bcece3;padding:13px 15px}.warning{background:#fff8eb;border-color:#ffe0aa}.danger-box{border-radius:14px}
+.empty{padding:40px 24px;border-radius:16px;background:#fbfdff;border-color:#d9e6ef}
+.modal-backdrop{background:rgba(13,29,46,.52);backdrop-filter:blur(4px)}.modal{border-radius:20px;box-shadow:0 25px 70px rgba(17,39,61,.22);padding:22px}.modal-head{padding-bottom:6px}.modal-actions{padding-top:6px}
+.toast{border-radius:14px;box-shadow:0 12px 35px rgba(19,43,66,.2)}
+/* Score selectors: cards instead of long radio rows */
+.score-select-panel{padding:20px}.score-section-title{font-size:17px;font-weight:850;color:#17345d;margin-bottom:10px}.score-section-title:before{content:"";display:inline-block;width:5px;height:18px;border-radius:8px;background:linear-gradient(#178eea,#0b8f83);vertical-align:-3px;margin-right:8px}
+.grade-radios{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.grade-radio{min-height:82px;display:flex;align-items:center;justify-content:center;gap:10px;border:1px solid #d8e6ef;border-radius:15px;background:linear-gradient(145deg,#fff,#f8fbff);font-size:17px;color:#17345d;box-shadow:0 4px 12px rgba(38,75,109,.04);transition:.17s}.grade-radio:hover{transform:translateY(-2px);border-color:#70c8c0}.grade-radio:has(input:checked){background:linear-gradient(145deg,#e9fbf7,#f1fffb);border:2px solid #16a493;color:#08796f;box-shadow:0 7px 18px rgba(15,143,131,.11)}
+.class-radios{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:9px}.class-radio{min-height:50px;border-radius:13px;border:1px solid #d9e6ef;background:#fff;transition:.16s}.class-radio:hover{transform:translateY(-1px);background:#f7fffd;border-color:#71c9c0}.class-radio:has(input:checked){background:linear-gradient(135deg,#0d9689,#159f91);border-color:#0b887d;box-shadow:0 6px 14px rgba(10,132,122,.16)}
+.score-mode{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.score-mode button{min-height:68px;padding:13px 16px;border:1px solid #d8e5ee;border-radius:15px;background:#fff;text-align:left;font-weight:800;color:#17345d;transition:.17s;box-shadow:0 3px 12px rgba(38,75,109,.035)}.score-mode button:hover{transform:translateY(-2px);border-color:#6dc8c0}.score-mode button.active{background:linear-gradient(135deg,#eaf6ff,#f3fbff);border:2px solid #258cf0;color:#1250a2;box-shadow:0 7px 18px rgba(37,132,232,.1)}
+.score-form{padding:20px}.score-form-wrap{margin-top:16px}.score-db-note{border-radius:13px}.score-radio{border-radius:13px}
+/* QR */
+.qr-layout{gap:18px}.scanner{padding:14px;border-radius:18px;background:linear-gradient(180deg,#f8fcff,#f2f9fc);border:1px solid #d8e7f0}.student-card{border-radius:18px;padding:20px;box-shadow:0 7px 25px rgba(34,72,108,.05)}.avatar{background:linear-gradient(135deg,#e8f5ff,#e8fbf6);color:#087b71}.choice{border-radius:14px;padding:15px}.choice:hover{transform:translateY(-1px)}
+/* Absence */
+.absence-top-grid{gap:14px}.absence-box{padding:16px}.absence-grade,.absence-class{border-radius:11px;background:#f8fbfd}.absence-grade:has(input:checked),.absence-class:has(input:checked){background:#eafaf7;border-color:#65c6bc;box-shadow:0 3px 8px rgba(15,118,110,.07)}.absence-row{border-radius:14px;background:#fbfdff}.monitor-card{border-radius:15px;background:linear-gradient(145deg,#fff,#f8fbfd);box-shadow:0 4px 13px rgba(32,65,94,.04)}
+/* Admin / management */
+.staff-section{padding:16px}.staff-section-title{color:#17345d;font-size:15px}.check-item{border-radius:12px;background:#fbfdff}.check-item:hover{background:#f4fbff;border-color:#b8d9ed}
+/* Chart / ranking */
+.chartbar{height:240px;background:#fbfdff;border-radius:14px 14px 0 0}.bar{border-radius:7px 7px 0 0;background:linear-gradient(180deg,#39b9a9,#11877c)}
+/* Mobile-first navigation and controls */
+@media(max-width:900px){
+ .topbar{top:0}.main-tabs{top:62px}.main-tab{padding:13px 14px;font-size:14px}.main-tab span{display:inline}
+ main{padding:15px 12px 28px}.page-head{flex-direction:column}.page-head h2{font-size:23px}.grade-radios{grid-template-columns:repeat(3,1fr)}.score-class-selector{grid-template-columns:1fr}.qr-layout{grid-template-columns:1fr}.absence-top-grid{grid-template-columns:1fr 1fr}
+}
+@media(max-width:620px){
+ .topbar{padding:8px 10px}.brand-icon.small{width:39px;height:39px}.brand-mini b{font-size:15px}.brand-mini small{font-size:10px}.top-actions{gap:5px}.year-badge{display:none}.top-actions .btn{padding:9px 11px;font-size:12px}.userbox{display:none!important}
+ .main-tabs{top:56px;padding:0 3px}.main-tab{padding:12px 11px;font-size:13px}.main-tab:first-child{margin-left:2px}
+ .page-head h2{font-size:21px}.page-head p{font-size:13px}.panel,.score-select-panel,.score-form,.absence-panel{padding:14px;border-radius:16px}.grade-radios{grid-template-columns:1fr;gap:8px}.grade-radio{min-height:58px;justify-content:flex-start;padding-left:18px}.class-radios{grid-template-columns:repeat(3,1fr);gap:7px}.class-radio{min-height:46px;font-size:13px}.score-mode{grid-template-columns:1fr;gap:9px}.score-mode button{min-height:62px}.toolbar{display:grid;grid-template-columns:1fr}.toolbar input,.toolbar select{width:100%;min-width:0}.cards{grid-template-columns:1fr}.stat .num{font-size:26px}.absence-top-grid{grid-template-columns:1fr}.absence-row{grid-template-columns:30px 1fr}.absence-status{grid-column:2}.readonly-grid{grid-template-columns:1fr}.choice-grid{grid-template-columns:1fr}.monitor-cards{grid-template-columns:1fr}.modal-backdrop{padding:8px}.modal{max-height:94vh;padding:16px;border-radius:17px}.table{font-size:13px}.table td,.table th{padding:9px}.score-count{height:42px!important;width:58px!important}
+}
+@media(max-width:390px){.main-tab{font-size:12px;padding:11px 9px}.class-radios{grid-template-columns:repeat(2,1fr)}main{padding-left:8px;padding-right:8px}}
