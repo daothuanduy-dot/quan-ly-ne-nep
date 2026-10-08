@@ -7,6 +7,7 @@ let classes=[];
 let students=[];
 let criteria=[];
 let mode='individual';
+function isActiveStudent(r){const s=String(r&&r.trang_thai==null?'':r.trang_thai).normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toLowerCase();return !s||['active','dang hoc','hoc','true','1','hoat dong'].includes(s)}
 
 export async function init(r){
   root=r;
@@ -105,12 +106,11 @@ async function loadGrades(){
   try{
     const data=await fetchAll(()=>supabase
       .from('danh_sach')
-      .select('khoi')
-      .eq('trang_thai','Active')
+      .select('khoi,trang_thai')
       .not('khoi','is',null)
       .order('khoi'));
 
-    grades=[...new Set(data.map(x=>String(x.khoi).trim()).filter(Boolean))]
+    grades=[...new Set(data.filter(isActiveStudent).map(x=>String(x.khoi).trim()).filter(Boolean))]
       .sort(naturalSort);
 
     const box=root.querySelector('#scoreGradeRadios');
@@ -152,13 +152,12 @@ async function onGradeChange(grade){
   try{
     const data=await fetchAll(()=>supabase
       .from('danh_sach')
-      .select('lop')
-      .eq('trang_thai','Active')
+      .select('lop,khoi,trang_thai')
       .eq('khoi',grade)
       .not('lop','is',null)
       .order('lop'));
 
-    classes=[...new Set(data.map(x=>String(x.lop).trim()).filter(Boolean))]
+    classes=[...new Set(data.filter(isActiveStudent).map(x=>String(x.lop).trim()).filter(Boolean))]
       .sort(naturalSort);
     const scope=managedClasses(window.App?.Auth?.currentUser);
     if(scope!==null) classes=classes.filter(c=>scope.includes(c));
@@ -212,10 +211,11 @@ async function loadStudents(grade,cls){
   students=await fetchAll(()=>supabase
     .from('danh_sach')
     .select('ma_hs,ho_ten,khoi,lop,ngay_sinh,ma_qr,trang_thai')
-    .eq('trang_thai','Active')
     .eq('khoi',grade)
     .eq('lop',cls)
     .order('ho_ten'));
+
+  students=students.filter(isActiveStudent);
 
   // Sắp xếp theo tên, sau đó ngày sinh để dễ nhận diện học sinh trùng tên.
   students.sort((a,b)=>{
