@@ -475,3 +475,12 @@ main{max-width:1540px;padding:20px clamp(12px,2.4vw,32px) 38px}.page{animation:p
 .alert-row{cursor:pointer;text-align:left;font:inherit;width:100%}.alert-row:hover{background:#fff0f0;transform:translateY(-1px)}
 @media(max-width:900px){.score-mini-grid{grid-template-columns:repeat(2,1fr)}.score-table-head,.score-detail-row{grid-template-columns:minmax(170px,1fr) 70px 70px 70px 90px;min-width:540px}.score-detail-row{overflow-x:auto}.stats-detail-box{padding:17px}.score-count-grid{grid-template-columns:repeat(6,1fr)}.event-detail-list>div{grid-template-columns:80px 1fr 65px}.event-detail-list small{grid-column:2/4}}
 @media(max-width:600px){.score-mini-grid{grid-template-columns:1fr 1fr}.stats-detail-modal{padding:8px}.stats-detail-box{border-radius:18px;padding:14px}.stats-detail-head h3{font-size:18px}.detail-kpis{grid-template-columns:1fr 1fr}.score-count-grid{grid-template-columns:repeat(4,1fr)}.event-detail-list>div{grid-template-columns:70px 1fr 60px}.event-detail-list small{grid-column:1/4}.score-table-head,.score-detail-row{grid-template-columns:minmax(180px,1fr) 65px 65px 65px 80px;min-width:510px}}
+
+/* V3.0.5.25.16 - bộ lọc thời gian thống kê */
+.period-toolbar{margin:0 0 15px;padding:12px 14px;border:1px solid #dceaf4;border-radius:16px;background:linear-gradient(135deg,#f7fcff,#f4fffb);}
+.period-select-wrap{display:flex;align-items:end;gap:10px;flex-wrap:wrap}
+.period-select-wrap label{font-size:12px;font-weight:850;color:#526a83}
+.period-select-wrap select,.period-select-wrap input{display:block;margin-top:5px;min-width:175px;border:1px solid #d6e3ed;border-radius:11px;background:#fff;padding:10px 12px;color:#233a55;font:inherit}
+.period-select-wrap input{min-width:155px}
+.period-badge{align-self:center;margin-left:auto;padding:9px 13px;border-radius:999px;background:#e9faf6;color:#08776e;font-size:12px;font-weight:850;border:1px solid #c7eee4}
+@media(max-width:600px){.period-select-wrap{display:grid;grid-template-columns:1fr}.period-select-wrap label,.period-select-wrap select,.period-select-wrap input{width:100%;min-width:0}.period-badge{margin-left:0;width:100%;text-align:center}}

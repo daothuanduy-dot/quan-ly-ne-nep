@@ -1,4 +1,4 @@
-import {supabase,managedClasses,canViewAllStats,roleOf} from './config.js';
+import {supabase,managedClasses,canViewAllStats,roleOf,appConfig} from './config.js';
 import {esc} from './ui.js';
 
 async function fetchAll(factory,chunk=1000){
@@ -22,6 +22,29 @@ function statsFor(rows){
   return {plus,minus,net:plus+minus,count:rows.length};
 }
 function groupBy(arr,keyFn){const m=new Map();arr.forEach(x=>{const k=keyFn(x)||'Chưa xác định';if(!m.has(k))m.set(k,[]);m.get(k).push(x)});return m;}
+function isoDate(d){return d.toISOString().slice(0,10)}
+function localDate(s){const d=new Date(s+'T00:00:00');return Number.isNaN(d.getTime())?null:d}
+function addDays(d,n){const x=new Date(d);x.setDate(x.getDate()+n);return x}
+function startOfWeek(d){const x=new Date(d);const day=x.getDay()||7;x.setDate(x.getDate()-day+1);x.setHours(0,0,0,0);return x}
+function parseSchoolYear(){const m=String(appConfig?.namHoc||'').match(/(20\d{2})\s*[-–]\s*(20\d{2})/);if(!m)return {start:new Date(new Date().getFullYear(),7,1),end:new Date(new Date().getFullYear()+1,6,31)};return {start:new Date(Number(m[1]),7,1),end:new Date(Number(m[2]),6,31)};}
+function currentISOWeek(d){const x=new Date(d);x.setHours(0,0,0,0);const day=x.getDay()||7;x.setDate(x.getDate()+4-day);const y=new Date(x.getFullYear(),0,1);return Math.ceil((((x-y)/86400000)+1)/7)}
+function periodRange(type,ref,from,to){
+  const d=ref||new Date();let a,b,label='';
+  if(type==='week'){a=startOfWeek(d);b=addDays(a,6);label=`Tuần ${currentISOWeek(d)} (${isoDate(a)} → ${isoDate(b)})`;}
+  else if(type==='month'){a=new Date(d.getFullYear(),d.getMonth(),1);b=new Date(d.getFullYear(),d.getMonth()+1,0);label=`Tháng ${d.getMonth()+1}/${d.getFullYear()}`;}
+  else if(type==='semester1'){const sy=parseSchoolYear();a=sy.start;b=new Date(sy.start.getFullYear()+1,0,31);label='Học kỳ I';}
+  else if(type==='semester2'){const sy=parseSchoolYear();a=new Date(sy.start.getFullYear()+1,1,1);b=sy.end;label='Học kỳ II';}
+  else if(type==='year'){const sy=parseSchoolYear();a=sy.start;b=sy.end;label=`Năm học ${appConfig?.namHoc||''}`;}
+  else {a=localDate(from)||d;b=localDate(to)||d;if(b<a)[a,b]=[b,a];label=`Từ ${isoDate(a)} đến ${isoDate(b)}`;}
+  return {from:isoDate(a),to:isoDate(b),label};
+}
+function inRange(v,range){if(!v)return false;const x=String(v).slice(0,10);return x>=range.from&&x<=range.to;}
+function periodStudyFilter(rows,range,type){
+  if(type==='year')return rows.filter(r=>String(r.nam_hoc||'')===String(appConfig?.namHoc||''));
+  if(type==='week'){const w=currentISOWeek(localDate(range.from)||new Date());return rows.filter(r=>Number(r.tuan_hoc)===w&&String(r.nam_hoc||'')===String(appConfig?.namHoc||''));}
+  // Dữ liệu Cán bộ lớp được lưu theo tuần; dùng created_at khi có để lọc các khoảng tháng/học kỳ/ngày.
+  return rows.filter(r=>inRange(r.created_at,range));
+}
 function barRows(groups,limit=40){
   return [...groups.entries()].map(([name,rows])=>({name,stats:statsFor(rows)})).sort((a,b)=>b.stats.net-a.stats.net).slice(0,limit);
 }
@@ -42,7 +65,7 @@ async function load(root){
     const [studentsRaw,events,studyRows]=await Promise.all([
       fetchAll(()=>supabase.from('danh_sach').select('id,ma_hs,ho_ten,khoi,lop,trang_thai,ngay_sinh').order('id')),
       fetchAll(()=>supabase.from('diem_danh_master').select('id,ma_hs,ho_ten,khoi,lop,diem,trang_thai,chi_tiet,ma_hd,ngay_diem_danh,doi_tuong').order('id')),
-      fetchAll(()=>supabase.from('diem_hoc_tap_tuan').select('nam_hoc,tuan_hoc,lop,ma_hs,ho_ten,loai_diem,diem,so_luong,ma_nguoi_cap_nhat,ten_nguoi_cap_nhat').order('id'))
+      fetchAll(()=>supabase.from('diem_hoc_tap_tuan').select('nam_hoc,tuan_hoc,lop,ma_hs,ho_ten,loai_diem,diem,so_luong,ma_nguoi_cap_nhat,ten_nguoi_cap_nhat,created_at').order('id'))
     ]);
 
     const gradeNorm=v=>{const x=norm(v);const m=x.match(/(?:khoi\s*)?(10|11|12)\b/);return m?m[1]:x};
@@ -67,6 +90,25 @@ async function load(root){
       scopedStudy=studyRows.filter(x=>set.has(classNorm(x.lop)));
     }
 
+    const scopedEventsBase=scopedEvents;
+    const scopedStudyBase=scopedStudy;
+    const now=new Date(); const state={view:'school',grade:'',cls:'',period:'year',ref:isoDate(now),from:isoDate(now),to:isoDate(now)}; let range=periodRange(state.period,localDate(state.ref),state.from,state.to);
+    const eventByStudent=new Map();
+    const studyByStudent=new Map();
+    const studyByClass=new Map();
+    function rebuildPeriodMaps(){
+      eventByStudent.clear(); studyByStudent.clear(); studyByClass.clear();
+      scopedEvents.forEach(e=>{const id=String(e.ma_hs||'');if(!id)return;if(!eventByStudent.has(id))eventByStudent.set(id,[]);eventByStudent.get(id).push(e)});
+      scopedStudy.forEach(r=>{const c=classNorm(r.lop);if(!studyByClass.has(c))studyByClass.set(c,[]);studyByClass.get(c).push(r);const id=String(r.ma_hs||'');if(id){if(!studyByStudent.has(id))studyByStudent.set(id,[]);studyByStudent.get(id).push(r)}});
+    }
+    function applyPeriod(){
+      range=periodRange(state.period,localDate(state.ref)||new Date(),state.from,state.to);
+      scopedEvents=scopedEventsBase.filter(e=>inRange(e.ngay_diem_danh,range));
+      scopedStudy=scopedStudyBase.filter(r=>periodStudyFilter([r],range,state.period).length>0);
+      rebuildPeriodMaps();
+    }
+    applyPeriod();
+
     const byGrade=groupBy(students,x=>gradeNorm(x.khoi));
     const byClass=groupBy(students,x=>classNorm(x.lop));
     const total=statsFor(scopedEvents);
@@ -87,6 +129,7 @@ async function load(root){
 
       <section class="stats-card">
         <div class="stats-section-head"><div><h3>📈 Kết quả thi đua</h3><p>Điểm cộng/trừ là dữ liệu nề nếp; điểm học tập do Cán bộ lớp nhập được hiển thị riêng để không trộn hai thang điểm.</p></div></div>
+        <div class="period-toolbar" id="periodToolbar"></div>
         <div class="view-switch" role="tablist">
           <button class="view-btn active" data-view="school">🏫 Toàn trường</button>
           <button class="view-btn" data-view="grade">🎓 Theo khối</button>
@@ -103,18 +146,6 @@ async function load(root){
       </section>
       <div id="statsDetailModal" class="stats-detail-modal hidden"></div>`;
 
-    const state={view:'school',grade:'',cls:''};
-    const eventByStudent=new Map();
-    scopedEvents.forEach(e=>{const id=String(e.ma_hs||'');if(!id)return;if(!eventByStudent.has(id))eventByStudent.set(id,[]);eventByStudent.get(id).push(e)});
-    const studyByStudent=new Map();
-    const studyByClass=new Map();
-    scopedStudy.forEach(r=>{
-      const c=classNorm(r.lop);
-      if(!studyByClass.has(c))studyByClass.set(c,[]);
-      studyByClass.get(c).push(r);
-      const id=String(r.ma_hs||'');
-      if(id){if(!studyByStudent.has(id))studyByStudent.set(id,[]);studyByStudent.get(id).push(r)}
-    });
     const studyStats=rows=>{
       let total=0,weighted=0;const counts={};
       rows.forEach(r=>{const n=Math.max(0,Number(r.so_luong||0));const d=Number(r.diem);if(!Number.isFinite(d))return;total+=n;weighted+=d*n;counts[d]=(counts[d]||0)+n});
@@ -127,6 +158,15 @@ async function load(root){
       if(state.grade)arr=arr.filter(c=>gradeNorm((byClass.get(c)||[])[0]?.khoi)===state.grade);
       return arr;
     }
+    function renderPeriodToolbar(){
+      const p=root.querySelector('#periodToolbar');
+      p.innerHTML=`<div class="period-select-wrap"><label>Khoảng thời gian<select id="statsPeriod"><option value="week" ${state.period==='week'?'selected':''}>Theo tuần</option><option value="month" ${state.period==='month'?'selected':''}>Theo tháng</option><option value="semester1" ${state.period==='semester1'?'selected':''}>Học kỳ I</option><option value="semester2" ${state.period==='semester2'?'selected':''}>Học kỳ II</option><option value="year" ${state.period==='year'?'selected':''}>Năm học</option><option value="custom" ${state.period==='custom'?'selected':''}>Từ ngày đến ngày</option></select></label>${state.period==='custom'?`<label>Từ ngày<input id="statsFrom" type="date" value="${state.from}"></label><label>Đến ngày<input id="statsTo" type="date" value="${state.to}"></label>`:`<label>Ngày tham chiếu<input id="statsRef" type="date" value="${state.ref}"></label>`}<span class="period-badge">${esc(range.label)}</span></div>`;
+      p.querySelector('#statsPeriod').onchange=e=>{state.period=e.target.value;applyPeriod();renderPeriodToolbar();renderFilters();renderChart();renderAlerts()};
+      const ref=p.querySelector('#statsRef'); if(ref)ref.onchange=e=>{state.ref=e.target.value;applyPeriod();renderPeriodToolbar();renderChart();renderAlerts()};
+      const fr=p.querySelector('#statsFrom'); if(fr)fr.onchange=e=>{state.from=e.target.value;applyPeriod();renderPeriodToolbar();renderChart();renderAlerts()};
+      const to=p.querySelector('#statsTo'); if(to)to.onchange=e=>{state.to=e.target.value;applyPeriod();renderPeriodToolbar();renderChart();renderAlerts()};
+    }
+
     function renderFilters(){
       const f=root.querySelector('#statsFilters');
       if(state.view==='school'){f.innerHTML='<span class="filter-note">Toàn bộ dữ liệu trong phạm vi được phân quyền.</span>';return;}
@@ -197,6 +237,6 @@ async function load(root){
     }
     root.querySelectorAll('.view-btn').forEach(b=>b.onclick=()=>{root.querySelectorAll('.view-btn').forEach(x=>x.classList.remove('active'));b.classList.add('active');state.view=b.dataset.view;if(state.view==='school'){state.grade='';state.cls=''}renderFilters();renderChart();renderAlerts()});
     root.querySelector('#alertThreshold').onchange=renderAlerts;
-    renderFilters();renderChart();renderAlerts();
+    renderPeriodToolbar();renderFilters();renderChart();renderAlerts();
   }catch(error){box.innerHTML=`<div class="danger-box">${esc(error.message||String(error))}</div>`;console.error('[QLNN STATS]',error)}
 }
