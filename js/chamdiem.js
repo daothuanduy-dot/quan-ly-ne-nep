@@ -74,10 +74,13 @@ async function renderShell(){
   // Các nút chọn đối tượng chấm vẫn dùng hàng ngang vì tên ngắn.
   const role=roleOf(window.App?.Auth?.currentUser);
   const collectiveBtn=root.querySelector('#collectiveModeBtn');
-  if(role==='Cán bộ lớp'||role==='Cờ đỏ'){
+  if(role==='Cờ đỏ'){
     collectiveBtn.disabled=true;
-    collectiveBtn.title='Cán bộ lớp chỉ được chấm điểm cá nhân.';
+    collectiveBtn.title='Cờ đỏ chỉ được chấm điểm cá nhân.';
     collectiveBtn.style.opacity='.5';
+  }else if(role==='Cán bộ lớp'){
+    collectiveBtn.disabled=false;
+    collectiveBtn.title='Cán bộ lớp được nhập điểm Sổ đầu bài của lớp.';
   }
   root.querySelectorAll('[data-mode]').forEach(b=>{
     b.onclick=()=>setMode(b.dataset.mode);
@@ -238,7 +241,8 @@ async function loadCriteria(){
 }
 
 function setMode(next){
-  if(next==='collective' && ['Cán bộ lớp','Cờ đỏ'].includes(roleOf(window.App?.Auth?.currentUser)))return toast(roleOf(window.App?.Auth?.currentUser)==='Cờ đỏ'?'Cờ đỏ chỉ được chấm điểm cá nhân.':'Cán bộ lớp chỉ được chấm điểm cá nhân.','err');
+  const currentRole=roleOf(window.App?.Auth?.currentUser);
+  if(next==='collective' && currentRole==='Cờ đỏ')return toast('Cờ đỏ chỉ được chấm điểm cá nhân.','err');
   mode=next;
   root.querySelectorAll('[data-mode]').forEach(b=>{
     b.classList.toggle('active',b.dataset.mode===mode);
@@ -263,22 +267,24 @@ function renderScoreForm(){
 }
 
 function renderCollective(wrap,cls){
-  const list=getCriteria('Tập thể');
+  const role=roleOf(window.App?.Auth?.currentUser);
+  const allList=getCriteria('Tập thể');
+  const list=role==='Cán bộ lớp' ? allList.filter(c=>{const m=normalizeText(c.mang||'');const n=normalizeText(c.ten_hd||'');return m.includes('so dau bai')||n.includes('so dau bai');}) : allList;
   const note=list.length
     ? ''
     : `<div class="score-no-criteria">
          <b>Chưa có tiêu chí chấm cho tập thể trong CSDL.</b><br>
          Kiểm tra trường <code>danh_muc_diem.doi_tuong</code>.
          Cần có giá trị như <code>Tập thể</code> (hoặc <code>Tập thể lớp</code>).
-         Anh có thể vào <b>Quản trị → Quản lý tiêu chí</b> để tạo tiêu chí tập thể.
+         ${role==='Cán bộ lớp'?'Đối với Cán bộ lớp, tiêu chí phải thuộc <code>Sổ đầu bài</code> ở trường <code>mang</code> hoặc trong tên tiêu chí.':'Anh có thể vào <b>Quản trị → Quản lý tiêu chí</b> để tạo tiêu chí tập thể.'}
        </div>`;
 
   wrap.innerHTML=`
     <div class="score-form">
       <div class="page-head">
         <div>
-          <h3 style="margin:0">👥 Chấm điểm tập thể — lớp ${esc(cls)}</h3>
-          <p>Chỉ hiển thị tiêu chí được đánh dấu đối tượng tập thể.</p>
+          <h3 style="margin:0">👥 ${role==='Cán bộ lớp'?'Nhập điểm Sổ đầu bài — lớp':'Chấm điểm tập thể — lớp'} ${esc(cls)}</h3>
+          <p>${role==='Cán bộ lớp'?'Chỉ hiển thị tiêu chí Sổ đầu bài áp dụng cho tập thể lớp.':'Chỉ hiển thị tiêu chí được đánh dấu đối tượng tập thể.'}</p>
         </div>
       </div>
 
@@ -533,6 +539,13 @@ async function insertEvent(payload){
 
 async function saveCollective(){
   const cls=root.querySelector('input[name="scoreClass"]:checked')?.value || '';
+  const role=roleOf(window.App?.Auth?.currentUser);
+  if(!canScore(window.App?.Auth?.currentUser,cls,'Tập thể'))return toast('Tài khoản không có quyền nhập điểm tập thể cho lớp này.','err');
+  if(role==='Cán bộ lớp'){
+    const cc=criteria.find(x=>x.ma_hd===root.querySelector('#collectiveCriteria').value);
+    const mm=normalizeText(cc?.mang||'');const nn=normalizeText(cc?.ten_hd||'');
+    if(!(mm.includes('so dau bai')||nn.includes('so dau bai')))return toast('Cán bộ lớp chỉ được nhập tiêu chí Sổ đầu bài của chính lớp.','err');
+  }
   const grade=root.querySelector('input[name="scoreGrade"]:checked')?.value || '';
   const maHd=root.querySelector('#collectiveCriteria').value;
   const c=criteria.find(x=>x.ma_hd===maHd);

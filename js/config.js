@@ -1,5 +1,5 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-export const APP_VERSION='3.0.5.25.1';
+export const APP_VERSION='3.0.5.25.3';
 export const appConfig={
   supabaseUrl:'https://vbhtgkvvmwfztswxlvnl.supabase.co',
   supabaseAnonKey:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZiaHRna3Z2bXdmenRzd3hsdm5sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEwMjE2MzgsImV4cCI6MjEwNjU5NzYzOH0.CqsEoBOVB4CS9UphogsIRtR1syY82kx5uzvcz_K_luo',
@@ -49,7 +49,8 @@ export function managedClasses(s){
  const role=roleOf(s);
  if(role==='Admin')return null; // null = toàn trường
  if(role==='GVCN')return s.lop_quan_ly?[String(s.lop_quan_ly).trim()]:[];
- if(role==='Cán bộ lớp'||role==='Cờ đỏ')return s.lop_quan_ly?[String(s.lop_quan_ly).trim()]:[];
+ if(role==='Cán bộ lớp')return s.lop_quan_ly?[String(s.lop_quan_ly).trim()]:[];
+ if(role==='Cờ đỏ')return null; // Cờ đỏ được quét/ghi nhận cho toàn trường, không gán lớp.
  const a=Array.isArray(s.lop_giang_day)?s.lop_giang_day:normalizeTabs(s.lop_giang_day);
  return a.map(String).map(x=>x.trim()).filter(Boolean);
 }
@@ -63,7 +64,8 @@ export function canManageAbsence(s,lop){
 export function canScore(s,lop,target='Cá nhân'){
  const role=roleOf(s); if(role==='Admin')return true;
  if(!canManageClass(s,lop))return false;
- if(role==='Cán bộ lớp'||role==='Cờ đỏ')return target==='Cá nhân';
+ if(role==='Cán bộ lớp')return target==='Cá nhân'||target==='Tập thể';
+ if(role==='Cờ đỏ')return target==='Cá nhân';
  return role==='GVCN'||role==='Giáo viên';
 }
 export function canViewAllStats(s){return roleOf(s)==='Admin'||roleOf(s)==='GVCN';}
