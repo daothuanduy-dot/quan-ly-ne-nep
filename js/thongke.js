@@ -19,7 +19,7 @@ function scoreOf(rows){return rows.reduce((a,r)=>a+Number(r.diem||0),0);}
 function statsFor(rows){
   const plus=rows.filter(r=>Number(r.diem)>0).reduce((a,r)=>a+Number(r.diem||0),0);
   const minus=rows.filter(r=>Number(r.diem)<0).reduce((a,r)=>a+Number(r.diem||0),0);
-  return {plus,minus,net:plus+minus,count:rows.length};
+  return {plus,minus,total:plus+minus,count:rows.length};
 }
 function groupBy(arr,keyFn){const m=new Map();arr.forEach(x=>{const k=keyFn(x)||'Chưa xác định';if(!m.has(k))m.set(k,[]);m.get(k).push(x)});return m;}
 function isoDate(d){return d.toISOString().slice(0,10)}
@@ -46,7 +46,7 @@ function periodStudyFilter(rows,range,type){
   return rows.filter(r=>inRange(r.created_at,range));
 }
 function barRows(groups,limit=40){
-  return [...groups.entries()].map(([name,rows])=>({name,stats:statsFor(rows)})).sort((a,b)=>b.stats.net-a.stats.net).slice(0,limit);
+  return [...groups.entries()].map(([name,rows])=>({name,stats:statsFor(rows)})).sort((a,b)=>b.stats.total-a.stats.total).slice(0,limit);
 }
 
 export async function init(root){
@@ -213,10 +213,10 @@ async function load(root){
         const sm=aggregateStudy(study,r=>String(r.ma_hs||''));
         rows=[...new Set([...m.keys(),...sm.keys()].filter(Boolean))].map(id=>{const s=studentMap.get(id);return {name:s?.ho_ten||id,sub:s?.lop||'',id,stats:statsFor(m.get(id)||[]),study:studyStats(sm.get(id)||[])};});
       }
-      rows.sort((a,b)=>(b.stats.net-a.stats.net)||(b.study.avg-a.study.avg));
+      rows.sort((a,b)=>(b.stats.total-a.stats.total)||(b.study.avg-a.study.avg));
       const sumPlus=rows.reduce((a,r)=>a+r.stats.plus,0),sumMinus=rows.reduce((a,r)=>a+r.stats.minus,0),sumStudy=rows.filter(r=>r.study.total).reduce((a,r)=>a+r.study.avg,0),nStudy=rows.filter(r=>r.study.total).length;
-      root.querySelector('#scoreSummary').innerHTML=`<div class="score-mini-grid"><div><span>Điểm cộng nề nếp</span><b>+${fmt(sumPlus)}</b></div><div><span>Điểm trừ nề nếp</span><b>${fmt(sumMinus)}</b></div><div><span>Điểm ròng</span><b>${fmt(sumPlus+sumMinus)}</b></div><div><span>ĐTB học tập CB lớp</span><b>${nStudy?fmt(sumStudy/nStudy):'—'}</b></div></div>`;
-      root.querySelector('#scoreChart').innerHTML=rows.length?`<div class="score-table-head"><span>Đối tượng</span><span>Cộng</span><span>Trừ</span><span>Ròng</span><span>ĐTB học tập</span></div>${rows.map(r=>`<button type="button" class="score-detail-row" data-detail-id="${esc(r.id||r.name)}"><span class="score-object"><b>${esc(r.name)}</b><small>${esc(r.sub||'Nhấn để xem chi tiết')}</small></span><strong class="plus-text">+${fmt(r.stats.plus)}</strong><strong class="minus-text">${fmt(r.stats.minus)}</strong><strong class="net-text">${r.stats.net>0?'+':''}${fmt(r.stats.net)}</strong><strong class="study-text">${r.study.total?fmt(r.study.avg):'—'}</strong></button>`).join('')}`:'<div class="empty">Chưa có dữ liệu điểm trong phạm vi này.</div>';
+      root.querySelector('#scoreSummary').innerHTML=`<div class="score-mini-grid"><div><span>Điểm cộng nề nếp</span><b>+${fmt(sumPlus)}</b></div><div><span>Điểm trừ nề nếp</span><b>${fmt(sumMinus)}</b></div><div><span>Điểm</span><b>${fmt(sumPlus+sumMinus)}</b></div><div><span>ĐTB học tập CB lớp</span><b>${nStudy?fmt(sumStudy/nStudy):'—'}</b></div></div>`;
+      root.querySelector('#scoreChart').innerHTML=rows.length?`<div class="score-table-head"><span>Đối tượng</span><span>Cộng</span><span>Trừ</span><span>Điểm</span><span>ĐTB học tập</span></div>${rows.map(r=>`<button type="button" class="score-detail-row" data-detail-id="${esc(r.id||r.name)}"><span class="score-object"><b>${esc(r.name)}</b><small>${esc(r.sub||'Nhấn để xem chi tiết')}</small></span><strong class="plus-text">+${fmt(r.stats.plus)}</strong><strong class="minus-text">${fmt(r.stats.minus)}</strong><strong class="net-text">${r.stats.total>0?'+':''}${fmt(r.stats.total)}</strong><strong class="study-text">${r.study.total?fmt(r.study.avg):'—'}</strong></button>`).join('')}`:'<div class="empty">Chưa có dữ liệu điểm trong phạm vi này.</div>';
       root.querySelectorAll('.score-detail-row').forEach(btn=>btn.onclick=()=>showDetail(btn.dataset.detailId,rows));
     }
     function showDetail(id,rows){
@@ -226,13 +226,13 @@ async function load(root){
       const counts=studyStats(st).counts;
       const details=[...new Map(ev.map(e=>[String(e.id||JSON.stringify(e)),e])).values()];
       root.querySelector('#statsDetailModal').classList.remove('hidden');
-      root.querySelector('#statsDetailModal').innerHTML=`<div class="stats-detail-box"><div class="stats-detail-head"><div><h3>📋 Chi tiết: ${esc(r.name)}</h3><p>${esc(r.sub||'')}</p></div><button type="button" id="closeStatsDetail">✕</button></div><div class="detail-kpis"><div><small>Điểm cộng</small><b class="plus-text">+${fmt(r.stats.plus)}</b></div><div><small>Điểm trừ</small><b class="minus-text">${fmt(r.stats.minus)}</b></div><div><small>Điểm ròng</small><b>${r.stats.net>0?'+':''}${fmt(r.stats.net)}</b></div><div><small>ĐTB học tập</small><b>${r.study.total?fmt(r.study.avg):'—'}</b></div></div><h4>Phân bố điểm học sinh/Sổ đầu bài</h4><div class="score-count-grid">${[10,9,8,7,6,5,4,3,2,1,0].map(d=>`<div><b>${d}</b><span>${counts[d]||0}</span></div>`).join('')}</div><h4>Chi tiết điểm cộng / điểm trừ</h4><div class="event-detail-list">${details.length?details.map(e=>`<div><span>${esc(e.ngay_diem_danh||'')}</span><b>${esc(e.ten_nguoi_cap_nhat||e.ho_ten||'')}</b><strong class="${Number(e.diem)>=0?'plus-text':'minus-text'}">${Number(e.diem)>0?'+':''}${fmt(e.diem)}</strong><small>${esc(e.chi_tiet||e.ma_hd||'')}</small></div>`).join(''):'<div class="empty">Chưa có dữ liệu điểm cộng/trừ.</div>'}</div></div>`;
+      root.querySelector('#statsDetailModal').innerHTML=`<div class="stats-detail-box"><div class="stats-detail-head"><div><h3>📋 Chi tiết: ${esc(r.name)}</h3><p>${esc(r.sub||'')}</p></div><button type="button" id="closeStatsDetail">✕</button></div><div class="detail-kpis"><div><small>Điểm cộng</small><b class="plus-text">+${fmt(r.stats.plus)}</b></div><div><small>Điểm trừ</small><b class="minus-text">${fmt(r.stats.minus)}</b></div><div><small>Điểm</small><b>${r.stats.total>0?'+':''}${fmt(r.stats.total)}</b></div><div><small>ĐTB học tập</small><b>${r.study.total?fmt(r.study.avg):'—'}</b></div></div><h4>Phân bố điểm học sinh/Sổ đầu bài</h4><div class="score-count-grid">${[10,9,8,7,6,5,4,3,2,1,0].map(d=>`<div><b>${d}</b><span>${counts[d]||0}</span></div>`).join('')}</div><h4>Chi tiết điểm cộng / điểm trừ</h4><div class="event-detail-list">${details.length?details.map(e=>`<div><span>${esc(e.ngay_diem_danh||'')}</span><b>${esc(e.ten_nguoi_cap_nhat||e.ho_ten||'')}</b><strong class="${Number(e.diem)>=0?'plus-text':'minus-text'}">${Number(e.diem)>0?'+':''}${fmt(e.diem)}</strong><small>${esc(e.chi_tiet||e.ma_hd||'')}</small></div>`).join(''):'<div class="empty">Chưa có dữ liệu điểm cộng/trừ.</div>'}</div></div>`;
       root.querySelector('#closeStatsDetail').onclick=()=>root.querySelector('#statsDetailModal').classList.add('hidden');
     }
     function renderAlerts(){
       const threshold=Number(root.querySelector('#alertThreshold').value||10);
-      const list=selectedStudents().map(s=>{const rows=eventByStudent.get(String(s.ma_hs))||[];const minus=rows.filter(e=>Number(e.diem)<0).reduce((a,e)=>a+Number(e.diem||0),0);const plus=rows.filter(e=>Number(e.diem)>0).reduce((a,e)=>a+Number(e.diem||0),0);return {...s,minus,plus,net:plus+minus}}).filter(s=>Math.abs(s.minus)>=threshold).sort((a,b)=>a.minus-b.minus);
-      root.querySelector('#alertList').innerHTML=list.length?list.map((s,i)=>`<button type="button" class="alert-row" data-alert-id="${esc(s.ma_hs)}"><div class="alert-rank">${i+1}</div><div class="alert-main"><b>${esc(s.ho_ten)}</b><span>${esc(s.ma_hs)} · ${esc(s.lop)}</span></div><div class="alert-score"><b>${fmt(s.minus)}</b><small>điểm trừ</small></div><div class="alert-net ${s.net<0?'bad':'good'}">${s.net>0?'+':''}${fmt(s.net)}<small>ròng</small></div></button>`).join(''):'<div class="alert-empty">🎉 Không có học sinh vượt ngưỡng cảnh báo trong chế độ xem này.</div>';
+      const list=selectedStudents().map(s=>{const rows=eventByStudent.get(String(s.ma_hs))||[];const minus=rows.filter(e=>Number(e.diem)<0).reduce((a,e)=>a+Number(e.diem||0),0);const plus=rows.filter(e=>Number(e.diem)>0).reduce((a,e)=>a+Number(e.diem||0),0);return {...s,minus,plus,total:plus+minus}}).filter(s=>Math.abs(s.minus)>=threshold).sort((a,b)=>a.minus-b.minus);
+      root.querySelector('#alertList').innerHTML=list.length?list.map((s,i)=>`<button type="button" class="alert-row" data-alert-id="${esc(s.ma_hs)}"><div class="alert-rank">${i+1}</div><div class="alert-main"><b>${esc(s.ho_ten)}</b><span>${esc(s.ma_hs)} · ${esc(s.lop)}</span></div><div class="alert-score"><b>${fmt(s.minus)}</b><small>điểm trừ</small></div><div class="alert-net ${s.total<0?'bad':'good'}">${s.total>0?'+':''}${fmt(s.total)}<small>điểm</small></div></button>`).join(''):'<div class="alert-empty">🎉 Không có học sinh vượt ngưỡng cảnh báo trong chế độ xem này.</div>';
       root.querySelectorAll('.alert-row').forEach(b=>b.onclick=()=>{const s=students.find(x=>String(x.ma_hs)===String(b.dataset.alertId));if(s){state.view='class';state.grade=gradeNorm(s.khoi);state.cls=classNorm(s.lop);root.querySelectorAll('.view-btn').forEach(x=>x.classList.toggle('active',x.dataset.view==='class'));renderFilters();renderChart();renderAlerts();}});
     }
     root.querySelectorAll('.view-btn').forEach(b=>b.onclick=()=>{root.querySelectorAll('.view-btn').forEach(x=>x.classList.remove('active'));b.classList.add('active');state.view=b.dataset.view;if(state.view==='school'){state.grade='';state.cls=''}renderFilters();renderChart();renderAlerts()});
