@@ -1,5 +1,41 @@
 import {supabase,appConfig} from './config.js';import {esc,toast,modal,closeModal} from './ui.js';
 let root,student=null,scanner=null,criteria=[];
+async function startScanner(){
+ const status=root&&root.querySelector('#qrStatus');
+ if(scanner){toast('Camera QR đang được mở.','err');return;}
+ if(typeof window.Html5Qrcode!=='function'){
+   if(status)status.innerHTML='<div class=\"danger-box\">Không tải được thư viện quét QR. Hãy tải lại trang (Ctrl + F5) và kiểm tra kết nối Internet.</div>';
+   return toast('Không tải được thư viện quét QR.','err');
+ }
+ const reader=root.querySelector('#reader');
+ if(!reader)return;
+ reader.innerHTML='';
+ try{
+   scanner=new window.Html5Qrcode('reader');
+   const config={fps:10,qrbox:{width:250,height:250},aspectRatio:1.0};
+   await scanner.start({facingMode:{exact:'environment'}},config,async decodedText=>{
+     if(!decodedText)return;
+     try{await scanner.stop();}catch(e){}
+     try{scanner.clear();}catch(e){}
+     scanner=null;
+     if(status)status.innerHTML='<div class=\"badge ok\">✓ Đã quét QR, đang tìm học sinh...</div>';
+     await findStudent(decodedText);
+   },()=>{});
+   if(status)status.innerHTML='<div class=\"badge ok\">📷 Camera đang hoạt động — đưa mã QR vào khung quét.</div>';
+ }catch(e){
+   scanner=null;
+   if(status)status.innerHTML='<div class=\"danger-box\">Không mở được camera: '+esc(e&&e.message?e.message:String(e))+'</div>';
+   toast('Không mở được camera QR. Hãy cấp quyền camera cho trình duyệt.','err');
+ }
+}
+
+async function stopScanner(){
+ if(!scanner)return;
+ try{await scanner.stop();}catch(e){}
+ try{scanner.clear();}catch(e){}
+ scanner=null;
+}
+
 export async function init(rootEl){
  root=rootEl;student=null;criteria=[];
  root.innerHTML=`<div class="page-head"><div><h2>Quét QR Đi Muộn</h2><p>QR chỉ xác định đối tượng. Thông tin học sinh hiển thị ở chế độ chỉ đọc.</p></div><span class="badge ok">Không sửa dữ liệu gốc</span></div>
