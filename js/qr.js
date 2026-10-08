@@ -38,7 +38,7 @@ async function stopScanner(){
 
 export async function init(rootEl){
  root=rootEl;student=null;criteria=[];
- root.innerHTML=`<div class="page-head"><div><h2>Quét QR Đi Muộn</h2><p>QR chỉ xác định đối tượng. Thông tin học sinh hiển thị ở chế độ chỉ đọc.</p></div><span class="badge ok">Không sửa dữ liệu gốc</span></div>
+ root.innerHTML=`<div class="page-head"><div><h2>Quét QR thẻ HS</h2><p>QR chỉ xác định đối tượng. Thông tin học sinh hiển thị ở chế độ chỉ đọc.</p></div><span class="badge ok">Không sửa dữ liệu gốc</span></div>
  <div class="qr-layout"><div class="scanner"><div id="reader" class="scan-box"><span>Camera QR sẽ hiển thị tại đây</span></div><div class="toolbar"><input id="qrManual" placeholder="Hoặc nhập mã QR / mã học sinh"><button id="qrFind" class="btn primary">Tìm học sinh</button><button id="qrStart" class="btn light">Mở camera</button></div><div id="qrStatus"></div></div><div id="studentResult"><div class="empty">Chưa xác định học sinh.</div></div></div>`;
  root.querySelector('#qrFind').onclick=()=>findStudent(root.querySelector('#qrManual').value);
  root.querySelector('#qrStart').onclick=startScanner;

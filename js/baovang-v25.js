@@ -1,4 +1,4 @@
-/* QLNN V3.0.5.25.6 - Bao vang - standalone module */
+/* QLNN V3.0.5.25.8 - Bao vang - standalone module */
 var BV25 = (function(){
   var root = null;
   var roster = [];

@@ -12,80 +12,60 @@ function isActiveStudent(r){const s=String(r&&r.trang_thai==null?'':r.trang_thai
 export async function init(r){
   root=r;
   mode='individual';
+  const role=roleOf(window.App?.Auth?.currentUser);
+  if(role==='Cán bộ lớp'){
+    await renderClassOfficerShell();
+    return;
+  }
   await renderShell();
   await loadGrades();
   await loadCriteria();
 }
 
-async function renderShell(){
+async function renderClassOfficerShell(){
+  const u=window.App?.Auth?.currentUser||{};
   root.innerHTML=`
     <div class="page-head">
       <div>
-        <h2>Chấm Điểm Thi Đua</h2>
-        <p>Chọn khối → chọn lớp → chọn đối tượng chấm. Danh mục điểm lấy trực tiếp từ CSDL.</p>
+        <h2>Chấm điểm — Cán bộ lớp</h2>
+        <p>Tài khoản được cố định theo lớp được phân công. Không cần chọn khối hoặc lớp.</p>
       </div>
-      <span class="badge ok">Ghi lịch sử vào CSDL</span>
+      <span class="badge ok">Lớp: ${esc(u.lop_quan_ly||'Chưa xác định')}</span>
     </div>
-
-    <div class="score-class-selector">
-      <div class="score-selector-box">
-        <div class="score-selector-title">Chọn khối</div>
-        <div id="scoreGradeRadios" class="grade-radio-group">
-          <span class="class-empty">Đang tải danh sách khối...</span>
-        </div>
-      </div>
-
-      <div class="score-selector-box">
-        <div class="score-selector-title">Chọn lớp</div>
-        <div id="scoreClassRadios" class="class-radio-group">
-          <span class="class-empty">Hãy chọn khối trước.</span>
-        </div>
-        <div id="scoreClassHint" class="score-class-hint">
-          Các lớp sẽ hiển thị theo khối đã chọn.
-        </div>
-      </div>
+    <div class="score-mode" style="margin-top:16px">
+      <button type="button" data-officer-mode="book" class="active">
+        📘 Nhập điểm Sổ đầu bài
+        <small style="display:block;color:var(--muted);margin-top:5px;font-weight:500">Nhập số tiết đạt điểm 0–10 trong tuần.</small>
+      </button>
+      <button type="button" data-officer-mode="students">
+        👨‍🎓 Nhập điểm học sinh
+        <small style="display:block;color:var(--muted);margin-top:5px;font-weight:500">Nhập số lần mỗi học sinh đạt từng mức điểm 0–10.</small>
+      </button>
     </div>
+    <div id="officerScoreBody" class="score-form-wrap" style="margin-top:16px">
+      <div class="empty">Đang tải dữ liệu lớp...</div>
+    </div>`;
 
-    <div id="scoreModeWrap" class="hidden">
-      <div class="notice">
-        <b>Đã chọn lớp:</b> <span id="scoreClassLabel"></span>.
-        Chọn hình thức chấm.
-      </div>
-      <div class="score-mode">
-        <button type="button" data-mode="collective" id="collectiveModeBtn">
-          👥 Chấm cho tập thể
-          <small style="display:block;color:var(--muted);margin-top:5px;font-weight:500">
-            Ghi nhận điểm cho cả lớp.
-          </small>
-        </button>
-        <button type="button" data-mode="individual">
-          👨‍🎓 Chấm cho cá nhân
-          <small style="display:block;color:var(--muted);margin-top:5px;font-weight:500">
-            Chọn một học sinh trong lớp.
-          </small>
-        </button>
-      </div>
-    </div>
-
-    <div id="scoreFormWrap">
-      <div class="empty">Hãy chọn khối và lớp trước.</div>
-    </div>
-  `;
-
-  // Các nút chọn đối tượng chấm vẫn dùng hàng ngang vì tên ngắn.
-  const role=roleOf(window.App?.Auth?.currentUser);
-  const collectiveBtn=root.querySelector('#collectiveModeBtn');
-  if(role==='Cờ đỏ'){
-    collectiveBtn.disabled=true;
-    collectiveBtn.title='Cờ đỏ chỉ được chấm điểm cá nhân.';
-    collectiveBtn.style.opacity='.5';
-  }else if(role==='Cán bộ lớp'){
-    collectiveBtn.disabled=false;
-    collectiveBtn.title='Cán bộ lớp được nhập điểm Sổ đầu bài của lớp.';
+  let cls=String(u.lop_quan_ly||'').trim();
+  if(!cls && u.ma_hs){
+    try{
+      const {data}=await supabase.from('danh_sach').select('lop').eq('ma_hs',u.ma_hs).maybeSingle();
+      cls=String(data?.lop||'').trim();
+    }catch(e){}
   }
-  root.querySelectorAll('[data-mode]').forEach(b=>{
-    b.onclick=()=>setMode(b.dataset.mode);
+  if(!cls){
+    root.querySelector('#officerScoreBody').innerHTML='<div class="empty">Tài khoản Cán bộ lớp chưa được gán lớp. Hãy kiểm tra lại tài khoản.</div>';
+    return;
+  }
+  await loadStudentsForClass(cls);
+  const year=window.App?.appConfig?.namHoc||'2026-2027';
+  const week=isoWeekNow();
+  root.querySelectorAll('[data-officer-mode]').forEach(b=>b.onclick=()=>{
+    root.querySelectorAll('[data-officer-mode]').forEach(x=>x.classList.toggle('active',x===b));
+    if(b.dataset.officerMode==='book') renderOfficerBook(root.querySelector('#officerScoreBody'),cls,year,week);
+    else renderOfficerStudents(root.querySelector('#officerScoreBody'),cls,year,week);
   });
+  renderOfficerBook(root.querySelector('#officerScoreBody'),cls,year,week);
 }
 
 async function fetchAll(queryFactory, chunk=1000){
@@ -211,6 +191,20 @@ async function onClassChange(cls){
   }catch(e){
     showError(e.message);
   }
+}
+
+async function loadStudentsForClass(cls){
+  students=await fetchAll(()=>supabase
+    .from('danh_sach')
+    .select('ma_hs,ho_ten,khoi,lop,ngay_sinh,ma_qr,trang_thai')
+    .eq('lop',cls)
+    .order('ho_ten'));
+  students=students.filter(isActiveStudent);
+  students.sort((a,b)=>{
+    const n=String(a.ho_ten||'').localeCompare(String(b.ho_ten||''),'vi',{sensitivity:'base'});
+    if(n!==0)return n;
+    return String(a.ngay_sinh||'').localeCompare(String(b.ngay_sinh||''));
+  });
 }
 
 async function loadStudents(grade,cls){
@@ -358,17 +352,19 @@ async function saveOfficerStudents(cls,year,week,body){
 
 function renderScoreForm(){
   const wrap=root.querySelector('#scoreFormWrap');
+  const role=roleOf(window.App?.Auth?.currentUser);
+  if(role==='Cán bộ lớp'){
+    const cls=String(window.App?.Auth?.currentUser?.lop_quan_ly||'').trim();
+    if(cls) renderClassOfficer(wrap,cls);
+    else wrap.innerHTML='<div class="empty">Tài khoản Cán bộ lớp chưa được gán lớp.</div>';
+    return;
+  }
   const cls=root.querySelector('input[name="scoreClass"]:checked')?.value || '';
 
   if(!cls){
     wrap.innerHTML='<div class="empty">Hãy chọn khối và lớp trước.</div>';
     return;
   }
-  if(roleOf(window.App?.Auth?.currentUser)==='Cán bộ lớp'){
-    renderClassOfficer(wrap,cls);
-    return;
-  }
-
   if(mode==='collective'){
     renderCollective(wrap,cls);
   }else{

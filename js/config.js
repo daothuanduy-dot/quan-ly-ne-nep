@@ -1,5 +1,5 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-export const APP_VERSION='3.0.5.25.6';
+export const APP_VERSION='3.0.5.25.8';
 export const appConfig={
   supabaseUrl:'https://vbhtgkvvmwfztswxlvnl.supabase.co',
   supabaseAnonKey:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZiaHRna3Z2bXdmenRzd3hsdm5sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEwMjE2MzgsImV4cCI6MjEwNjU5NzYzOH0.CqsEoBOVB4CS9UphogsIRtR1syY82kx5uzvcz_K_luo',
@@ -8,7 +8,7 @@ export const appConfig={
 };
 export const supabase=createClient(appConfig.supabaseUrl,appConfig.supabaseAnonKey);
 export const PERMISSION_TABS=[
- {key:'qr',label:'Quét QR Đi Muộn'},
+ {key:'qr',label:'Quét QR thẻ HS'},
  {key:'baovang',label:'Báo Vắng Học Sinh'},
  {key:'chamdiem',label:'Chấm Điểm Thi Đua'},
  {key:'thongke',label:'Thống Kê Biểu Đồ'},

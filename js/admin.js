@@ -89,7 +89,7 @@ function staffForm(s,classes){
    area.innerHTML=`<label>Lớp cán bộ lớp<select id="c_class">${classOptions(classes,x.lop_quan_ly)}</select></label><label style="margin-top:10px;display:block">Học sinh liên kết<select id="c_student"><option value="">-- Chọn học sinh --</option></select></label><div class="scope-help">${note}</div>`;
    loadStudentsForClass(m,x.lop_quan_ly||'');
   }else if(r==='Cờ đỏ'){
-   area.innerHTML=`<div class="notice"><b>Cờ đỏ:</b> không cần gán lớp và không cần liên kết học sinh. Tài khoản được phép mở chức năng <b>Quét QR Đi Muộn</b> và quét học sinh ở <b>tất cả các lớp</b>.</div>`;
+   area.innerHTML=`<div class="notice"><b>Cờ đỏ:</b> không cần gán lớp và không cần liên kết học sinh. Tài khoản được phép mở chức năng <b>Quét QR thẻ HS</b> và quét học sinh ở <b>tất cả các lớp</b>.</div>`;
   }else if(r==='Trực'){
    area.innerHTML=`<div class="notice"><b>Cán bộ trực:</b> theo dõi tình trạng báo vắng của các lớp theo lịch học. Không được sửa điểm hoặc báo vắng thay cho giáo viên.</div>`;
   }else{
