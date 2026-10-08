@@ -62,14 +62,18 @@ export async function init(root){
 async function load(root){
   const box=root.querySelector('#stats');
   try{
-    const [studentsRaw,events,studyRows]=await Promise.all([
+    const [studentsRaw,events,studyRows,criteria]=await Promise.all([
       fetchAll(()=>supabase.from('danh_sach').select('id,ma_hs,ho_ten,khoi,lop,trang_thai,ngay_sinh').order('id')),
       fetchAll(()=>supabase.from('diem_danh_master').select('id,ma_hs,ho_ten,khoi,lop,diem,trang_thai,chi_tiet,ma_hd,ngay_diem_danh,doi_tuong').order('id')),
-      fetchAll(()=>supabase.from('diem_hoc_tap_tuan').select('nam_hoc,tuan_hoc,lop,ma_hs,ho_ten,loai_diem,diem,so_luong,ma_nguoi_cap_nhat,ten_nguoi_cap_nhat,created_at').order('id'))
+      fetchAll(()=>supabase.from('diem_hoc_tap_tuan').select('nam_hoc,tuan_hoc,lop,ma_hs,ho_ten,loai_diem,diem,so_luong,ma_nguoi_cap_nhat,ten_nguoi_cap_nhat,created_at').order('id')),
+      fetchAll(()=>supabase.from('danh_muc_diem').select('ma_hd,ten_hd,mang,loai,diem,doi_tuong').order('ma_hd'))
     ]);
 
     const gradeNorm=v=>{const x=norm(v);const m=x.match(/(?:khoi\s*)?(10|11|12)\b/);return m?m[1]:x};
     const classNorm=v=>String(v||'').trim().toUpperCase();
+    const criteriaMap=new Map(criteria.map(c=>[String(c.ma_hd),c]));
+    const criterionName=e=>criteriaMap.get(String(e.ma_hd))?.ten_hd||e.chi_tiet||e.ma_hd||'Chưa xác định tiêu chí';
+    const criterionGroup=e=>criteriaMap.get(String(e.ma_hd))?.mang||'Khác';
     let students=studentsRaw.filter(x=>activeStudent(x.trang_thai));
     const user=window.App?.Auth?.currentUser;
     const scope=managedClasses(user);
@@ -141,7 +145,7 @@ async function load(root){
       </section>
 
       <section class="stats-card alert-card">
-        <div class="stats-section-head"><div><h3>🚨 Danh sách cảnh báo</h3><p>Lọc học sinh có điểm trừ nhiều hoặc theo đúng chế độ đang xem.</p></div><select id="alertThreshold"><option value="5">Từ 5 điểm trừ</option><option value="10" selected>Từ 10 điểm trừ</option><option value="15">Từ 15 điểm trừ</option><option value="20">Từ 20 điểm trừ</option></select></div>
+        <div class="stats-section-head"><div><h3>🚨 Cảnh báo theo tiêu chí</h3><p>Không dùng ngưỡng tổng điểm. Danh sách được tổng hợp trực tiếp từ từng tiêu chí có phát sinh điểm trừ trong phạm vi đang chọn.</p></div><span class="stats-pill" id="alertScopeLabel">Theo phạm vi đang xem</span></div>
         <div id="alertList" class="alert-list"></div>
       </section>
       <div id="statsDetailModal" class="stats-detail-modal hidden"></div>`;
@@ -200,23 +204,32 @@ async function load(root){
       const ev=selectedEvents();
       const study=selectedStudy();
       let rows=[];
+      let scopeTitle='Toàn trường → Khối';
       if(state.view==='school'){
         const m=groupBy(ev,e=>gradeNorm(e.khoi||studentMap.get(String(e.ma_hs))?.khoi));
         const sm=aggregateStudy(study,r=>gradeNorm(r.khoi||studentMap.get(String(r.ma_hs))?.khoi));
         rows=[...new Set([...m.keys(),...sm.keys()].filter(Boolean))].map(name=>({name,stats:statsFor(m.get(name)||[]),study:studyStats(sm.get(name)||[])}));
+        scopeTitle='Toàn trường → từng khối';
       }else if(state.view==='grade'){
         const m=groupBy(ev,e=>classNorm(e.lop||studentMap.get(String(e.ma_hs))?.lop));
         const sm=aggregateStudy(study,r=>classNorm(r.lop||studentMap.get(String(r.ma_hs))?.lop));
         rows=[...new Set([...m.keys(),...sm.keys()].filter(Boolean))].map(name=>({name,stats:statsFor(m.get(name)||[]),study:studyStats(sm.get(name)||[])}));
+        scopeTitle=`Khối ${state.grade||'tất cả'} → từng lớp`;
       }else{
         const m=groupBy(ev,e=>String(e.ma_hs||''));
         const sm=aggregateStudy(study,r=>String(r.ma_hs||''));
         rows=[...new Set([...m.keys(),...sm.keys()].filter(Boolean))].map(id=>{const s=studentMap.get(id);return {name:s?.ho_ten||id,sub:s?.lop||'',id,stats:statsFor(m.get(id)||[]),study:studyStats(sm.get(id)||[])};});
+        scopeTitle=`${state.cls||'Lớp đang chọn'} → từng học sinh`;
       }
       rows.sort((a,b)=>(b.stats.total-a.stats.total)||(b.study.avg-a.study.avg));
       const sumPlus=rows.reduce((a,r)=>a+r.stats.plus,0),sumMinus=rows.reduce((a,r)=>a+r.stats.minus,0),sumStudy=rows.filter(r=>r.study.total).reduce((a,r)=>a+r.study.avg,0),nStudy=rows.filter(r=>r.study.total).length;
       root.querySelector('#scoreSummary').innerHTML=`<div class="score-mini-grid"><div><span>Điểm cộng nề nếp</span><b>+${fmt(sumPlus)}</b></div><div><span>Điểm trừ nề nếp</span><b>${fmt(sumMinus)}</b></div><div><span>Điểm</span><b>${fmt(sumPlus+sumMinus)}</b></div><div><span>ĐTB học tập CB lớp</span><b>${nStudy?fmt(sumStudy/nStudy):'—'}</b></div></div>`;
-      root.querySelector('#scoreChart').innerHTML=rows.length?`<div class="score-table-head"><span>Đối tượng</span><span>Cộng</span><span>Trừ</span><span>Điểm</span><span>ĐTB học tập</span></div>${rows.map(r=>`<button type="button" class="score-detail-row" data-detail-id="${esc(r.id||r.name)}"><span class="score-object"><b>${esc(r.name)}</b><small>${esc(r.sub||'Nhấn để xem chi tiết')}</small></span><strong class="plus-text">+${fmt(r.stats.plus)}</strong><strong class="minus-text">${fmt(r.stats.minus)}</strong><strong class="net-text">${r.stats.total>0?'+':''}${fmt(r.stats.total)}</strong><strong class="study-text">${r.study.total?fmt(r.study.avg):'—'}</strong></button>`).join('')}`:'<div class="empty">Chưa có dữ liệu điểm trong phạm vi này.</div>';
+      const maxAbs=Math.max(1,...rows.map(r=>Math.max(Math.abs(r.stats.plus),Math.abs(r.stats.minus),Math.abs(r.stats.total))));
+      const chartRows=rows.map(r=>{
+        const plusW=Math.min(100,Math.abs(r.stats.plus)/maxAbs*100), minusW=Math.min(100,Math.abs(r.stats.minus)/maxAbs*100), netW=Math.min(100,Math.abs(r.stats.total)/maxAbs*100);
+        return `<div class="score-chart-item"><div class="score-chart-object"><b>${esc(r.name)}</b><small>${esc(r.sub||'')}</small></div><div class="score-chart-bars"><div class="chart-line"><span class="chart-label plus-text">Cộng</span><span class="chart-track"><i class="chart-fill plus" style="width:${plusW}%"></i></span><strong class="plus-text">+${fmt(r.stats.plus)}</strong></div><div class="chart-line"><span class="chart-label minus-text">Trừ</span><span class="chart-track"><i class="chart-fill minus" style="width:${minusW}%"></i></span><strong class="minus-text">${fmt(r.stats.minus)}</strong></div><div class="chart-line"><span class="chart-label net-text">Điểm</span><span class="chart-track"><i class="chart-fill net" style="width:${netW}%"></i></span><strong class="net-text">${r.stats.total>0?'+':''}${fmt(r.stats.total)}</strong></div></div></div>`;
+      }).join('');
+      root.querySelector('#scoreChart').innerHTML=rows.length?`<div class="score-chart-card"><div class="score-chart-head"><div><h4>📊 Biểu đồ điểm theo đối tượng</h4><p>${esc(scopeTitle)} · mỗi đối tượng là một dòng so sánh Cộng / Trừ / Điểm.</p></div></div><div class="score-chart-list">${chartRows}</div></div><div class="score-table-head"><span>Đối tượng</span><span>Cộng</span><span>Trừ</span><span>Điểm</span><span>ĐTB học tập</span></div>${rows.map(r=>`<button type="button" class="score-detail-row" data-detail-id="${esc(r.id||r.name)}"><span class="score-object"><b>${esc(r.name)}</b><small>${esc(r.sub||'Nhấn để xem chi tiết')}</small></span><strong class="plus-text">+${fmt(r.stats.plus)}</strong><strong class="minus-text">${fmt(r.stats.minus)}</strong><strong class="net-text">${r.stats.total>0?'+':''}${fmt(r.stats.total)}</strong><strong class="study-text">${r.study.total?fmt(r.study.avg):'—'}</strong></button>`).join('')}`:'<div class="empty">Chưa có dữ liệu điểm trong phạm vi này.</div>';
       root.querySelectorAll('.score-detail-row').forEach(btn=>btn.onclick=()=>showDetail(btn.dataset.detailId,rows));
     }
     function showDetail(id,rows){
@@ -230,13 +243,28 @@ async function load(root){
       root.querySelector('#closeStatsDetail').onclick=()=>root.querySelector('#statsDetailModal').classList.add('hidden');
     }
     function renderAlerts(){
-      const threshold=Number(root.querySelector('#alertThreshold').value||10);
-      const list=selectedStudents().map(s=>{const rows=eventByStudent.get(String(s.ma_hs))||[];const minus=rows.filter(e=>Number(e.diem)<0).reduce((a,e)=>a+Number(e.diem||0),0);const plus=rows.filter(e=>Number(e.diem)>0).reduce((a,e)=>a+Number(e.diem||0),0);return {...s,minus,plus,total:plus+minus}}).filter(s=>Math.abs(s.minus)>=threshold).sort((a,b)=>a.minus-b.minus);
-      root.querySelector('#alertList').innerHTML=list.length?list.map((s,i)=>`<button type="button" class="alert-row" data-alert-id="${esc(s.ma_hs)}"><div class="alert-rank">${i+1}</div><div class="alert-main"><b>${esc(s.ho_ten)}</b><span>${esc(s.ma_hs)} · ${esc(s.lop)}</span></div><div class="alert-score"><b>${fmt(s.minus)}</b><small>điểm trừ</small></div><div class="alert-net ${s.total<0?'bad':'good'}">${s.total>0?'+':''}${fmt(s.total)}<small>điểm</small></div></button>`).join(''):'<div class="alert-empty">🎉 Không có học sinh vượt ngưỡng cảnh báo trong chế độ xem này.</div>';
-      root.querySelectorAll('.alert-row').forEach(b=>b.onclick=()=>{const s=students.find(x=>String(x.ma_hs)===String(b.dataset.alertId));if(s){state.view='class';state.grade=gradeNorm(s.khoi);state.cls=classNorm(s.lop);root.querySelectorAll('.view-btn').forEach(x=>x.classList.toggle('active',x.dataset.view==='class'));renderFilters();renderChart();renderAlerts();}});
+      const ev=selectedEvents().filter(e=>Number(e.diem)<0);
+      const groups=new Map();
+      ev.forEach(e=>{
+        const key=String(e.ma_hd||criterionName(e));
+        if(!groups.has(key))groups.set(key,{key,name:criterionName(e),mang:criterionGroup(e),total:0,count:0,students:new Set(),events:[]});
+        const g=groups.get(key);g.total+=Number(e.diem||0);g.count+=1;if(e.ma_hs)g.students.add(String(e.ma_hs));g.events.push(e);
+      });
+      const list=[...groups.values()].sort((a,b)=>a.total-b.total||b.count-a.count);
+      const scopeText=state.view==='school'?'Toàn trường':state.view==='grade'?`Khối ${state.grade||'tất cả'}`:`Lớp ${state.cls||'tất cả'}`;
+      root.querySelector('#alertScopeLabel').textContent=scopeText;
+      root.querySelector('#alertList').innerHTML=list.length?list.map((g,i)=>`<button type="button" class="alert-row criterion-alert-row" data-alert-criterion="${esc(g.key)}"><div class="alert-rank">${i+1}</div><div class="alert-main"><b>${esc(g.name)}</b><span>${esc(g.mang)} · ${g.count} lần · ${g.students.size} học sinh bị ảnh hưởng</span></div><div class="alert-score"><b>${fmt(g.total)}</b><small>điểm trừ</small></div><div class="alert-net bad"><b>${g.count}</b><small>lần vi phạm</small></div></button>`).join(''):'<div class="alert-empty">🎉 Không có tiêu chí nào phát sinh điểm trừ trong phạm vi này.</div>';
+      root.querySelectorAll('.criterion-alert-row').forEach(b=>b.onclick=()=>showCriterionDetail(b.dataset.alertCriterion, list));
+    }
+    function showCriterionDetail(key,list){
+      const g=list.find(x=>String(x.key)===String(key));if(!g)return;
+      const uniqueStudents=[...g.students].map(id=>studentMap.get(id)).filter(Boolean);
+      const details=g.events.map(e=>`<div><span>${esc(e.ngay_diem_danh||'')}</span><b>${esc(e.ho_ten||studentMap.get(String(e.ma_hs))?.ho_ten||e.ma_hs||'Tập thể')}</b><strong class="minus-text">${fmt(e.diem)}</strong><small>${esc(e.chi_tiet||e.ma_hd||'')}</small></div>`).join('');
+      root.querySelector('#statsDetailModal').classList.remove('hidden');
+      root.querySelector('#statsDetailModal').innerHTML=`<div class="stats-detail-box"><div class="stats-detail-head"><div><div class="detail-type-badge">CẢNH BÁO THEO TIÊU CHÍ</div><h3>🚨 ${esc(g.name)}</h3><p>${esc(g.mang)} · ${g.count} lần · ${uniqueStudents.length} học sinh bị ảnh hưởng</p></div><button type="button" id="closeStatsCriterion">✕</button></div><div class="detail-kpis"><div><small>Tiêu chí</small><b>${esc(g.name)}</b></div><div><small>Số lần</small><b>${g.count}</b></div><div><small>Học sinh</small><b>${uniqueStudents.length}</b></div><div><small>Tổng điểm trừ</small><b class="minus-text">${fmt(g.total)}</b></div></div><h4>Học sinh liên quan</h4><div class="criterion-student-list">${uniqueStudents.length?uniqueStudents.map(s=>`<div><b>${esc(s.ho_ten)}</b><span>${esc(s.ma_hs)} · ${esc(s.lop)}</span></div>`).join(''):'<div class="empty">Không xác định được học sinh.</div>'}</div><h4>Chi tiết phát sinh</h4><div class="event-detail-list">${details||'<div class="empty">Chưa có chi tiết.</div>'}</div></div>`;
+      root.querySelector('#closeStatsCriterion').onclick=()=>root.querySelector('#statsDetailModal').classList.add('hidden');
     }
     root.querySelectorAll('.view-btn').forEach(b=>b.onclick=()=>{root.querySelectorAll('.view-btn').forEach(x=>x.classList.remove('active'));b.classList.add('active');state.view=b.dataset.view;if(state.view==='school'){state.grade='';state.cls=''}renderFilters();renderChart();renderAlerts()});
-    root.querySelector('#alertThreshold').onchange=renderAlerts;
     renderPeriodToolbar();renderFilters();renderChart();renderAlerts();
   }catch(error){box.innerHTML=`<div class="danger-box">${esc(error.message||String(error))}</div>`;console.error('[QLNN STATS]',error)}
 }
