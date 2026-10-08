@@ -484,3 +484,17 @@ main{max-width:1540px;padding:20px clamp(12px,2.4vw,32px) 38px}.page{animation:p
 .period-select-wrap input{min-width:155px}
 .period-badge{align-self:center;margin-left:auto;padding:9px 13px;border-radius:999px;background:#e9faf6;color:#08776e;font-size:12px;font-weight:850;border:1px solid #c7eee4}
 @media(max-width:600px){.period-select-wrap{display:grid;grid-template-columns:1fr}.period-select-wrap label,.period-select-wrap select,.period-select-wrap input{width:100%;min-width:0}.period-badge{margin-left:0;width:100%;text-align:center}}
+
+/* V3.0.5.25.19 - popup chi tiết khối/lớp/học sinh */
+.rank-click-row{cursor:pointer;transition:background .16s ease,transform .16s ease}
+.rank-click-row:hover{background:#f1fbf8!important}
+.rank-click-row td:first-child{position:relative}
+.rank-click-row td:first-child:before{content:'›';display:inline-grid;place-items:center;width:22px;height:22px;margin-right:5px;border-radius:7px;background:#edf7f5;color:#18856f;font-weight:900;opacity:.75}
+.rank-detail-modal{position:fixed;inset:0;z-index:1100;background:rgba(18,43,70,.30);backdrop-filter:blur(5px);display:flex;align-items:center;justify-content:center;padding:18px}
+.rank-detail-modal.hidden{display:none}
+.rank-detail-box{width:min(1000px,100%);max-height:90vh;overflow:auto;background:#fff;border:1px solid #dceaf4;border-radius:24px;box-shadow:0 28px 80px rgba(31,67,100,.25);padding:24px}
+.detail-type-badge{display:inline-flex;padding:5px 10px;border-radius:999px;background:#edf8f5;color:#16836d;font-size:11px;font-weight:900;letter-spacing:.5px;margin-bottom:7px}
+.rank-detail-box h3{margin:0;color:#17365d;font-size:23px}.rank-detail-box h4{margin:20px 0 10px;color:#17365d}.rank-detail-info{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:17px 0}.rank-detail-info span{padding:12px 14px;border:1px solid #e2edf4;background:#f8fbfd;border-radius:14px}.rank-detail-info small{display:block;color:#7b8da0}.rank-detail-info b{display:block;margin-top:4px;color:#17365d}
+.rank-kpis{grid-template-columns:repeat(3,1fr)!important}.rank-kpis>div{position:relative}.rank-kpis em{display:block;margin-top:2px;color:#8294a5;font-size:11px;font-style:normal}.rank-total-kpi{background:#eefaf6!important;border-color:#cceee4!important}.rank-total-kpi b{color:#12866e}
+.rank-member-list{display:grid;gap:7px}.rank-member-list>div{display:grid;grid-template-columns:35px minmax(160px,1fr) 150px 80px;gap:10px;align-items:center;padding:10px 12px;border:1px solid #e7eef4;background:#fbfdff;border-radius:12px}.rank-member-list span{width:28px;height:28px;border-radius:9px;background:#edf5fa;display:grid;place-items:center;font-weight:900;color:#52718c}.rank-member-list small{color:#7b8da0}.rank-member-list strong{text-align:right;color:#17365d}.rank-study-grid{margin-bottom:4px}
+@media(max-width:700px){.rank-detail-modal{padding:8px}.rank-detail-box{padding:15px;border-radius:18px;max-height:94vh}.rank-detail-info{grid-template-columns:1fr 1fr}.rank-kpis{grid-template-columns:1fr 1fr!important}.rank-member-list>div{grid-template-columns:30px 1fr 70px}.rank-member-list small{grid-column:2}.rank-member-list strong{grid-column:3;grid-row:1/3}.rank-click-row td:first-child:before{display:none}}

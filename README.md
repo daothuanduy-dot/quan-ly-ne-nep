@@ -21,3 +21,9 @@ V3.0.5.25.13: Tại Quản lý học sinh > Sửa, bổ sung checkbox Cán bộ 
 
 
 V3.0.5.25.13: Modern responsive UI refresh for all tabs; bright card-based layout, mobile optimization, and improved scoring selectors.
+
+## V3.0.5.25.19
+- Bổ sung popup chi tiết khi nhấn vào hàng tại Xếp loại & Thi đua thử nghiệm.
+- Áp dụng cho 3 chế độ: Cá nhân, Tập thể lớp, Theo khối.
+- Popup hiển thị thông tin đối tượng, điểm từng mảng, tổng điểm, phân bố điểm học tập và chi tiết các điểm đã chấm.
+- Nhấn nền popup hoặc nút X để đóng.
