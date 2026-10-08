@@ -200,7 +200,14 @@ async function onClassChange(cls){
 
   try{
     await loadStudents(grade,cls);
-    setMode('individual');
+    const role=roleOf(window.App?.Auth?.currentUser);
+    if(role==='Cán bộ lớp'){
+      root.querySelector('#scoreModeWrap').classList.add('hidden');
+      renderClassOfficer(wrapForOfficer(),cls);
+    }else{
+      root.querySelector('#scoreModeWrap').classList.remove('hidden');
+      setMode('individual');
+    }
   }catch(e){
     showError(e.message);
   }
@@ -250,12 +257,115 @@ function setMode(next){
   renderScoreForm();
 }
 
+
+function wrapForOfficer(){return root.querySelector('#scoreFormWrap');}
+
+function isoWeekNow(){
+  const d=new Date();
+  const x=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));
+  const day=x.getUTCDay()||7;
+  x.setUTCDate(x.getUTCDate()+4-day);
+  const yearStart=new Date(Date.UTC(x.getUTCFullYear(),0,1));
+  return Math.ceil((((x-yearStart)/86400000)+1)/7);
+}
+
+function officerScoreInputs(prefix){
+  return [10,9,8,7,6,5,4,3,2,1,0].map(d=>`
+    <label style="min-width:74px;text-align:center"><span style="display:block;font-weight:800;margin-bottom:5px">${d}</span><input class="score-count" data-score="${d}" data-prefix="${prefix}" type="number" min="0" step="1" value="0" style="width:68px;text-align:center"></label>
+  `).join('');
+}
+
+function renderClassOfficer(wrap,cls){
+  const u=window.App?.Auth?.currentUser;
+  const year=window.App?.appConfig?.namHoc||'2026-2027';
+  const week=isoWeekNow();
+  wrap.innerHTML=`
+    <div class="score-form">
+      <div class="page-head">
+        <div><h3 style="margin:0">🎓 Nhập điểm thi đua — lớp ${esc(cls)}</h3><p>Tài khoản Cán bộ lớp chỉ được nhập <b>Sổ đầu bài</b> của lớp mình và thống kê điểm <b>0–10 của học sinh trong lớp</b>.</p></div>
+        <span class="badge ok">Tuần ${week}</span>
+      </div>
+      <div class="score-mode">
+        <button type="button" data-officer-mode="book" class="active">📘 Sổ đầu bài<small style="display:block;color:var(--muted);margin-top:5px;font-weight:500">Số tiết theo từng mức điểm 0–10 trong tuần.</small></button>
+        <button type="button" data-officer-mode="students">👨‍🎓 Điểm học sinh<small style="display:block;color:var(--muted);margin-top:5px;font-weight:500">Mỗi học sinh có bao nhiêu điểm 10, 9, ... 0.</small></button>
+      </div>
+      <div id="officerScoreBody"></div>
+    </div>`;
+  root.querySelectorAll('[data-officer-mode]').forEach(b=>b.onclick=()=>{
+    root.querySelectorAll('[data-officer-mode]').forEach(x=>x.classList.toggle('active',x===b));
+    if(b.dataset.officerMode==='book')renderOfficerBook(root.querySelector('#officerScoreBody'),cls,year,week);
+    else renderOfficerStudents(root.querySelector('#officerScoreBody'),cls,year,week);
+  });
+  renderOfficerBook(root.querySelector('#officerScoreBody'),cls,year,week);
+}
+
+function renderOfficerBook(body,cls,year,week){
+  body.innerHTML=`
+    <div class="notice"><b>Sổ đầu bài — ${esc(cls)}</b><br>Nhập số lượng tiết trong tuần theo mức điểm. Ví dụ: điểm 10 = 12 tiết, điểm 9 = 5 tiết. Tổng các cột 0–10 phải bằng tổng số tiết trong tuần.</div>
+    <div class="toolbar"><label style="max-width:180px">Tuần học<input id="offWeek" type="number" min="1" max="53" value="${week}"></label><label style="max-width:220px">Tổng số tiết<input id="offTotal" type="number" min="0" step="1" value="0"></label></div>
+    <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:end;margin-top:12px">${officerScoreInputs('book')}</div>
+    <div id="offBookSummary" class="score-summary" style="margin-top:15px">Tổng số tiết theo điểm: 0.</div>
+    <div class="action-row"><button id="saveOfficerBook" class="btn primary">💾 Lưu Sổ đầu bài</button></div>`;
+  const inputs=[...body.querySelectorAll('.score-count')];
+  const update=()=>{const sum=inputs.reduce((a,x)=>a+Number(x.value||0),0);body.querySelector('#offBookSummary').textContent=`Tổng số tiết theo điểm: ${sum}. ${sum===Number(body.querySelector('#offTotal').value||0)?'Đã khớp tổng số tiết.':'Chưa khớp tổng số tiết.'}`};
+  inputs.forEach(x=>x.oninput=update);body.querySelector('#offTotal').oninput=update;
+  body.querySelector('#saveOfficerBook').onclick=()=>saveOfficerBook(cls,year,Number(body.querySelector('#offWeek').value),Number(body.querySelector('#offTotal').value),inputs);
+  loadOfficerExisting('SoDauBai',cls,year,Number(week),body,inputs,body.querySelector('#offTotal'));
+}
+
+function renderOfficerStudents(body,cls,year,week){
+  body.innerHTML=`
+    <div class="notice"><b>Điểm học sinh — ${esc(cls)}</b><br>Nhập số lần mỗi học sinh đạt từng mức điểm từ <b>0 đến 10</b> trong tuần. Dữ liệu được lưu riêng để sau này tính thi đua theo học sinh.</div>
+    <div class="toolbar"><label style="max-width:180px">Tuần học<input id="stuWeek" type="number" min="1" max="53" value="${week}"></label><span class="badge">${students.length} học sinh</span></div>
+    <div class="table-wrap" style="margin-top:12px"><table class="table"><thead><tr><th>Học sinh</th>${[10,9,8,7,6,5,4,3,2,1,0].map(d=>`<th>${d}</th>`).join('')}<th>Tổng</th></tr></thead><tbody>${students.map((st,i)=>`<tr><td><b>${esc(st.ho_ten)}</b><br><small>${esc(st.ma_hs)}</small></td>${[10,9,8,7,6,5,4,3,2,1,0].map(d=>`<td><input class="student-score-count" data-i="${i}" data-score="${d}" type="number" min="0" step="1" value="0" style="width:55px;text-align:center"></td>`).join('')}<td class="student-total" data-i="${i}">0</td></tr>`).join('')}</tbody></table></div>
+    <div class="score-summary" style="margin-top:15px">Mỗi ô là số lần học sinh đạt mức điểm tương ứng trong tuần.</div>
+    <div class="action-row"><button id="saveOfficerStudents" class="btn primary">💾 Lưu điểm học sinh</button></div>`;
+  body.querySelectorAll('.student-score-count').forEach(x=>x.oninput=()=>{const i=x.dataset.i;let t=0;body.querySelectorAll(`.student-score-count[data-i="${i}"]`).forEach(y=>t+=Number(y.value||0));const cell=body.querySelector(`.student-total[data-i="${i}"]`);if(cell)cell.textContent=t});
+  body.querySelector('#saveOfficerStudents').onclick=()=>saveOfficerStudents(cls,year,Number(body.querySelector('#stuWeek').value),body);
+  loadOfficerStudentExisting(cls,year,Number(week),body);
+}
+
+async function loadOfficerExisting(kind,cls,year,week,body,inputs,totalEl){
+  try{const {data,error}=await supabase.from('diem_hoc_tap_tuan').select('diem,so_luong').eq('nam_hoc',year).eq('tuan_hoc',week).eq('lop',cls).eq('loai_diem',kind);if(error)return;let sum=0;(data||[]).forEach(r=>{const x=inputs.find(i=>Number(i.dataset.score)===Number(r.diem));if(x)x.value=Number(r.so_luong||0);sum+=Number(r.so_luong||0)});if(totalEl)totalEl.value=sum;body.querySelectorAll('.score-count').forEach(x=>x.dispatchEvent(new Event('input')));}catch(e){}
+}
+
+async function loadOfficerStudentExisting(cls,year,week,body){
+  try{const {data,error}=await supabase.from('diem_hoc_tap_tuan').select('ma_hs,diem,so_luong').eq('nam_hoc',year).eq('tuan_hoc',week).eq('lop',cls).eq('loai_diem','HocSinh');if(error)return;(data||[]).forEach(r=>{const i=students.findIndex(s=>String(s.ma_hs)===String(r.ma_hs));if(i<0)return;const x=body.querySelector(`.student-score-count[data-i="${i}"][data-score="${Number(r.diem)}"]`);if(x)x.value=Number(r.so_luong||0)});body.querySelectorAll('.student-score-count').forEach(x=>x.dispatchEvent(new Event('input')));}catch(e){}
+}
+
+async function saveOfficerBook(cls,year,week,total,inputs){
+  const u=window.App?.Auth?.currentUser;const counts=inputs.map(x=>({diem:Number(x.dataset.score),so_luong:Math.max(0,Number(x.value||0))}));const sum=counts.reduce((a,x)=>a+x.so_luong,0);
+  if(!Number.isInteger(week)||week<1||week>53)return toast('Tuần học phải từ 1 đến 53.','err');
+  if(total!==sum)return toast(`Tổng số tiết (${total}) phải bằng tổng các mức điểm (${sum}).`,'err');
+  if(!Number.isInteger(total)||total<0)return toast('Tổng số tiết không hợp lệ.','err');
+  const del=await supabase.from('diem_hoc_tap_tuan').delete().eq('nam_hoc',year).eq('tuan_hoc',week).eq('lop',cls).eq('loai_diem','SoDauBai');
+  if(del.error)return toast('Không thể cập nhật Sổ đầu bài: '+del.error.message,'err');
+  const rows=counts.filter(x=>x.so_luong>0).map(x=>({nam_hoc:year,tuan_hoc:week,lop:cls,loai_diem:'SoDauBai',diem:x.diem,so_luong:x.so_luong,ma_nguoi_cap_nhat:u?.ma_cb||null,ten_nguoi_cap_nhat:u?.ho_ten||null}));
+  if(rows.length){const ins=await supabase.from('diem_hoc_tap_tuan').insert(rows);if(ins.error)return toast('Không lưu được Sổ đầu bài: '+ins.error.message,'err');}
+  toast(`Đã lưu Sổ đầu bài lớp ${cls}, tuần ${week}.`,'ok');
+}
+
+async function saveOfficerStudents(cls,year,week,body){
+  const u=window.App?.Auth?.currentUser;
+  if(!Number.isInteger(week)||week<1||week>53)return toast('Tuần học phải từ 1 đến 53.','err');
+  const rows=[];
+  students.forEach((s,i)=>{body.querySelectorAll(`.student-score-count[data-i="${i}"]`).forEach(x=>{const n=Math.max(0,Number(x.value||0));if(n>0)rows.push({nam_hoc:year,tuan_hoc:week,lop:cls,ma_hs:s.ma_hs,ho_ten:s.ho_ten,loai_diem:'HocSinh',diem:Number(x.dataset.score),so_luong:n,ma_nguoi_cap_nhat:u?.ma_cb||null,ten_nguoi_cap_nhat:u?.ho_ten||null})})});
+  const del=await supabase.from('diem_hoc_tap_tuan').delete().eq('nam_hoc',year).eq('tuan_hoc',week).eq('lop',cls).eq('loai_diem','HocSinh');
+  if(del.error)return toast('Không thể cập nhật điểm học sinh: '+del.error.message,'err');
+  if(rows.length){const ins=await supabase.from('diem_hoc_tap_tuan').insert(rows);if(ins.error)return toast('Không lưu được điểm học sinh: '+ins.error.message,'err');}
+  toast(`Đã lưu điểm học sinh lớp ${cls}, tuần ${week}.`,'ok');
+}
+
 function renderScoreForm(){
   const wrap=root.querySelector('#scoreFormWrap');
   const cls=root.querySelector('input[name="scoreClass"]:checked')?.value || '';
 
   if(!cls){
     wrap.innerHTML='<div class="empty">Hãy chọn khối và lớp trước.</div>';
+    return;
+  }
+  if(roleOf(window.App?.Auth?.currentUser)==='Cán bộ lớp'){
+    renderClassOfficer(wrap,cls);
     return;
   }
 

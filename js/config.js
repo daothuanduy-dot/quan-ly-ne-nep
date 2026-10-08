@@ -1,5 +1,5 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-export const APP_VERSION='3.0.5.25.5';
+export const APP_VERSION='3.0.5.25.6';
 export const appConfig={
   supabaseUrl:'https://vbhtgkvvmwfztswxlvnl.supabase.co',
   supabaseAnonKey:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZiaHRna3Z2bXdmenRzd3hsdm5sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEwMjE2MzgsImV4cCI6MjEwNjU5NzYzOH0.CqsEoBOVB4CS9UphogsIRtR1syY82kx5uzvcz_K_luo',
@@ -64,7 +64,7 @@ export function canManageAbsence(s,lop){
 export function canScore(s,lop,target='Cá nhân'){
  const role=roleOf(s); if(role==='Admin')return true;
  if(!canManageClass(s,lop))return false;
- if(role==='Cán bộ lớp')return target==='Cá nhân'||target==='Tập thể';
+ if(role==='Cán bộ lớp')return target==='Sổ đầu bài'||target==='Điểm học sinh';
  if(role==='Cờ đỏ')return target==='Cá nhân';
  return role==='GVCN'||role==='Giáo viên';
 }
