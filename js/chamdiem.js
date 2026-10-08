@@ -22,6 +22,30 @@ export async function init(r){
   await loadCriteria();
 }
 
+function renderShell(){
+  root.innerHTML=`
+    <div class="page-head">
+      <div>
+        <h2>⭐ Chấm điểm thi đua</h2>
+        <p>Nhập điểm cộng, điểm trừ cho cá nhân và tập thể theo phạm vi được phân quyền.</p>
+      </div>
+      <span class="badge ok">${esc(window.App?.Auth?.currentUser?.vai_tro||'')}</span>
+    </div>
+    <div class="score-select-panel">
+      <div class="score-section-title">Chọn khối</div>
+      <div id="scoreGradeRadios" class="grade-radios"><span class="class-empty">Đang tải khối...</span></div>
+      <div class="score-section-title" style="margin-top:14px">Chọn lớp</div>
+      <div id="scoreClassRadios" class="class-radios"><span class="class-empty">Hãy chọn khối trước.</span></div>
+      <div id="scoreClassHint" class="scope-help">Chọn một lớp để bắt đầu chấm.</div>
+    </div>
+    <div id="scoreModeWrap" class="score-mode hidden" style="margin-top:16px">
+      <button type="button" data-mode="individual" class="active">👨‍🎓 Cá nhân</button>
+      <button type="button" data-mode="collective">👥 Tập thể</button>
+    </div>
+    <div id="scoreFormWrap" style="margin-top:16px"><div class="empty">Hãy chọn khối và lớp trước.</div></div>`;
+  root.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>setMode(b.dataset.mode));
+}
+
 async function renderClassOfficerShell(){
   const u=window.App?.Auth?.currentUser||{};
   root.innerHTML=`

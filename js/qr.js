@@ -4,28 +4,45 @@ async function startScanner(){
  const status=root&&root.querySelector('#qrStatus');
  if(scanner){toast('Camera QR đang được mở.','err');return;}
  if(typeof window.Html5Qrcode!=='function'){
-   if(status)status.innerHTML='<div class=\"danger-box\">Không tải được thư viện quét QR. Hãy tải lại trang (Ctrl + F5) và kiểm tra kết nối Internet.</div>';
+   if(status)status.innerHTML='<div class="danger-box">Không tải được thư viện quét QR. Hãy tải lại trang và kiểm tra kết nối Internet.</div>';
    return toast('Không tải được thư viện quét QR.','err');
  }
  const reader=root.querySelector('#reader');
  if(!reader)return;
  reader.innerHTML='';
+ const onSuccess=async decodedText=>{
+   if(!decodedText||!scanner)return;
+   try{await scanner.stop();}catch(e){}
+   try{scanner.clear();}catch(e){}
+   scanner=null;
+   if(status)status.innerHTML='<div class="badge ok">✓ Đã quét QR, đang tìm học sinh...</div>';
+   await findStudent(decodedText);
+ };
+ const onError=()=>{};
  try{
    scanner=new window.Html5Qrcode('reader');
-   const config={fps:10,qrbox:{width:250,height:250},aspectRatio:1.0};
-   await scanner.start({facingMode:{exact:'environment'}},config,async decodedText=>{
-     if(!decodedText)return;
-     try{await scanner.stop();}catch(e){}
-     try{scanner.clear();}catch(e){}
-     scanner=null;
-     if(status)status.innerHTML='<div class=\"badge ok\">✓ Đã quét QR, đang tìm học sinh...</div>';
-     await findStudent(decodedText);
-   },()=>{});
-   if(status)status.innerHTML='<div class=\"badge ok\">📷 Camera đang hoạt động — đưa mã QR vào khung quét.</div>';
+   const config={fps:10,qrbox:(viewfinderWidth,viewfinderHeight)=>{const side=Math.max(180,Math.min(280,Math.floor(Math.min(viewfinderWidth,viewfinderHeight)*0.68)));return {width:side,height:side};},aspectRatio:1.333334,disableFlip:false};
+   let started=false;
+   // Ưu tiên camera sau nhưng không dùng facingMode: exact vì một số iPhone/Safari từ chối constraint này.
+   try{
+     const cams=await window.Html5Qrcode.getCameras();
+     const list=Array.isArray(cams)?cams:[];
+     const back=list.find(c=>/back|rear|environment|sau|main/i.test(String(c.label||'')))||list[list.length-1];
+     if(back){
+       await scanner.start(back.id,config,onSuccess,onError);
+       started=true;
+     }
+   }catch(e){}
+   if(!started){
+     await scanner.start({facingMode:{ideal:'environment'}},config,onSuccess,onError);
+     started=true;
+   }
+   if(started&&status)status.innerHTML='<div class="badge ok">📷 Camera đang hoạt động — đưa QR vào khung quét.</div>';
  }catch(e){
+   try{if(scanner){await scanner.stop();scanner.clear();}}catch(_e){}
    scanner=null;
-   if(status)status.innerHTML='<div class=\"danger-box\">Không mở được camera: '+esc(e&&e.message?e.message:String(e))+'</div>';
-   toast('Không mở được camera QR. Hãy cấp quyền camera cho trình duyệt.','err');
+   if(status)status.innerHTML='<div class="danger-box">Không mở được camera: '+esc(e&&e.message?e.message:String(e))+'</div>';
+   toast('Không mở được camera. Hãy cho phép Safari/Chrome sử dụng camera và thử lại.','err');
  }
 }
 
@@ -38,6 +55,7 @@ async function stopScanner(){
 
 export async function init(rootEl){
  root=rootEl;student=null;criteria=[];
+ window.__qlnnQrStop=stopScanner;
  root.innerHTML=`<div class="page-head"><div><h2>Quét QR thẻ HS</h2><p>QR chỉ xác định đối tượng. Thông tin học sinh hiển thị ở chế độ chỉ đọc.</p></div><span class="badge ok">Không sửa dữ liệu gốc</span></div>
  <div class="qr-layout"><div class="scanner"><div id="reader" class="scan-box"><span>Camera QR sẽ hiển thị tại đây</span></div><div class="toolbar"><input id="qrManual" placeholder="Hoặc nhập mã QR / mã học sinh"><button id="qrFind" class="btn primary">Tìm học sinh</button><button id="qrStart" class="btn light">Mở camera</button></div><div id="qrStatus"></div></div><div id="studentResult"><div class="empty">Chưa xác định học sinh.</div></div></div>`;
  root.querySelector('#qrFind').onclick=()=>findStudent(root.querySelector('#qrManual').value);
