@@ -1,4 +1,4 @@
-/* QLNN V3.0.5.25.12 - Bao vang - standalone module */
+/* QLNN V3.0.5.25.13 - Bao vang - standalone module */
 var BV25 = (function(){
   var root = null;
   var roster = [];
@@ -210,39 +210,43 @@ var BV25 = (function(){
     return x;
   }
   async function getScheduleRowsByDay(thu){
-    var q=await sb().from('thoi_khoa_bieu').select('nam_hoc,thu,buoi,khoi,lop,trang_thai').eq('thu',thu);
+    // Không lọc thu/ngày ở query để tránh sai khác kiểu dữ liệu giữa các bản ghi cũ.
+    var q=await sb().from('thoi_khoa_bieu').select('nam_hoc,thu,buoi,khoi,lop,trang_thai');
     if(q.error) throw q.error;
     return q.data || [];
+  }
+  function scheduleDay(v){
+    var n=Number(String(v==null?'':v).trim());
+    return Number.isFinite(n) ? n : 0;
+  }
+  function scheduleActive(v){
+    var st=cleanText(v);
+    if(!st) return true;
+    return !['inactive','tam dung','tam dung hoc','disabled','ngung','khong hoat dong'].includes(st);
   }
   async function hasSchedule(cls,day,session){
     var d=new Date(String(day)+'T12:00:00');
     if(isNaN(d.getTime())) return false;
     var dow=d.getDay();
-    var thu=dow===0?8:dow+1;
+    var wantedDay=dow===0?8:dow+1;
     var wantedSession=scheduleSession(session);
     var wantedClass=cleanText(cls);
     var wantedYear=cleanText(cfg().namHoc);
+    var wantedGrade=gradeKey(selectedGrade);
     try{
-      var rows=await getScheduleRowsByDay(thu);
-      /*
-       * Do NOT filter nam_hoc in the Supabase query. Some older TKB rows were
-       * created before nam_hoc was standardized, and the admin screen can
-       * still display them. We normalize/filter here so Bao Vắng sees the
-       * exact same schedule that the administrator sees.
-       */
-      var yearRows=rows.filter(function(r){
+      var rows=await getScheduleRowsByDay(wantedDay);
+      for(var i=0;i<rows.length;i++){
+        var r=rows[i];
+        if(scheduleDay(r.thu)!==wantedDay) continue;
+        if(!scheduleActive(r.trang_thai)) continue;
         var y=cleanText(r.nam_hoc);
-        return !y || sameYear(y,wantedYear);
-      });
-      var sessionRows=yearRows.filter(function(r){
-        return scheduleSession(r.buoi)===wantedSession && validScheduleStatus(r.trang_thai);
-      });
-      for(var i=0;i<sessionRows.length;i++){
-        var r=sessionRows[i];
+        // Cho phép các bản ghi TKB cũ chưa có năm học; nếu đã có thì phải đúng năm hiện tại.
+        if(y && wantedYear && y!==wantedYear) continue;
+        if(scheduleSession(r.buoi)!==wantedSession) continue;
         var lop=cleanText(r.lop);
-        var khoi=cleanText(r.khoi);
-        if(lop && sameClassName(lop,wantedClass)) return true;
-        if(!lop && khoi && sameGrade(khoi,selectedGrade)) return true;
+        var khoi=gradeKey(r.khoi);
+        if(lop && lop===wantedClass) return true;
+        if(!lop && khoi && wantedGrade && khoi===wantedGrade) return true;
         if(!lop && !khoi) return true;
       }
       return false;

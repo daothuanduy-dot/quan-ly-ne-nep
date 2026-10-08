@@ -24,26 +24,50 @@ export async function init(r){
 
 function renderShell(){
   root.innerHTML=`
-    <div class="page-head">
-      <div>
-        <h2>⭐ Chấm điểm thi đua</h2>
-        <p>Nhập điểm cộng, điểm trừ cho cá nhân và tập thể theo phạm vi được phân quyền.</p>
+    <div class="score-hero-modern">
+      <div class="score-hero-icon">⭐</div>
+      <div class="score-hero-copy">
+        <div class="score-kicker">THI ĐUA HỌC SINH</div>
+        <h2>Chấm điểm thi đua</h2>
+        <p>Chọn khối → chọn lớp → chọn hình thức chấm. Mọi thao tác được thiết kế nhanh và dễ dùng trên máy tính lẫn điện thoại.</p>
       </div>
-      <span class="badge ok">${esc(window.App?.Auth?.currentUser?.vai_tro||'')}</span>
+      <div class="score-hero-badge">${esc(window.App?.Auth?.currentUser?.vai_tro||'')}</div>
     </div>
-    <div class="score-select-panel">
-      <div class="score-section-title">Chọn khối</div>
-      <div id="scoreGradeRadios" class="grade-radios"><span class="class-empty">Đang tải khối...</span></div>
-      <div class="score-section-title" style="margin-top:14px">Chọn lớp</div>
-      <div id="scoreClassRadios" class="class-radios"><span class="class-empty">Hãy chọn khối trước.</span></div>
-      <div id="scoreClassHint" class="scope-help">Chọn một lớp để bắt đầu chấm.</div>
+
+    <div class="score-flow-grid">
+      <section class="score-card-modern score-step-card">
+        <div class="score-step-title"><span class="score-step-num blue">1</span><div><b>Chọn khối</b><small>Khối cần chấm điểm</small></div></div>
+        <div id="scoreGradeRadios" class="grade-radios modern-grade-grid"><span class="class-empty">Đang tải khối...</span></div>
+      </section>
+
+      <section class="score-card-modern score-step-card">
+        <div class="score-step-title"><span class="score-step-num green">2</span><div><b>Chọn lớp</b><small id="scoreClassHint">Chọn khối để xem danh sách lớp</small></div></div>
+        <div class="score-class-search-wrap"><span>⌕</span><input id="scoreClassSearch" placeholder="Tìm nhanh lớp..." autocomplete="off"></div>
+        <div id="scoreClassRadios" class="class-radios modern-class-grid"><span class="class-empty">Hãy chọn khối trước.</span></div>
+      </section>
     </div>
-    <div id="scoreModeWrap" class="score-mode hidden" style="margin-top:16px">
-      <button type="button" data-mode="individual" class="active">👨‍🎓 Cá nhân</button>
-      <button type="button" data-mode="collective">👥 Tập thể</button>
-    </div>
-    <div id="scoreFormWrap" style="margin-top:16px"><div class="empty">Hãy chọn khối và lớp trước.</div></div>`;
+
+    <section id="scoreModeWrap" class="score-card-modern score-mode-card hidden">
+      <div class="score-section-heading"><span class="score-step-num pink">3</span><div><b>Chọn hình thức chấm</b><small>Chọn cá nhân hoặc tập thể</small></div></div>
+      <div class="score-mode modern-mode-grid">
+        <button type="button" data-mode="individual" class="active"><span class="mode-icon blue">👤</span><span><b>Chấm điểm cá nhân</b><small>Nhập điểm cho từng học sinh</small></span><span class="mode-arrow">›</span></button>
+        <button type="button" data-mode="collective"><span class="mode-icon orange">👥</span><span><b>Chấm điểm tập thể</b><small>Nhập điểm cho cả lớp</small></span><span class="mode-arrow">›</span></button>
+      </div>
+    </section>
+
+    <section class="score-card-modern score-work-card">
+      <div class="score-section-heading"><span class="score-step-num purple">4</span><div><b>Thực hiện chấm điểm</b><small id="scoreWorkHint">Chưa chọn lớp</small></div></div>
+      <div id="scoreFormWrap"><div class="score-empty-modern"><div>🎯</div><h3>Sẵn sàng bắt đầu?</h3><p>Chọn khối và lớp ở phía trên để mở biểu mẫu chấm điểm.</p></div></div>
+    </section>`;
   root.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>setMode(b.dataset.mode));
+  const search=root.querySelector('#scoreClassSearch');
+  if(search) search.oninput=()=>{
+    const q=normalizeText(search.value);
+    root.querySelectorAll('#scoreClassRadios .class-radio').forEach(x=>{
+      const txt=normalizeText(x.textContent);
+      x.style.display=!q||txt.includes(q)?'flex':'none';
+    });
+  };
 }
 
 async function renderClassOfficerShell(){
@@ -195,7 +219,8 @@ async function onClassChange(cls){
   const grade=root.querySelector('input[name="scoreGrade"]:checked')?.value || '';
 
   root.querySelector('#scoreModeWrap').classList.toggle('hidden',!cls);
-  root.querySelector('#scoreClassLabel').textContent=cls||'';
+  const workHint=root.querySelector('#scoreWorkHint');
+  if(workHint) workHint.textContent=cls?`Đang chấm lớp ${cls}`:'Chưa chọn lớp';
 
   if(!cls){
     root.querySelector('#scoreFormWrap').innerHTML='<div class="empty">Hãy chọn lớp.</div>';
