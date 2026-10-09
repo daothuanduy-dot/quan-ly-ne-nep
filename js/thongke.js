@@ -1,5 +1,5 @@
-import {supabase,managedClasses,canViewAllStats,roleOf,appConfig} from './config.js?v=3.0.5.25.25';
-import {esc} from './ui.js?v=3.0.5.25.25';
+import {supabase,managedClasses,canViewAllStats,roleOf,appConfig} from './config.js?v=3.0.5.25.26';
+import {esc} from './ui.js?v=3.0.5.25.26';
 
 async function fetchAll(factory,chunk=1000){
   const all=[]; let from=0;

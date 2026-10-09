@@ -1,4 +1,4 @@
-import {supabase,appConfig} from './config.js?v=3.0.5.25.25';import {esc,toast,modal,closeModal} from './ui.js?v=3.0.5.25.25';
+import {supabase,appConfig} from './config.js?v=3.0.5.25.26';import {esc,toast,modal,closeModal} from './ui.js?v=3.0.5.25.26';
 let root,student=null,scanner=null,criteria=[];
 async function startScanner(){
  const status=root&&root.querySelector('#qrStatus');
