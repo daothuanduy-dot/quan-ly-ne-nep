@@ -641,3 +641,18 @@ main{max-width:1540px;padding:20px clamp(12px,2.4vw,32px) 38px}.page{animation:p
 .nt-target-option input[type=checkbox]{display:block!important;width:16px!important;height:16px!important;min-width:16px!important;max-width:16px!important;margin:3px 0 0!important;padding:0!important}
 @media(max-width:900px){.nt-target-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:600px){.nt-recipient.check-grid,.nt-target-list,.nt-student-list{grid-template-columns:minmax(0,1fr)}}
+
+/* V3.0.5.25.29: inline phuc khao controls */
+.portal-round-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:10px}.portal-round-head h3{margin:0}.appeal-inline{min-width:165px;display:flex;flex-direction:column;align-items:flex-start;gap:7px}.appeal-check-label{display:flex;align-items:center;gap:8px;white-space:nowrap;cursor:pointer;font-weight:700;color:#1e40af}.appeal-check-label input{width:17px;height:17px;flex:0 0 auto;accent-color:#0d9488}.appeal-inline-extra{display:flex;flex-direction:column;align-items:flex-start;gap:7px;padding:10px;background:#f8fafc;border:1px solid #dbeafe;border-radius:10px;min-width:220px}.appeal-inline-extra.hidden{display:none}.appeal-file-label{font-size:13px;font-weight:700;display:grid;gap:5px}.appeal-file-label input{max-width:220px;font-size:12px}.appeal-inline-extra small,.appeal-state small{color:#64748b;font-size:12px}.appeal-inline-message{margin-top:12px;color:#b91c1c;font-weight:650}.appeal-state{display:flex;flex-direction:column;gap:5px}.exam-appeal-window{padding:16px;margin:14px 0 18px;background:#f8fbff;border:1px solid #dbeafe;border-radius:14px}.exam-appeal-window h3{margin:0 0 5px}.exam-appeal-window p{margin:0 0 12px;color:#64748b}.exam-window-grid{display:grid;grid-template-columns:repeat(3,minmax(160px,1fr)) auto;align-items:end;gap:12px}.exam-window-grid label{display:grid;gap:6px;font-weight:700;font-size:13px}.exam-window-grid input{min-width:0;width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:9px;background:#fff}.exam-appeal-window #appealWindowMessage{margin-top:10px}@media(max-width:850px){.exam-window-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.exam-window-grid button{grid-column:1/-1}.appeal-inline-extra{min-width:0;max-width:240px}}
+
+/* V3.0.5.25.30: phúc khảo theo phần thi, bố cục checkbox gọn */
+.appeal-part-check{display:inline-flex!important;align-items:center!important;justify-content:flex-start!important;gap:7px!important;white-space:nowrap;font-weight:600;min-width:100px}
+.appeal-part-check input[type="checkbox"]{width:17px!important;height:17px!important;min-width:17px!important;flex:0 0 17px!important;margin:0!important}
+.appeal-part-reply{display:block;max-width:180px;margin-top:5px;color:#475569;white-space:normal}
+.appeal-admin-evidence{min-width:180px;display:flex;flex-direction:column;gap:6px}
+.appeal-admin-evidence input[type="file"]{max-width:190px;font-size:12px}
+.appeal-admin-evidence small{color:#64748b;max-width:190px}
+.exam-appeal-window{margin:14px 0;padding:16px;border:1px solid #d7e5f5;border-radius:16px;background:#fff}
+.exam-appeal-window h3{margin:0 0 8px}
+.exam-window-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;align-items:end}
+.exam-window-grid label{display:flex;flex-direction:column;gap:6px;font-weight:600}

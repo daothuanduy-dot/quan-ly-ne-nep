@@ -1,4 +1,4 @@
-import {supabase} from './config.js?v=3.0.5.25.28';
+import {supabase} from './config.js?v=3.0.5.25.30';
 
 // Các mức điểm cố định được lấy trực tiếp từ văn bản tiêu chí thi đua 2025-2026.
 // Những nội dung có khoảng điểm hoặc "tùy mức độ" không được tự chọn một mức mặc định.
