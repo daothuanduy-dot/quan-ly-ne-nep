@@ -1,7 +1,8 @@
-import {supabase,appConfig,normalizeTabs,isAdminStaff} from './config.js';
+import {supabase,appConfig,normalizeTabs,isAdminStaff} from './config.js?v=3.0.5.25.24';
 
 const SESSION_KEY='qlnn_v30520_user';
 const REMEMBER_KEY='qlnn_v30520_username';
+const ROLE_KEY='qlnn_v30520_role';
 
 const norm=d=>d?{
  ma_cb:String(d.ma_cb??d.ma_hs??'').trim(),
@@ -37,19 +38,23 @@ export const Auth={
 
   try{
     if(loginRole==='parent'||loginRole==='student'){
-      const response=await fetch(`${appConfig.supabaseUrl}/rest/v1/rpc/login_hoc_sinh`,{
+      const requestLogin=()=>fetch(`${appConfig.supabaseUrl}/rest/v1/rpc/login_hoc_sinh`,{
         method:'POST',cache:'no-store',credentials:'omit',
         headers:{apikey:appConfig.supabaseAnonKey,Authorization:`Bearer ${appConfig.supabaseAnonKey}`,'Content-Type':'application/json',Accept:'application/json'},
         body:JSON.stringify({p_ma_hs:username,p_mat_khau:password,p_vai_tro:loginRole})
       });
-      const raw=await response.text(); let d=null; try{d=raw?JSON.parse(raw):null}catch{}
-      if(!response.ok)return{ok:false,message:response.status===404?'Chưa cài đặt chức năng tài khoản phụ huynh/học sinh. Hãy chạy tệp SQL 021_v3_0_5_25_23_portal_phu_huynh_phuc_khao.sql.':`Không thể đăng nhập tài khoản học sinh (HTTP ${response.status}).`};
+      let response=await requestLogin();
+      let raw=await response.text(); let d=null; try{d=raw?JSON.parse(raw):null}catch{}
+      if(!response.ok)return{ok:false,message:response.status===404?'Chưa cài đặt chức năng tài khoản phụ huynh/học sinh. Hãy chạy tệp SQL 021_v3_0_5_25_23_portal_phu_huynh_phuc_khao.sql và 022_reset_mat_khau_phu_huynh_gvcn.sql.':`Không thể đăng nhập tài khoản học sinh (HTTP ${response.status}): ${raw.slice(0,180)}`};
       if(Array.isArray(d))d=d[0]??null;
       if(typeof d==='string'){try{d=JSON.parse(d)}catch{}}
-      if(!d||!d.ma_hs)return{ok:false,message:'Mã học sinh hoặc mật khẩu không đúng, hoặc tài khoản đã bị khóa.'};
+      // Retry one time when the RPC returns an empty result; helps transient cold-start/network responses.
+      if(!d||!d.ma_hs){await new Promise(resolve=>setTimeout(resolve,350));response=await requestLogin();raw=await response.text();try{d=raw?JSON.parse(raw):null}catch{d=null;}if(Array.isArray(d))d=d[0]??null;if(typeof d==='string'){try{d=JSON.parse(d)}catch{}}}
+      if(!response.ok)return{ok:false,message:`Không thể đăng nhập tài khoản học sinh (HTTP ${response.status}): ${raw.slice(0,180)}`};
+      if(!d||!d.ma_hs)return{ok:false,message:'Không xác thực được tài khoản. Kiểm tra mã học sinh, mật khẩu đang lưu trong danh sách và trạng thái học sinh; nếu vừa đổi mật khẩu, hãy tải lại trang rồi thử lại.'};
       this.currentUser=norm({...d,ma_cb:d.ma_hs,portalRole:loginRole,portalPassword:password,vai_tro:loginRole==='parent'?'Phụ huynh học sinh':'Học sinh'});
       sessionStorage.setItem(SESSION_KEY,JSON.stringify(this.currentUser));
-      if(remember)localStorage.setItem(REMEMBER_KEY,username);else localStorage.removeItem(REMEMBER_KEY);
+      if(remember){localStorage.setItem(REMEMBER_KEY,username);localStorage.setItem(ROLE_KEY,loginRole);}else{localStorage.removeItem(REMEMBER_KEY);localStorage.removeItem(ROLE_KEY);}
       return{ok:true,user:this.currentUser};
     }
     // Gọi trực tiếp PostgREST RPC; chỉ một bộ xử lý submit đăng nhập tồn tại.
@@ -81,8 +86,8 @@ export const Auth={
 
     this.currentUser=norm({...data,credentialPassword:password});
     sessionStorage.setItem(SESSION_KEY,JSON.stringify(this.currentUser));
-    if(remember)localStorage.setItem(REMEMBER_KEY,username);
-    else localStorage.removeItem(REMEMBER_KEY);
+    if(remember){localStorage.setItem(REMEMBER_KEY,username);localStorage.setItem(ROLE_KEY,'staff');}
+    else{localStorage.removeItem(REMEMBER_KEY);localStorage.removeItem(ROLE_KEY);}
     return{ok:true,user:this.currentUser};
   }catch(err){
     if(err?.name==='AbortError')return{ok:false,message:'Không nhận được phản hồi từ Supabase sau 15 giây. Kiểm tra kết nối Internet hoặc trạng thái Supabase.'};
@@ -99,5 +104,6 @@ export const Auth={
  logout(){this.currentUser=null;sessionStorage.removeItem(SESSION_KEY);},
  isAdmin(){return isAdminStaff(this.currentUser);},
  hasTab(k){return this.isAdmin()||normalizeTabs(this.currentUser?.quyen_tabs).includes(k);},
- remembered(){return localStorage.getItem(REMEMBER_KEY)||'';}
+ remembered(){return localStorage.getItem(REMEMBER_KEY)||'';},
+ rememberedRole(){return localStorage.getItem(ROLE_KEY)||'staff';}
 };

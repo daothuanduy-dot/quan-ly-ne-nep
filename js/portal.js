@@ -1,6 +1,6 @@
-import {supabase,appConfig} from './config.js';
-import {esc,toast} from './ui.js';
-const subjects=['Toán','Văn','Tiếng Anh','Vật lý','Hoá học','Sinh học','Lịch Sử','Địa lý','GD KTPL'];
+import {supabase,appConfig} from './config.js?v=3.0.5.25.24';
+import {esc,toast} from './ui.js?v=3.0.5.25.24';
+const subjects=['Toán','Văn','Tiếng Anh','Vật lý','Hoá học','Sinh học','Lịch Sử','Địa lý','GD KTPL','Tin học'];
 export async function init(root,user,logout){
  const isStudent=user.portalRole==='student';
  root.innerHTML=`<header class="portal-top"><div><div class="portal-eyebrow">THPT Lê Hồng Phong · ${esc(appConfig.namHoc)}</div><h1>${isStudent?'Cổng thông tin học sinh':'Cổng thông tin phụ huynh'}</h1><p>Theo dõi kết quả học tập, kiểm tra và nề nếp</p></div><button id="portalLogout" class="btn light">Đăng xuất</button></header><div class="portal-content"><section class="portal-profile" id="portalProfile">Đang tải thông tin học sinh...</section><div class="portal-tabs"><button class="active" data-tab="results">📘 Kết quả kiểm tra</button><button data-tab="discipline">📋 Nề nếp & thi đua</button>${isStudent?'<button data-tab="appeals">✍️ Phúc khảo</button>':''}</div><section id="portal-results" class="portal-panel"></section><section id="portal-discipline" class="portal-panel hidden"></section>${isStudent?'<section id="portal-appeals" class="portal-panel hidden"></section>':''}</div>`;
