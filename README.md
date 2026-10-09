@@ -1,3 +1,7 @@
+
+## V3.0.5.25.23
+Xem `README_V3.0.5.25.23.txt` và chạy SQL `sql/021_v3_0_5_25_23_portal_phu_huynh_phuc_khao.sql` trước khi sử dụng cổng phụ huynh/học sinh.
+
 # Quản lý nề nếp & thi đua – V3.0.5.23
 
 Bản này tập trung kích hoạt và sửa hoàn chỉnh luồng **Báo Vắng Học Sinh**.

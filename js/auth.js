@@ -4,13 +4,16 @@ const SESSION_KEY='qlnn_v30520_user';
 const REMEMBER_KEY='qlnn_v30520_username';
 
 const norm=d=>d?{
- ma_cb:String(d.ma_cb??'').trim(),
+ ma_cb:String(d.ma_cb??d.ma_hs??'').trim(),
  ho_ten:d.ho_ten??'',
  vai_tro:d.vai_tro??'',
  vai_tro_list:Array.isArray(d.vai_tro_list)?d.vai_tro_list:normalizeTabs(d.vai_tro_list),
  lop_quan_ly:d.lop_quan_ly??'',
  lop_giang_day:d.lop_giang_day??[],
  ma_hs:d.ma_hs??'',
+ portalRole:d.portalRole??'',
+ portalPassword:d.portalPassword??'',
+ credentialPassword:d.credentialPassword??'',
  loai_quan_ly_lop:d.loai_quan_ly_lop??'',
  quyen_tabs:normalizeTabs(d.quyen_tabs),
  trang_thai:d.trang_thai
@@ -27,13 +30,29 @@ function formatRpcError(status, body){
 export const Auth={
  currentUser:null,
 
- async login(ma,pw,remember=false){
+ async login(ma,pw,remember=false,loginRole='staff'){
   const username=String(ma??'').trim();
   const password=String(pw??'');
-  if(!username||!password)return{ok:false,message:'Vui lòng nhập đầy đủ mã cán bộ và mật khẩu.'};
+  if(!username||!password)return{ok:false,message:'Vui lòng nhập đầy đủ mã tài khoản và mật khẩu.'};
 
   try{
-    // Gọi trực tiếp PostgREST RPC để tránh lỗi cache/schema của thư viện phía trình duyệt
+    if(loginRole==='parent'||loginRole==='student'){
+      const response=await fetch(`${appConfig.supabaseUrl}/rest/v1/rpc/login_hoc_sinh`,{
+        method:'POST',cache:'no-store',credentials:'omit',
+        headers:{apikey:appConfig.supabaseAnonKey,Authorization:`Bearer ${appConfig.supabaseAnonKey}`,'Content-Type':'application/json',Accept:'application/json'},
+        body:JSON.stringify({p_ma_hs:username,p_mat_khau:password,p_vai_tro:loginRole})
+      });
+      const raw=await response.text(); let d=null; try{d=raw?JSON.parse(raw):null}catch{}
+      if(!response.ok)return{ok:false,message:response.status===404?'Chưa cài đặt chức năng tài khoản phụ huynh/học sinh. Hãy chạy tệp SQL 021_v3_0_5_25_23_portal_phu_huynh_phuc_khao.sql.':`Không thể đăng nhập tài khoản học sinh (HTTP ${response.status}).`};
+      if(Array.isArray(d))d=d[0]??null;
+      if(typeof d==='string'){try{d=JSON.parse(d)}catch{}}
+      if(!d||!d.ma_hs)return{ok:false,message:'Mã học sinh hoặc mật khẩu không đúng, hoặc tài khoản đã bị khóa.'};
+      this.currentUser=norm({...d,ma_cb:d.ma_hs,portalRole:loginRole,portalPassword:password,vai_tro:loginRole==='parent'?'Phụ huynh học sinh':'Học sinh'});
+      sessionStorage.setItem(SESSION_KEY,JSON.stringify(this.currentUser));
+      if(remember)localStorage.setItem(REMEMBER_KEY,username);else localStorage.removeItem(REMEMBER_KEY);
+      return{ok:true,user:this.currentUser};
+    }
+    // Gọi trực tiếp PostgREST RPC; chỉ một bộ xử lý submit đăng nhập tồn tại.
     // và để nhận được mã lỗi rõ ràng khi Supabase từ chối yêu cầu.
     const controller=new AbortController();
     const timer=setTimeout(()=>controller.abort(),15000);
@@ -60,7 +79,7 @@ export const Auth={
     if(Array.isArray(data))data=data[0]??null;
     if(!data)return{ok:false,message:'Mã cán bộ hoặc mật khẩu không đúng, hoặc tài khoản đã bị khóa.'};
 
-    this.currentUser=norm(data);
+    this.currentUser=norm({...data,credentialPassword:password});
     sessionStorage.setItem(SESSION_KEY,JSON.stringify(this.currentUser));
     if(remember)localStorage.setItem(REMEMBER_KEY,username);
     else localStorage.removeItem(REMEMBER_KEY);

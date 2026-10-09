@@ -12,28 +12,21 @@ const $=id=>document.getElementById(id);
 function renderUser(){$('yearBox').textContent=`Năm học ${appConfig.namHoc}`;const u=Auth.currentUser;$('userBox').innerHTML=u?`<div><strong>${u.ho_ten}</strong><small>${u.ma_cb} · ${u.vai_tro}</small></div>`:''}
 function allowed(k){return Auth.hasTab(k)}
 async function open(k){if(window.__qlnnQrStop && k!=='qr'){try{await window.__qlnnQrStop();}catch(e){}} if(!allowed(k))return toast('Tài khoản chưa được cấp quyền chức năng này.','err');active=k;document.querySelectorAll('.main-tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===k));pages.forEach(x=>$(`page-${x}`).classList.add('hidden'));$(`page-${k}`).classList.remove('hidden');try{const m=await loadFeature(k);const el=k==='quantri'?$('page-quantri').querySelector('#adminContent'):$(`page-${k}`);if(typeof m.init==='function')await m.init(el);}catch(err){console.error('[QLNN FEATURE]',k,err);toast(`Không thể tải chức năng ${k}: ${err?.message||String(err)}`,'err')}}
-function session(){ $('loginView').classList.add('hidden');$('appView').classList.remove('hidden');renderUser();document.querySelectorAll('.main-tab').forEach(b=>b.classList.toggle('hidden',!allowed(b.dataset.tab)));const first=pages.find(allowed);if(first)open(first);else toast('Tài khoản chưa được cấp quyền nào.','err')}
+async function session(){ $('loginView').classList.add('hidden'); if(Auth.currentUser?.portalRole){$('appView').classList.add('hidden');const pv=$('portalView');pv.classList.remove('hidden');try{const m=await import('./portal.js?v='+APP_VERSION);await m.init(pv,Auth.currentUser,()=>{Auth.logout();$('portalView').classList.add('hidden');$('loginView').classList.remove('hidden');$('password').value='';});}catch(err){console.error('[QLNN PORTAL]',err);pv.innerHTML='<div class="danger-box">Không tải được cổng phụ huynh/học sinh: '+esc(err.message||err)+'</div>';}return;} $('portalView').classList.add('hidden');$('appView').classList.remove('hidden');renderUser();document.querySelectorAll('.main-tab').forEach(b=>b.classList.toggle('hidden',!allowed(b.dataset.tab)));const first=pages.find(allowed);if(first)open(first);else toast('Tài khoản chưa được cấp quyền nào.','err')}
 function bind(){
  $('loginForm').onsubmit=async e=>{
    e.preventDefault();
    const er=$('loginError');
    er.textContent='';
    const remember=$('rememberMe')?.checked===true;
+   const loginRole=$('loginRole')?.value||'staff';
    let r;
-   try{r=await Auth.login($('username').value,$('password').value,remember);}
+   try{r=await Auth.login($('username').value,$('password').value,remember,loginRole);}
    catch(err){console.error('[QLNN LOGIN UNHANDLED]',err);r={ok:false,message:`Lỗi đăng nhập: ${err?.message||String(err)}`};}
    if(!r.ok){er.textContent=r.message;return;}
    session();
  };
- $('togglePassword')?.addEventListener('click',()=>{
-   const input=$('password');
-   const btn=$('togglePassword');
-   const show=input.type==='password';
-   input.type=show?'text':'password';
-   btn.textContent=show?'🙈':'👁';
-   btn.title=show?'Ẩn mật khẩu':'Hiển thị mật khẩu';
-   btn.setAttribute('aria-label',btn.title);
- });
+
  $('logoutBtn').onclick=()=>{Auth.logout();location.reload()};
  document.querySelectorAll('.main-tab').forEach(b=>b.onclick=()=>open(b.dataset.tab));
 }
