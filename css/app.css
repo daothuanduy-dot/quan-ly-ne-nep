@@ -590,3 +590,42 @@ main{max-width:1540px;padding:20px clamp(12px,2.4vw,32px) 38px}.page{animation:p
 .nt-student-list{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
 .btn-sm{padding:6px 10px;font-size:12px}
 @media(max-width:640px){.nt-target-head{align-items:flex-start;flex-direction:column}.nt-target-list,.nt-student-list{grid-template-columns:1fr}.nt-recipient .check-item{min-width:100%}}
+
+/* V3.0.5.25.27 — tinh gọn form gửi thông báo, không che khuất đối tượng và thêm lịch sử */
+.nt-compose-card,.nt-history-card{min-width:0;overflow:hidden;margin-bottom:18px;padding:clamp(14px,2vw,22px)}
+.nt-compose-grid{grid-template-columns:minmax(220px,1.1fr) minmax(190px,.8fr);gap:16px 18px;align-items:start;min-width:0}
+.nt-compose-grid>label,.nt-field-wide{min-width:0;max-width:100%;}
+.nt-field-wide{grid-column:1/-1}
+.nt-field-title{font-weight:800;margin-bottom:8px}
+.nt-compose-grid input:not([type=checkbox]),.nt-compose-grid select,.nt-compose-grid textarea{width:100%;max-width:100%;box-sizing:border-box;min-width:0}
+.nt-recipient{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:0}
+.nt-recipient .check-item{display:flex;align-items:center;justify-content:flex-start;gap:10px;min-width:0;width:100%;box-sizing:border-box;margin:0;padding:12px 14px;line-height:1.35}
+.nt-recipient .check-item input{flex:0 0 auto;margin:0}
+.nt-recipient .check-item span{display:block;min-width:0;overflow-wrap:anywhere;font-weight:700}
+.nt-target-panel{min-width:0;max-width:100%;overflow:hidden;padding:14px}
+.nt-target-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;max-height:300px;overflow-y:auto;overflow-x:hidden;padding:2px 4px 2px 2px;box-sizing:border-box;width:100%}
+.nt-student-list{grid-template-columns:repeat(2,minmax(0,1fr))}
+.nt-target-option{display:grid;grid-template-columns:18px minmax(0,1fr);align-items:start;gap:9px;min-width:0;width:100%;min-height:62px;box-sizing:border-box;padding:11px 12px;overflow:hidden;border:1px solid #dce8f2;border-radius:11px;background:#fff;cursor:pointer}
+.nt-target-option input{grid-column:1;grid-row:1;margin:3px 0 0;width:16px;height:16px;min-width:16px}
+.nt-target-option>span{grid-column:2;grid-row:1;display:flex;flex-direction:column;gap:4px;min-width:0;width:100%;overflow-wrap:anywhere;word-break:break-word;white-space:normal}
+.nt-target-option b{display:block;max-width:100%;overflow-wrap:anywhere;word-break:break-word;line-height:1.35}
+.nt-target-option small{display:block;max-width:100%;white-space:normal;overflow-wrap:anywhere;line-height:1.35;color:#64748b}
+.nt-target-option:has(input:checked){border-color:#0d9488;background:#effcf9;box-shadow:0 0 0 1px #0d94881a}
+.nt-target-head{align-items:center}
+.nt-search{box-sizing:border-box;width:100%;max-width:100%;min-width:0}
+.nt-send-row{align-items:center;gap:12px;flex-wrap:wrap}
+.nt-send-row #ntSelectionSummary{flex:1;min-width:180px}
+.nt-history-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.nt-history-head h3{margin:0 0 5px;font-size:18px;color:#17345d}
+.nt-history-head p{margin:0;color:#64748b;font-size:13px}
+.nt-history-table-wrap{max-height:440px;overflow:auto;border:1px solid #dce8f1;border-radius:12px;background:#fff;max-width:100%}
+.nt-history-table{width:100%;min-width:850px;border-collapse:separate;border-spacing:0;margin:0}
+.nt-history-table thead th{position:sticky;top:0;z-index:4;background:#edf6ff;color:#17345d;box-shadow:0 1px 0 #dce8f1;text-align:left;white-space:nowrap}
+.nt-history-table th,.nt-history-table td{padding:11px 12px;vertical-align:top;border-bottom:1px solid #e7eef5}
+.nt-history-table tbody tr:last-child td{border-bottom:0}
+.nt-date-cell{white-space:nowrap;font-size:12px;color:#64748b}
+.nt-history-details summary{cursor:pointer;font-weight:800;color:#164e8a;max-width:290px;overflow-wrap:anywhere}
+.nt-history-details p{white-space:pre-wrap;min-width:220px;max-width:420px;margin:8px 0 2px;line-height:1.5}
+.nt-history-sub{display:block;margin-top:4px;color:#64748b;font-size:12px;max-width:180px;overflow-wrap:anywhere}
+@media(max-width:900px){.nt-target-list{grid-template-columns:repeat(2,minmax(0,1fr))}.nt-student-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){.nt-compose-grid{grid-template-columns:minmax(0,1fr)}.nt-field-wide{grid-column:1}.nt-recipient,.nt-target-list,.nt-student-list{grid-template-columns:minmax(0,1fr)}.nt-target-head{align-items:flex-start}.nt-target-option{min-height:54px}.nt-history-table-wrap{max-height:380px}}

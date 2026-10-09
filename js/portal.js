@@ -1,5 +1,5 @@
-import {supabase,appConfig} from './config.js?v=3.0.5.25.26';
-import {esc,toast} from './ui.js?v=3.0.5.25.26';
+import {supabase,appConfig} from './config.js?v=3.0.5.25.27';
+import {esc,toast} from './ui.js?v=3.0.5.25.27';
 const subjects=['Toán','Văn','Tiếng Anh','Vật lý','Hoá học','Sinh học','Lịch Sử','Địa lý','GD KTPL','Tin học'];
 export async function init(root,user,logout){
  const isStudent=user.portalRole==='student';

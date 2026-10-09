@@ -34,3 +34,6 @@ V3.0.5.25.13: Modern responsive UI refresh for all tabs; bright card-based layou
 
 ## V3.0.5.25.26 — Thông báo chủ động và lịch sử phúc khảo
 Chạy `sql/023_thong_bao_chu_dong_lich_su_phuc_khao.sql` sau migrations 021 và 022. Xem `README_V3.0.5.25.26.txt`.
+
+## V3.0.5.25.27 — Giao diện và lịch sử gửi thông báo
+Chạy `sql/025_lich_su_gui_thong_bao.sql` sau migrations 021–024. Lịch sử hiển thị ngay dưới form gửi, có thể mở nội dung từng thông báo. Danh sách lớp/học sinh dùng lưới responsive để tránh chữ/ô tích bị chồng hoặc che.
