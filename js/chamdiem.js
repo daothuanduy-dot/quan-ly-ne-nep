@@ -1,5 +1,5 @@
-import {supabase,managedClasses,roleOf,canScore} from './config.js?v=3.0.5.25.27';
-import {esc,toast} from './ui.js?v=3.0.5.25.27';
+import {supabase,managedClasses,roleOf,canScore} from './config.js?v=3.0.5.25.28';
+import {esc,toast} from './ui.js?v=3.0.5.25.28';
 
 let root;
 let grades=[];

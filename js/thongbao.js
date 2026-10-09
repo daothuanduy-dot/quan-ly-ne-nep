@@ -1,10 +1,13 @@
-import {supabase} from './config.js?v=3.0.5.25.27';
-import {Auth} from './auth.js?v=3.0.5.25.27';
-import {esc,toast} from './ui.js?v=3.0.5.25.27';
+import {supabase} from './config.js?v=3.0.5.25.28';
+import {Auth} from './auth.js?v=3.0.5.25.28';
+import {esc,toast} from './ui.js?v=3.0.5.25.28';
 export async function init(root){
  const u=Auth.currentUser||{};const role=String(u.vai_tro||'').toLowerCase();const roles=Array.isArray(u.vai_tro_list)?u.vai_tro_list.map(x=>String(x).toLowerCase()):[];const admin=role==='admin'||role==='quản trị hệ thống'||roles.includes('admin');const gvcn=role.includes('gvcn')||role.includes('chủ nhiệm')||roles.some(x=>x.includes('gvcn')||x.includes('chủ nhiệm'));if(!admin&&!gvcn){root.innerHTML='<div class="danger-box">Chỉ Admin hoặc giáo viên chủ nhiệm được gửi thông báo.</div>';return;}
- const cls=String(u.lop_quan_ly||'');const {data:students,error}=await supabase.from('danh_sach').select('ma_hs,ho_ten,khoi,lop,trang_thai').order('lop').order('ho_ten').limit(5000);if(error){root.innerHTML=`<div class="danger-box">${esc(error.message)}</div>`;return;}
- const active=(students||[]).filter(x=>x.lop&&!['inactive','nghi hoc','đã nghỉ','false','0'].includes(String(x.trang_thai||'').toLowerCase()));const classes=[...new Set(active.map(x=>x.lop))].sort((a,b)=>a.localeCompare(b,'vi',{numeric:true})).filter(x=>admin||x===cls);
+ const cls=String(u.lop_quan_ly||'');
+ // Supabase/PostgREST có thể giới hạn phản hồi mặc định ở 1.000 dòng; lấy theo trang để không bỏ sót học sinh.
+ const fetchAllStudents=async()=>{const all=[];const pageSize=500;for(let from=0;;from+=pageSize){const {data,error}=await supabase.from('danh_sach').select('ma_hs,ho_ten,khoi,lop,trang_thai').order('ma_hs').range(from,from+pageSize-1);if(error)throw error;const page=data||[];all.push(...page);if(page.length<pageSize)break;}return all;};
+ let students;try{students=await fetchAllStudents();}catch(error){root.innerHTML=`<div class="danger-box">${esc(error.message)}</div>`;return;}
+ const inactiveStates=['inactive','nghi hoc','đã nghỉ','false','0'];const active=(students||[]).filter(x=>x.lop&&!inactiveStates.includes(String(x.trang_thai||'').trim().toLowerCase()));const classes=[...new Set(active.map(x=>x.lop))].sort((a,b)=>a.localeCompare(b,'vi',{numeric:true})).filter(x=>admin||x===cls);
  root.innerHTML=`<div class="page-head"><div><h2>📢 Gửi thông báo</h2><p>Chọn người nhận, gửi thông báo và theo dõi lịch sử gửi ngay tại trang này.</p></div></div>
  <div class="action-card nt-compose-card"><div class="grid nt-compose-grid">
  <label>Tiêu đề<input id="ntTitle" maxlength="160" placeholder="Ví dụ: Lịch kiểm tra khảo sát tuần tới"></label>
@@ -33,16 +36,16 @@ export async function init(root){
   }
   updateSummary();
  };
- function updateSummary(){const s=scope.value;let n=s==='Toàn trường'?active.length:s==='Lớp'?area.querySelectorAll('.ntClass:checked').length:area.querySelectorAll('.ntStudent:checked').length;summary.textContent=s==='Lớp'?`Đã chọn ${n} lớp`:s==='Cá nhân'?`Đã chọn ${n} học sinh`:`Dự kiến ${n} học sinh trong toàn trường`;}
+ function updateSummary(){const s=scope.value;const selectedClasses=[...area.querySelectorAll('.ntClass:checked')].map(x=>x.value);let n=s==='Toàn trường'?active.length:s==='Lớp'?active.filter(x=>selectedClasses.includes(x.lop)).length:area.querySelectorAll('.ntStudent:checked').length;summary.textContent=s==='Lớp'?`Đã chọn ${selectedClasses.length} lớp · dự kiến ${n} học sinh`:s==='Cá nhân'?`Đã chọn ${n} học sinh`:`Dự kiến ${n} học sinh trong toàn trường`;}
  scope.onchange=renderTargets;renderTargets();await loadHistory();
  root.querySelector('#ntSend').onclick=async()=>{
   const title=root.querySelector('#ntTitle').value.trim(),body=root.querySelector('#ntBody').value.trim(),s=scope.value;const toStudent=root.querySelector('#ntToStudent').checked,toParent=root.querySelector('#ntToParent').checked;
   const classesSelected=s==='Lớp'?[...area.querySelectorAll('.ntClass:checked')].map(x=>x.value):[];const studentsSelected=s==='Cá nhân'?[...area.querySelectorAll('.ntStudent:checked')].map(x=>x.value):[];
   if(title.length<3||body.length<3)return toast('Nhập tiêu đề và nội dung thông báo.','err');if(!toStudent&&!toParent)return toast('Chọn ít nhất một đối tượng nhận: học sinh hoặc phụ huynh.','err');if(s==='Lớp'&&!classesSelected.length)return toast('Hãy tích chọn ít nhất một lớp.','err');if(s==='Cá nhân'&&!studentsSelected.length)return toast('Hãy tích chọn ít nhất một học sinh.','err');
-  const targetDesc=s==='Toàn trường'?'toàn trường':s==='Lớp'?`${classesSelected.length} lớp`:`${studentsSelected.length} học sinh`;const recipients=[...(toStudent?['Học sinh']:[]),...(toParent?['Phụ huynh']:[])];if(!confirm(`Gửi thông báo đến ${targetDesc}, đối tượng: ${recipients.join(' và ')}?`))return;
+  const expectedStudents=s==='Toàn trường'?active.length:s==='Lớp'?active.filter(x=>classesSelected.includes(x.lop)).length:active.filter(x=>studentsSelected.includes(String(x.ma_hs))).length;const targetDesc=s==='Toàn trường'?'toàn trường':s==='Lớp'?`${classesSelected.length} lớp (${expectedStudents} học sinh)`:`${studentsSelected.length} học sinh`;const recipients=[...(toStudent?['Học sinh']:[]),...(toParent?['Phụ huynh']:[])];if(!confirm(`Gửi thông báo đến ${targetDesc}, đối tượng: ${recipients.join(' và ')}?`))return;
   const btn=root.querySelector('#ntSend');btn.disabled=true;btn.textContent='Đang gửi…';
   const {data,error}=await supabase.rpc('admin_gui_thong_bao_v3',{p_ma_cb:u.ma_cb,p_mat_khau:u.credentialPassword||'',p_tieu_de:title,p_noi_dung:body,p_pham_vi:s,p_lop_list:classesSelected,p_ma_hs_list:studentsSelected,p_gui_hoc_sinh:toStudent,p_gui_phu_huynh:toParent,p_popup:root.querySelector('#ntPopup').checked,p_ticker:root.querySelector('#ntTicker').checked});
   btn.disabled=false;btn.textContent='📢 Gửi thông báo';if(error||!data?.ok)return toast(error?.message||data?.message||'Không gửi được. Hãy chạy SQL migration 024.','err');
-  root.querySelector('#ntResult').innerHTML=`<div class="notice">Đã gửi thành công đến <b>${data.students||0}</b> học sinh, tạo <b>${data.count||0}</b> lượt nhận (${esc(recipients.join(' và '))}).</div>`;toast('Đã gửi thông báo.','ok');await loadHistory();
+  const actualStudents=Number(data.students||0),actualDeliveries=Number(data.count||0);const mismatch=actualStudents!==expectedStudents;root.querySelector('#ntResult').innerHTML=`<div class="notice ${mismatch?'warning':''}">${mismatch?'<b>Cần đối soát:</b>':'<b>Đã xử lý xong danh sách người nhận.</b>'} Dự kiến <b>${expectedStudents}</b> học sinh; RPC ghi nhận <b>${actualStudents}</b> học sinh và <b>${actualDeliveries}</b> lượt nhận (${esc(recipients.join(' và '))}).${mismatch?' Số lượng không khớp; hãy kiểm tra trạng thái học sinh và lịch sử gửi trước khi gửi lại để tránh gửi trùng.':''}</div>`;toast(mismatch?'Đã gửi nhưng số người nhận cần đối soát.':'Đã gửi thông báo.','ok');await loadHistory();
  };
 }
