@@ -1,4 +1,4 @@
-import {APP_VERSION,appConfig,supabase,managedClasses,canManageAbsence,canMonitorAbsence} from './config.js?v=3.0.5.25.31';import {Auth} from './auth.js?v=3.0.5.25.31';import {toast,esc} from './ui.js?v=3.0.5.25.31';
+import {APP_VERSION,appConfig,supabase,managedClasses,canManageAbsence,canMonitorAbsence} from './config.js?v=3.0.5.25.32';import {Auth} from './auth.js?v=3.0.5.25.32';import {toast,esc} from './ui.js?v=3.0.5.25.32';
 const modules={};
 async function loadFeature(k){
  if(modules[k]) return modules[k];

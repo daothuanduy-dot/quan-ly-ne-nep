@@ -1,4 +1,4 @@
-import {supabase,appConfig,normalizeTabs,isAdminStaff} from './config.js?v=3.0.5.25.31';
+import {supabase,appConfig,normalizeTabs,isAdminStaff} from './config.js?v=3.0.5.25.32';
 
 const SESSION_KEY='qlnn_v30520_user';
 const REMEMBER_KEY='qlnn_v30520_username';

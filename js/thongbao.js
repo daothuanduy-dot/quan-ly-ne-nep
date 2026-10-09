@@ -1,6 +1,6 @@
-import {supabase} from './config.js?v=3.0.5.25.31';
-import {Auth} from './auth.js?v=3.0.5.25.31';
-import {esc,toast} from './ui.js?v=3.0.5.25.31';
+import {supabase} from './config.js?v=3.0.5.25.32';
+import {Auth} from './auth.js?v=3.0.5.25.32';
+import {esc,toast} from './ui.js?v=3.0.5.25.32';
 export async function init(root){
  const u=Auth.currentUser||{};const role=String(u.vai_tro||'').toLowerCase();const roles=Array.isArray(u.vai_tro_list)?u.vai_tro_list.map(x=>String(x).toLowerCase()):[];const admin=role==='admin'||role==='quản trị hệ thống'||roles.includes('admin');const gvcn=role.includes('gvcn')||role.includes('chủ nhiệm')||roles.some(x=>x.includes('gvcn')||x.includes('chủ nhiệm'));if(!admin&&!gvcn){root.innerHTML='<div class="danger-box">Chỉ Admin hoặc giáo viên chủ nhiệm được gửi thông báo.</div>';return;}
  const cls=String(u.lop_quan_ly||'');

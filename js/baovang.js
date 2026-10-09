@@ -1,11 +1,11 @@
-import {supabase,appConfig,managedClasses,canManageAbsence,canMonitorAbsence} from './config.js?v=3.0.5.25.31';
-import {esc,toast} from './ui.js?v=3.0.5.25.31';
+import {supabase,appConfig,managedClasses,canManageAbsence,canMonitorAbsence} from './config.js?v=3.0.5.25.32';
+import {esc,toast} from './ui.js?v=3.0.5.25.32';
 
 let root,grades=[],classes=[],students=[],roster=[];
 let selectedGrade='',selectedClass='',date='',buoi='Sáng',autoBuoi='Sáng',manualBuoi=false;
 
 function normText(v){return String(v==null?'':v).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim()}
-function gradeKey(v){const m=String(v==null?'').match(/(?:khoi|khối)?\s*(10|11|12)/i);return m?m[1]:normText(v).replace(/[^0-9]/g,'')}
+function gradeKey(v){const m=String(v==null?'':v).match(/(?:khoi|khối)?\s*(10|11|12)/i);return m?m[1]:normText(v).replace(/[^0-9]/g,'')}
 function gradeLabel(v){const k=gradeKey(v);return k?'Khối '+k:String(v==null?'':v).trim()}
 function sameGrade(a,b){const x=gradeKey(a),y=gradeKey(b);return x!==''&&x===y}
 function activeStudent(r){const s=normText(r&&r.trang_thai);return !s||['active','dang hoc','đang học','hoc','học','true','1'].includes(s)}

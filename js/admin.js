@@ -1,5 +1,5 @@
-import {supabase,PERMISSION_TABS,isAdminStaff,normalizeTabs,STAFF_ROLES,CLASS_MANAGEMENT_TYPES} from './config.js?v=3.0.5.25.31';import {DEFAULT_CRITERIA, DEFAULT_BASE_SCORES, applyDefaultCriteria} from './criteria-defaults.js?v=3.0.5.25.31';
-import {esc,toast,modal,closeModal} from './ui.js?v=3.0.5.25.31';
+import {supabase,PERMISSION_TABS,isAdminStaff,normalizeTabs,STAFF_ROLES,CLASS_MANAGEMENT_TYPES} from './config.js?v=3.0.5.25.32';import {DEFAULT_CRITERIA, DEFAULT_BASE_SCORES, applyDefaultCriteria} from './criteria-defaults.js?v=3.0.5.25.32';
+import {esc,toast,modal,closeModal} from './ui.js?v=3.0.5.25.32';
 let root,sub='students';
 function isActiveStudent(r){const s=String(r&&r.trang_thai==null?'':r.trang_thai).normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toLowerCase();return !s||['active','dang hoc','hoc','true','1','hoat dong'].includes(s)}
 export async function init(r){root=r;renderTabs();await open('students')}
