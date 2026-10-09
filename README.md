@@ -31,3 +31,6 @@ V3.0.5.25.13: Modern responsive UI refresh for all tabs; bright card-based layou
 - Áp dụng cho 3 chế độ: Cá nhân, Tập thể lớp, Theo khối.
 - Popup hiển thị thông tin đối tượng, điểm từng mảng, tổng điểm, phân bố điểm học tập và chi tiết các điểm đã chấm.
 - Nhấn nền popup hoặc nút X để đóng.
+
+## V3.0.5.25.25 — Thông báo chủ động và lịch sử phúc khảo
+Chạy `sql/023_thong_bao_chu_dong_lich_su_phuc_khao.sql` sau migrations 021 và 022. Xem `README_V3.0.5.25.25.txt`.

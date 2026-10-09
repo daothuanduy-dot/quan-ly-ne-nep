@@ -1,6 +1,6 @@
-import {supabase,managedClasses,canViewAllStats,roleOf,appConfig} from './config.js?v=3.0.5.25.24';
-import {esc,toast} from './ui.js?v=3.0.5.25.24';
-import {DEFAULT_BASE_SCORES} from './criteria-defaults.js?v=3.0.5.25.24';
+import {supabase,managedClasses,canViewAllStats,roleOf,appConfig} from './config.js?v=3.0.5.25.25';
+import {esc,toast} from './ui.js?v=3.0.5.25.25';
+import {DEFAULT_BASE_SCORES} from './criteria-defaults.js?v=3.0.5.25.25';
 
 async function fetchAll(factory,chunk=1000){
   const all=[];let from=0;

@@ -3,15 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Quản lý nề nếp & thi đua — V3.0.5.25.24</title>
-<link rel="stylesheet" href="./css/app.css?v=3.0.5.25.24">
+<title>Quản lý nề nếp & thi đua — V3.0.5.25.25</title>
+<link rel="stylesheet" href="./css/app.css?v=3.0.5.25.25">
 <script src="https://unpkg.com/html5-qrcode" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
 </head>
 <body>
 <div id="loginView" class="login-wrap">
   <div class="login-card">
-    <div class="brand"><div class="brand-icon">🏫</div><h1>Quản lý nề nếp & thi đua</h1><p>THPT Lê Hồng Phong · V3.0.5.25.24</p></div>
+    <div class="brand"><div class="brand-icon">🏫</div><h1>Quản lý nề nếp & thi đua</h1><p>THPT Lê Hồng Phong · V3.0.5.25.25</p></div>
     <form id="loginForm">
       <label>Đăng nhập với vai trò<select id="loginRole" required><option value="staff">Cán bộ / Giáo viên</option><option value="parent">Phụ huynh học sinh</option><option value="student">Học sinh</option></select></label>
       <label id="loginIdLabel">Mã cán bộ<input id="username" autocomplete="username" required></label>
@@ -34,7 +34,7 @@
 <div id="portalView" class="portal-view hidden"></div>
 <div id="appView" class="app hidden">
   <header class="topbar">
-    <div class="brand-mini"><span class="brand-icon small">🏫</span><div><b>THPT Lê Hồng Phong</b><small>Quản lý nề nếp & thi đua · V3.0.5.25.24</small></div></div>
+    <div class="brand-mini"><span class="brand-icon small">🏫</span><div><b>THPT Lê Hồng Phong</b><small>Quản lý nề nếp & thi đua · V3.0.5.25.25</small></div></div>
     <div class="top-actions"><div id="yearBox" class="year-badge">Năm học 2026-2027</div><div id="userBox"></div><button id="logoutBtn" class="btn light">Đăng xuất</button></div>
   </header>
   <nav id="mainTabs" class="main-tabs">
@@ -45,6 +45,7 @@
     <button class="main-tab" data-tab="xeploai">🏆 <span>Xếp Loại & Danh Hiệu</span></button>
     <button class="main-tab" data-tab="quantri">⚙️ <span>Quản Trị Hệ Thống</span></button>
     <button class="main-tab hidden" data-tab="resetpw">🔑 <span>Reset mật khẩu PH</span></button>
+    <button class="main-tab hidden" data-tab="notices">📢 <span>Thông báo</span></button>
   </nav>
 
   <main>
@@ -54,6 +55,7 @@
     <section id="page-thongke" class="page hidden"></section>
     <section id="page-xeploai" class="page hidden"></section>
     <section id="page-resetpw" class="page hidden"></section>
+    <section id="page-notices" class="page hidden"></section>
     <section id="page-quantri" class="page hidden">
       <div class="panel">
         <div id="adminContent"></div>
@@ -63,6 +65,6 @@
 </div>
 <div id="toast" class="toast hidden"></div>
 <div id="modalRoot"></div>
-<script src="./js/login-bootstrap.js?v=3.0.5.25.24?v=3.0.5.25.24"></script>
+<script src="./js/login-bootstrap.js?v=3.0.5.25.25?v=3.0.5.25.25"></script>
 </body>
 </html>
