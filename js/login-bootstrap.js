@@ -1,4 +1,4 @@
-/* V3.0.5.25.23: chỉ khởi tạo app một lần; Auth trong app.js là bộ xử lý đăng nhập duy nhất. */
+/* V3.0.5.25.31: chỉ khởi tạo app một lần; Auth trong app.js là bộ xử lý đăng nhập duy nhất. */
 (function(){
   'use strict';
   const REMEMBER_KEY='qlnn_v30520_username';
@@ -14,7 +14,7 @@
     syncRole();
     $('loginRole')?.addEventListener('change',syncRole);
     $('togglePassword')?.addEventListener('click',function(){const i=$('password');if(!i)return;const show=i.type==='password';i.type=show?'text':'password';this.textContent=show?'🙈':'👁';});
-    try{await import('./app.js?v=3.0.5.25.23');}
+    try{await import('./app.js?v=3.0.5.25.31');}
     catch(err){console.error('[QLNN APP LOAD]',err);const el=$('loginError');if(el)el.textContent='Không tải được ứng dụng: '+(err?.message||String(err));}
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();

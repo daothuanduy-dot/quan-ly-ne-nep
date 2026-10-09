@@ -1,5 +1,5 @@
-import {supabase,appConfig,managedClasses,canManageAbsence,canMonitorAbsence} from './config.js?v=3.0.5.25.30';
-import {esc,toast} from './ui.js?v=3.0.5.25.30';
+import {supabase,appConfig,managedClasses,canManageAbsence,canMonitorAbsence} from './config.js?v=3.0.5.25.31';
+import {esc,toast} from './ui.js?v=3.0.5.25.31';
 
 let root,grades=[],classes=[],students=[],roster=[];
 let selectedGrade='',selectedClass='',date='',buoi='Sáng',autoBuoi='Sáng',manualBuoi=false;
