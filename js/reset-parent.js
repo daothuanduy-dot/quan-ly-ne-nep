@@ -1,6 +1,6 @@
-import {supabase} from './config.js?v=3.0.5.25.32';
-import {esc,toast,modal,closeModal} from './ui.js?v=3.0.5.25.32';
-import {Auth} from './auth.js?v=3.0.5.25.32';
+import {supabase} from './config.js?v=3.0.5.25.33';
+import {esc,toast,modal,closeModal} from './ui.js?v=3.0.5.25.33';
+import {Auth} from './auth.js?v=3.0.5.25.33';
 export async function init(root){
  const u=Auth.currentUser;const cls=String(u?.lop_quan_ly||'').trim();
  root.innerHTML=`<div class="page-head"><div><h2>🔑 Cấp lại mật khẩu phụ huynh</h2><p>Chỉ hiển thị học sinh thuộc lớp chủ nhiệm của tài khoản đang đăng nhập.</p></div></div><div class="toolbar"><input id="rpSearch" placeholder="Tìm học sinh theo tên hoặc mã"><button id="rpReload" class="btn light">Tải lại</button></div><div id="rpNotice" class="notice">${cls?`Lớp chủ nhiệm: <b>${esc(cls)}</b>`:'Tài khoản chưa được gán lớp chủ nhiệm.'}</div><div id="rpTable"></div>`;

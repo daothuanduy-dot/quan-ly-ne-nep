@@ -656,3 +656,12 @@ main{max-width:1540px;padding:20px clamp(12px,2.4vw,32px) 38px}.page{animation:p
 .exam-appeal-window h3{margin:0 0 8px}
 .exam-window-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;align-items:end}
 .exam-window-grid label{display:flex;flex-direction:column;gap:6px;font-weight:600}
+
+/* PWA/mobile controls */
+#installAppBtn, #enablePushBtn { white-space: nowrap; }
+@media (max-width: 760px) {
+  .top-actions { flex-wrap: wrap; gap: 6px; }
+  #installAppBtn, #enablePushBtn { font-size: 12px; padding: 8px 10px; }
+  #userBox { max-width: 46vw; overflow-wrap: anywhere; }
+  .topbar { padding-top: max(8px, env(safe-area-inset-top)); }
+}

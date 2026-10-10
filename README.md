@@ -1,39 +1,24 @@
+# Quản lý nề nếp & thi đua — V3.0.5.25.30
 
-## V3.0.5.25.23
-Xem `README_V3.0.5.25.23.txt` và chạy SQL `sql/021_v3_0_5_25_23_portal_phu_huynh_phuc_khao.sql` trước khi sử dụng cổng phụ huynh/học sinh.
+## Điểm mới
+- Nhập kết quả theo từng đợt + môn + khối, cho phép tệp riêng từng môn/khối.
+- Lưu điểm trắc nghiệm, điểm tự luận, điểm toàn bài và SBD theo bản ghi kết quả.
+- Học sinh gửi phúc khảo riêng cho từng phần thi; không tải ảnh minh chứng lên.
+- Admin xử lý phúc khảo, cập nhật điểm/ghi chú, đính kèm ảnh bài thi minh chứng và tải danh sách phúc khảo xuống Excel.
+- Admin chủ động gửi một thông báo chung khi đã tải đủ kết quả của đợt; tránh thông báo lặp cho từng môn/điểm.
 
-# Quản lý nề nếp & thi đua – V3.0.5.23
+## Cập nhật CSDL
+Chạy `sql/027_ket_qua_theo_mon_khoi_phuc_khao_phan.sql` sau migration 026.
 
-Bản này tập trung kích hoạt và sửa hoàn chỉnh luồng **Báo Vắng Học Sinh**.
+## Mẫu Excel
+`Mau_Excel_Ket_Qua_Theo_Mon_Khoi.xlsx` — mỗi file cho một môn + một khối + một đợt. Xóa các dòng ví dụ trước khi import.
 
-## Cập nhật quan trọng
-- `diem_danh_master`: frontend không còn gửi `nam_hoc`, tương thích cả CSDL cũ chưa có cột này; migration 018 vẫn bổ sung cột tùy chọn.
-- `bao_vang_lop`: không còn phụ thuộc `upsert/onConflict`; tự tìm bản ghi theo năm học/ngày/buổi/lớp rồi UPDATE hoặc INSERT.
-- Chuẩn hóa khối 10/11/12 và `Khối 10/11/12`.
-- Không phụ thuộc cứng `trang_thai='Active'` khi đọc học sinh; trạng thái được chuẩn hóa ở frontend.
-- Kiểm tra TKB theo thứ + buổi với ưu tiên lớp cụ thể → khối → toàn trường.
-- Giữ quyền báo vắng theo phạm vi lớp của tài khoản.
-
-## SQL bắt buộc
-Chạy `sql/018_v3.0.5.23_kich_hoat_bao_vang.sql` trong Supabase SQL Editor, sau đó tải lại GitHub Pages bằng Ctrl+F5.
-
-
-V3.0.5.25.13: Bổ sung vai trò Cờ đỏ (học sinh); sửa form Cán bộ lớp/Cờ đỏ để luôn hiển thị liên kết lớp + học sinh; giữ quyền chấm điểm cá nhân và thống kê lớp. Không thay đổi schema CSDL.
+## Kiểm thử
+JavaScript đã được kiểm tra cú pháp bằng Node.js; ZIP được kiểm tra tính toàn vẹn. Các RPC/SQL cần chạy thử trên Supabase thực tế trước khi triển khai chính thức.
 
 
-V3.0.5.25.13: Tại Quản lý học sinh > Sửa, bổ sung checkbox Cán bộ lớp. Khi tích chọn, hệ thống tự tạo/kích hoạt tài khoản Cán bộ lớp theo mã học sinh, gắn đúng lớp và học sinh, mặc định mật khẩu 123456 và quyền Chấm điểm. Khi bỏ chọn, tài khoản Cán bộ lớp hiện có sẽ được khóa, không xóa dữ liệu.
-
-
-V3.0.5.25.13: Modern responsive UI refresh for all tabs; bright card-based layout, mobile optimization, and improved scoring selectors.
-
-## V3.0.5.25.19
-- Bổ sung popup chi tiết khi nhấn vào hàng tại Xếp loại & Thi đua thử nghiệm.
-- Áp dụng cho 3 chế độ: Cá nhân, Tập thể lớp, Theo khối.
-- Popup hiển thị thông tin đối tượng, điểm từng mảng, tổng điểm, phân bố điểm học tập và chi tiết các điểm đã chấm.
-- Nhấn nền popup hoặc nút X để đóng.
-
-## V3.0.5.25.26 — Thông báo chủ động và lịch sử phúc khảo
-Chạy `sql/023_thong_bao_chu_dong_lich_su_phuc_khao.sql` sau migrations 021 và 022. Xem `README_V3.0.5.25.26.txt`.
-
-## V3.0.5.25.27 — Giao diện và lịch sử gửi thông báo
-Chạy `sql/025_lich_su_gui_thong_bao.sql` sau migrations 021–024. Lịch sử hiển thị ngay dưới form gửi, có thể mở nội dung từng thông báo. Danh sách lớp/học sinh dùng lưới responsive để tránh chữ/ô tích bị chồng hoặc che.
+## PWA + Web Push (V3.0.5.25.33)
+- Hướng dẫn cài PWA và cấu hình Web Push: `README_PWA_WEB_PUSH.md`.
+- SQL đăng ký thiết bị nhận push: `sql/028_pwa_web_push.sql`.
+- Supabase Edge Function gửi push: `supabase/functions/send-web-push/index.ts`.
+- Web Push yêu cầu VAPID secrets và triển khai Edge Function; không đặt private key/service role trong frontend.
