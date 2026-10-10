@@ -1,4 +1,5 @@
 import {supabase,appConfig} from './config.js?v=3.0.5.25.33';import {esc,toast,modal,closeModal} from './ui.js?v=3.0.5.25.33';
+import {notifyStudents} from './push-events.js';
 let root,student=null,scanner=null,criteria=[];
 async function startScanner(){
  const status=root&&root.querySelector('#qrStatus');
@@ -141,7 +142,9 @@ async function saveEvent(status,score,maHd,detail){
  const payload={ma_hs:student.ma_hs,ho_ten:student.ho_ten,khoi:student.khoi,lop:student.lop,ngay_diem_danh:now.toISOString().slice(0,10),buoi,trang_thai:status,chi_tiet:detail||null,ma_hd:maHd||null,diem:score||0,ma_nguoi_cap_nhat:u?.ma_cb||null,ten_nguoi_cap_nhat:u?.ho_ten||null};
  const {error}=await supabase.from('diem_danh_master').insert(payload);
  if(error)return toast(`Không ghi nhận được: ${error.message}`,'err');
- toast('Đã ghi nhận thành công. Dữ liệu học sinh gốc không thay đổi.','ok');student=null;await init(root);
+ toast('Đã ghi nhận thành công. Dữ liệu học sinh gốc không thay đổi.','ok');
+ await notifyStudents([student.ma_hs], 'Cập nhật điểm danh, nề nếp', `${student.ho_ten}: ${status}${detail ? ' — '+detail : ''}.`, u, 'discipline').catch(e=>console.warn('[QLNN push]',e));
+ student=null;await init(root);
 }
 async function detectCurrentSessionForQr(now){
  const t=now.toTimeString().slice(0,8);

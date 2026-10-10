@@ -1,3 +1,4 @@
+import {notifyStudents} from './push-events.js';
 /* QLNN V3.0.5.25.13 - Bao vang - standalone module */
 var BV25 = (function(){
   var root = null;
@@ -277,6 +278,7 @@ var BV25 = (function(){
     var e=await saveClassReport(payload.length);
     if(e){toast('Đã ghi học sinh nhưng chưa cập nhật trạng thái lớp: '+e,'err');return;}
     toast('Đã ghi nhận '+payload.length+' học sinh vắng.','ok');
+    notifyStudents(payload.map(x=>x.ma_hs), 'Thông báo điểm danh', `Hệ thống đã cập nhật tình trạng vắng học ngày ${dateText(reportDate)} — buổi ${sessionName}.`, app().Auth?.currentUser, 'attendance').catch(function(e){console.warn('[QLNN push]',e);});
   }
 
   async function saveZero(){
