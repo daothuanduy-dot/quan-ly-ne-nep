@@ -1,4 +1,4 @@
-import {appConfig, supabase} from './config.js?v=3.0.5.25.33';
+import {appConfig, supabase} from './config.js?v=3.0.5.25.36';
 
 function decodeBase64Url(value){
   const pad='='.repeat((4-value.length%4)%4);

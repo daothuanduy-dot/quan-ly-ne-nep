@@ -26,7 +26,7 @@
     const btn=event.target.closest('#enablePushBtn, [data-enable-push]');if(!btn)return;
     try{
       btn.disabled=true;
-      const mod=await import('./pwa-push.js?v=3.0.5.25.33');
+      const mod=await import('./pwa-push.js?v=3.0.5.25.36');
       await mod.enablePush(window.App?.Auth?.currentUser);
     }catch(err){console.error('[PWA PUSH]',err);message(err?.message||'Không thể bật thông báo đẩy.');}
     finally{btn.disabled=false;}
