@@ -6,7 +6,7 @@ export const appConfig={
   namHoc:'2026-2027',
   tenTruong:'THPT Lê Hồng Phong',
   // Khóa công khai VAPID sẽ được điền sau khi tạo cặp khóa Web Push. Không đặt khóa riêng tại frontend.
-  webPushPublicKey:'REPLACE_WITH_VAPID_PUBLIC_KEY'
+  webPushPublicKey:'BFSmsyVgVA41bpEcTlT6MtiBFGX_2I-fraVUjRbIiZ_spdWz6Q8YhJ0jeoMpgXezVXbZT77GMDLcWtvfTKjgtqE'
 };
 export const supabase=createClient(appConfig.supabaseUrl,appConfig.supabaseAnonKey);
 export const PERMISSION_TABS=[
