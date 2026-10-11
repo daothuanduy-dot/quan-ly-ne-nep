@@ -1,3 +1,0 @@
-# BỔ SUNG vào supabase/config.toml hiện có; KHÔNG ghi đè cấu hình hiện tại.
-[functions.send-student-event]
-verify_jwt = false
