@@ -1,12 +1,12 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-export const APP_VERSION='3.0.5.25.36';
+export const APP_VERSION='3.0.5.25.33';
 export const appConfig={
   supabaseUrl:'https://vbhtgkvvmwfztswxlvnl.supabase.co',
   supabaseAnonKey:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZiaHRna3Z2bXdmenRzd3hsdm5sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEwMjE2MzgsImV4cCI6MjEwNjU5NzYzOH0.CqsEoBOVB4CS9UphogsIRtR1syY82kx5uzvcz_K_luo',
   namHoc:'2026-2027',
   tenTruong:'THPT Lê Hồng Phong',
   // Khóa công khai VAPID sẽ được điền sau khi tạo cặp khóa Web Push. Không đặt khóa riêng tại frontend.
-  webPushPublicKey:'REPLACE_WITH_VAPID_PUBLIC_KEY'
+  webPushPublicKey:'BFSmsyVgVA41bpEcTlT6MtiBFGX_2I-fraVUjRbIiZ_spdWz6Q8YhJ0jeoMpgXezVXbZT77GMDLcWtvfTKjgtqE'
 };
 export const supabase=createClient(appConfig.supabaseUrl,appConfig.supabaseAnonKey);
 export const PERMISSION_TABS=[

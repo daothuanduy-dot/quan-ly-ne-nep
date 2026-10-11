@@ -1,3 +1,4 @@
+import {notifyStudents} from './push-events.js';
 /* QLNN V3.0.5.25.13 - Bao vang - standalone module */
 var BV25 = (function(){
   var root = null;
@@ -143,7 +144,7 @@ var BV25 = (function(){
   async function selectClass(cls){
     selectedClass=cls;
     students=roster.filter(function(s){return active(s) && String(s.lop||'').trim()===String(cls).trim() && sameGrade(s.khoi||s.lop,selectedGrade);});
-    students.sort(function(a,b){return compareVietnameseFullName(a.ho_ten,b.ho_ten);});
+    students.sort(function(a,b){return sortText(a.ho_ten||'',b.ho_ten||'');});
     var c=root.querySelector('#bvCount');
     c.disabled=false;
     var html='<option value="">-- Chọn số học sinh vắng --</option>';
@@ -169,7 +170,7 @@ var BV25 = (function(){
 
   function row(i){
     var opts='<option value="">-- Chọn học sinh --</option>';
-    for(var j=0;j<students.length;j++)opts+='<option value="'+j+'">'+esc(students[j].ho_ten)+' — '+esc(formatDateVN(students[j].ngay_sinh) || '')+'</option>';
+    for(var j=0;j<students.length;j++)opts+='<option value="'+j+'">'+esc(students[j].ho_ten)+' — '+esc(students[j].ngay_sinh || '')+'</option>';
     return '<div class="absence-row" data-row="'+i+'"><div class="absence-index">'+(i+1)+'</div><div class="absence-student-wrap"><label>Học sinh<select class="absence-student">'+opts+'</select></label></div><div class="absence-status"><span class="status-label">Trạng thái</span><label class="absence-status-radio allowed"><input type="radio" name="bvStatus_'+i+'" value="Vắng có phép"><span>✓ Có phép</span></label><label class="absence-status-radio notallowed"><input type="radio" name="bvStatus_'+i+'" value="Vắng không phép"><span>✕ Không phép</span></label></div></div>';
   }
 
@@ -277,6 +278,7 @@ var BV25 = (function(){
     var e=await saveClassReport(payload.length);
     if(e){toast('Đã ghi học sinh nhưng chưa cập nhật trạng thái lớp: '+e,'err');return;}
     toast('Đã ghi nhận '+payload.length+' học sinh vắng.','ok');
+    notifyStudents(payload.map(x=>x.ma_hs), 'Thông báo điểm danh', `Hệ thống đã cập nhật tình trạng vắng học ngày ${dateText(reportDate)} — buổi ${sessionName}.`, app().Auth?.currentUser, 'attendance').catch(function(e){console.warn('[QLNN push]',e);});
   }
 
   async function saveZero(){

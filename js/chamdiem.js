@@ -1,5 +1,6 @@
-import {supabase,managedClasses,roleOf,canScore} from './config.js?v=3.0.5.25.36';
-import {esc,toast,compareVietnameseFullName,formatDateVN} from './ui.js?v=3.0.5.25.36';
+import {supabase,managedClasses,roleOf,canScore} from './config.js?v=3.0.5.25.33';
+import {esc,toast} from './ui.js?v=3.0.5.25.33';
+import {notifyStudents,notifyClassStudents} from './push-events.js';
 
 let root;
 let grades=[];
@@ -250,7 +251,7 @@ async function loadStudentsForClass(cls){
     .order('ho_ten'));
   students=students.filter(isActiveStudent);
   students.sort((a,b)=>{
-    const n=compareVietnameseFullName(a.ho_ten,b.ho_ten);
+    const n=String(a.ho_ten||'').localeCompare(String(b.ho_ten||''),'vi',{sensitivity:'base'});
     if(n!==0)return n;
     return String(a.ngay_sinh||'').localeCompare(String(b.ngay_sinh||''));
   });
@@ -269,7 +270,7 @@ async function loadStudents(grade,cls){
 
   // Sắp xếp theo tên, sau đó ngày sinh để dễ nhận diện học sinh trùng tên.
   students.sort((a,b)=>{
-    const n=compareVietnameseFullName(a.ho_ten,b.ho_ten);
+    const n=String(a.ho_ten||'').localeCompare(String(b.ho_ten||''),'vi',{sensitivity:'base'});
     if(n!==0)return n;
     return String(a.ngay_sinh||'').localeCompare(String(b.ngay_sinh||''));
   });
@@ -386,6 +387,7 @@ async function saveOfficerBook(cls,year,week,total,inputs){
   const rows=counts.filter(x=>x.so_luong>0).map(x=>({nam_hoc:year,tuan_hoc:week,lop:cls,loai_diem:'SoDauBai',diem:x.diem,so_luong:x.so_luong,ma_nguoi_cap_nhat:u?.ma_cb||null,ten_nguoi_cap_nhat:u?.ho_ten||null}));
   if(rows.length){const ins=await supabase.from('diem_hoc_tap_tuan').insert(rows);if(ins.error)return toast('Không lưu được Sổ đầu bài: '+ins.error.message,'err');}
   toast(`Đã lưu Sổ đầu bài lớp ${cls}, tuần ${week}.`,'ok');
+  notifyClassStudents(supabase, cls, 'Cập nhật kết quả học tập', `Sổ đầu bài lớp ${cls}, tuần ${week} đã được cập nhật.`, u, 'study-score').catch(e=>console.warn('[QLNN push]',e));
 }
 
 async function saveOfficerStudents(cls,year,week,body){
@@ -397,6 +399,7 @@ async function saveOfficerStudents(cls,year,week,body){
   if(del.error)return toast('Không thể cập nhật điểm học sinh: '+del.error.message,'err');
   if(rows.length){const ins=await supabase.from('diem_hoc_tap_tuan').insert(rows);if(ins.error)return toast('Không lưu được điểm học sinh: '+ins.error.message,'err');}
   toast(`Đã lưu điểm học sinh lớp ${cls}, tuần ${week}.`,'ok');
+  notifyClassStudents(supabase, cls, 'Cập nhật điểm học tập', `Điểm học tập tuần ${week} của lớp ${cls} đã được cập nhật.`, u, 'study-score').catch(e=>console.warn('[QLNN push]',e));
 }
 
 function renderScoreForm(){
@@ -731,6 +734,7 @@ async function saveCollective(){
   if(error)return toast(`Không ghi được điểm tập thể: ${error.message}`,'err');
 
   toast(`Đã ghi ${Number(c.diem)>0?'+':''}${c.diem} điểm cho tập thể lớp ${cls}.`,'ok');
+  notifyClassStudents(supabase, cls, 'Cập nhật nề nếp, thi đua', `Lớp ${cls} vừa có cập nhật điểm thi đua tập thể: ${c.ten_hd} (${Number(c.diem)>0?'+':''}${c.diem} điểm).`, u, 'discipline').catch(e=>console.warn('[QLNN push]',e));
   root.querySelector('#collectiveCriteria').value='';
   root.querySelectorAll('input[name="collectiveType"]').forEach(x=>x.checked=false);
   root.querySelector('#collectiveSummary').textContent='Đã ghi nhận. Có thể tiếp tục chấm.';
@@ -768,6 +772,7 @@ async function saveIndividual(){
   if(error)return toast(`Không ghi được điểm cá nhân: ${error.message}`,'err');
 
   toast(`Đã ghi ${Number(c.diem)>0?'+':''}${c.diem} điểm cho ${s.ho_ten}.`,'ok');
+  notifyStudents([s.ma_hs], 'Cập nhật nề nếp, thi đua', `${s.ho_ten} vừa được cập nhật điểm nề nếp: ${c.ten_hd} (${Number(c.diem)>0?'+':''}${c.diem} điểm).`, u, 'discipline').catch(e=>console.warn('[QLNN push]',e));
 
   root.querySelector('#individualCriteria').value='';
   root.querySelectorAll('input[name="individualType"]').forEach(x=>x.checked=false);
@@ -777,7 +782,7 @@ async function saveIndividual(){
 function formatDate(v){
   if(!v)return 'Chưa có ngày sinh';
   const m=String(v).match(/^(\d{4})-(\d{2})-(\d{2})/);
-  return formatDateVN(v)||String(v);
+  return m?`${m[3]}/${m[2]}/${m[1]}`:String(v);
 }
 
 function showError(message){
