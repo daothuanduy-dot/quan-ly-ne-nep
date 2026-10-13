@@ -138,7 +138,7 @@ async function load(root){
 
     const scopedEventsBase=scopedEvents;
     const scopedStudyBase=scopedStudy;
-    const now=new Date(); const state={view:'school',grade:'',cls:'',period:'year',ref:isoDate(now),from:isoDate(now),to:isoDate(now)}; let range=periodRange(state.period,localDate(state.ref),state.from,state.to);
+    const now=new Date(); const state={view:'school',grade:'',cls:'',criterion:'',period:'year',ref:isoDate(now),from:isoDate(now),to:isoDate(now)}; let range=periodRange(state.period,localDate(state.ref),state.from,state.to);
     const eventByStudent=new Map();
     const studyByStudent=new Map();
     const studyByClass=new Map();
@@ -215,15 +215,20 @@ async function load(root){
 
     function renderFilters(){
       const f=root.querySelector('#statsFilters');
-      if(state.view==='school'){f.innerHTML='<span class="filter-note">Toàn bộ dữ liệu trong phạm vi được phân quyền.</span>';return;}
-      if(state.view==='grade'){
-        f.innerHTML=`<label>Khối<select id="filterGrade"><option value="">Tất cả khối</option>${['10','11','12'].map(g=>`<option value="${g}" ${state.grade===g?'selected':''}>Khối ${g}</option>`).join('')}</select></label>`;
-        f.querySelector('#filterGrade').onchange=e=>{state.grade=e.target.value;renderChart();renderAlerts()};
+      const criterionOptions=criteria.slice().sort((a,b)=>String(a.ten_hd||'').localeCompare(String(b.ten_hd||''),'vi',{sensitivity:'base'}));
+      const criterionLabel=state.criterion?criteriaMap.get(state.criterion)?.ten_hd:'Tất cả tiêu chí';
+      let controls=`<label class="stats-criterion-filter">Tiêu chí thi đua<select id="filterCriterion"><option value="">Tất cả tiêu chí</option>${criterionOptions.map(c=>`<option value="${esc(c.ma_hd)}" ${state.criterion===String(c.ma_hd)?'selected':''}>${esc(c.ten_hd)}${c.mang?` — ${esc(c.mang)}`:''}</option>`).join('')}</select></label>`;
+      if(state.view==='school'){
+        controls+='<span class="filter-note">Toàn bộ dữ liệu trong phạm vi được phân quyền.</span>';
+      }else if(state.view==='grade'){
+        controls+=`<label>Khối<select id="filterGrade"><option value="">Tất cả khối</option>${['10','11','12'].map(g=>`<option value="${g}" ${state.grade===g?'selected':''}>Khối ${g}</option>`).join('')}</select></label>`;
       }else{
-        f.innerHTML=`<label>Khối<select id="filterGrade"><option value="">Tất cả khối</option>${['10','11','12'].map(g=>`<option value="${g}" ${state.grade===g?'selected':''}>Khối ${g}</option>`).join('')}</select></label><label>Lớp<select id="filterClass"><option value="">Chọn lớp</option>${allowedClasses().map(c=>`<option value="${esc(c)}" ${state.cls===c?'selected':''}>${esc(c)}</option>`).join('')}</select></label>`;
-        f.querySelector('#filterGrade').onchange=e=>{state.grade=e.target.value;state.cls='';renderFilters();renderChart();renderAlerts()};
-        f.querySelector('#filterClass').onchange=e=>{state.cls=e.target.value;renderChart();renderAlerts()};
+        controls+=`<label>Khối<select id="filterGrade"><option value="">Tất cả khối</option>${['10','11','12'].map(g=>`<option value="${g}" ${state.grade===g?'selected':''}>Khối ${g}</option>`).join('')}</select></label><label>Lớp<select id="filterClass"><option value="">Chọn lớp</option>${allowedClasses().map(c=>`<option value="${esc(c)}" ${state.cls===c?'selected':''}>${esc(c)}</option>`).join('')}</select></label>`;
       }
+      f.innerHTML=controls;
+      f.querySelector('#filterCriterion').onchange=e=>{state.criterion=e.target.value;renderChart();renderAlerts()};
+      const grade=f.querySelector('#filterGrade');if(grade)grade.onchange=e=>{state.grade=e.target.value;state.cls='';renderFilters();renderChart();renderAlerts()};
+      const cls=f.querySelector('#filterClass');if(cls)cls.onchange=e=>{state.cls=e.target.value;renderChart();renderAlerts()};
     }
     function selectedStudents(){
       if(state.view==='school')return students;
@@ -232,7 +237,7 @@ async function load(root){
     }
     function selectedEvents(){
       const ids=new Set(selectedStudents().map(s=>String(s.ma_hs)));
-      return scopedEvents.filter(e=>(e.ma_hs&&ids.has(String(e.ma_hs)))||(!e.ma_hs&&state.view==='class'&&classNorm(e.lop)===classNorm(state.cls)));
+      return scopedEvents.filter(e=>(!state.criterion||String(e.ma_hd||'')===state.criterion)&&((e.ma_hs&&ids.has(String(e.ma_hs)))||(!e.ma_hs&&state.view==='class'&&classNorm(e.lop)===classNorm(state.cls))));
     }
     function selectedStudy(){
       const ids=new Set(selectedStudents().map(s=>String(s.ma_hs)));
@@ -247,6 +252,7 @@ async function load(root){
       const study=selectedStudy();
       let rows=[];
       let scopeTitle='Toàn trường → tất cả các lớp';
+      const criterionTitle=state.criterion?(criteriaMap.get(state.criterion)?.ten_hd||state.criterion):'Tất cả tiêu chí';
 
       // Quy ước: phạm vi Toàn trường và Theo khối luôn lấy TOÀN BỘ lớp từ danh sách học sinh,
       // kể cả lớp chưa phát sinh điểm trong khoảng thời gian đang chọn. Vì vậy lớp không biến động
@@ -283,13 +289,13 @@ async function load(root){
         const classStudents=selectedStudents().filter(s=>classNorm(s.lop)===classNorm(state.cls));
         rows=classStudents.map(s=>{
           const id=String(s.ma_hs);
-          const sev=eventByStudent.get(id)||[];
+          const sev=(eventByStudent.get(id)||[]).filter(e=>!state.criterion||String(e.ma_hd||'')===state.criterion);
           const sstudy=studyByStudent.get(id)||[];
           return {id,name:s.ho_ten||id,sub:`${s.ma_hs} · ${s.lop||''}`,cls:s.lop||'',stats:statsFor(sev),study:studyStats(sstudy)};
         }).sort((a,b)=>(b.stats.total-a.stats.total)||(b.study.avg-a.study.avg)||String(a.name).localeCompare(String(b.name),'vi'));
         const sumPlus=rows.reduce((a,r)=>a+r.stats.plus,0),sumMinus=rows.reduce((a,r)=>a+r.stats.minus,0);
         root.querySelector('#scoreSummary').innerHTML=`<div class="score-mini-grid"><div><span>Điểm cộng</span><b>+${fmt(sumPlus)}</b></div><div><span>Điểm trừ</span><b>${fmt(sumMinus)}</b></div><div><span>Điểm</span><b>${sumPlus+sumMinus>0?'+':''}${fmt(sumPlus+sumMinus)}</b></div><div><span>Học sinh</span><b>${rows.length}</b></div></div>`;
-         attachScoreExports(root.querySelector('#scoreSummary'),rows,`Bảng điểm học sinh lớp ${state.cls}`);
+         attachScoreExports(root.querySelector('#scoreSummary'),rows,`Bảng điểm học sinh lớp ${state.cls} — ${criterionTitle}`);
         root.querySelector('#scoreChart').innerHTML=`<div class="class-student-ranking"><div class="score-table-shell"><div class="score-table-head"><span>Học sinh</span><span>Cộng</span><span>Trừ</span><span>Điểm</span><span>ĐTB học tập</span></div><div class="score-detail-scroll">${rows.length?rows.map((r,i)=>`<button type="button" class="score-detail-row" data-detail-id="${esc(r.id)}"><span class="score-object"><b><i>${i+1}</i>${esc(r.name)}</b><small>${esc(r.sub)}</small></span><strong class="plus-text">+${fmt(r.stats.plus)}</strong><strong class="minus-text">${fmt(r.stats.minus)}</strong><strong class="net-text">${r.stats.total>0?'+':''}${fmt(r.stats.total)}</strong><strong class="study-text">${r.study.total?fmt(r.study.avg):'—'}</strong></button>`).join(''):'<div class="empty">Lớp chưa có học sinh.</div>'}</div></div>`;
         root.querySelectorAll('.score-detail-row').forEach(btn=>btn.onclick=()=>showDetail(btn.dataset.detailId,rows));
         return;
@@ -298,7 +304,7 @@ async function load(root){
       // Toàn trường / Theo khối: biểu đồ cột đứng theo lớp. Không loại bỏ lớp có Điểm = 0.
       const sumPlus=rows.reduce((a,r)=>a+r.stats.plus,0),sumMinus=rows.reduce((a,r)=>a+r.stats.minus,0),sumStudy=rows.filter(r=>r.study.total).reduce((a,r)=>a+r.study.avg,0),nStudy=rows.filter(r=>r.study.total).length;
       root.querySelector('#scoreSummary').innerHTML=`<div class="score-mini-grid"><div><span>Điểm cộng</span><b>+${fmt(sumPlus)}</b></div><div><span>Điểm trừ</span><b>${fmt(sumMinus)}</b></div><div><span>Điểm</span><b>${sumPlus+sumMinus>0?'+':''}${fmt(sumPlus+sumMinus)}</b></div><div><span>Số lớp</span><b>${rows.length}</b></div></div>`;
-       attachScoreExports(root.querySelector('#scoreSummary'),rows,scopeTitle);
+       attachScoreExports(root.querySelector('#scoreSummary'),rows,`${scopeTitle} — ${criterionTitle}`);
 
       const maxAbs=Math.max(1,...rows.map(r=>Math.abs(r.stats.total)));
       const chartRows=rows.map(r=>{
@@ -311,7 +317,7 @@ async function load(root){
           <div class="vertical-score-label"><b>${esc(r.name)}</b><small>${esc(r.sub)}</small></div>
         </div>`;
       }).join('');
-      root.querySelector('#scoreChart').innerHTML=`<div class="score-chart-card vertical-score-card"><div class="score-chart-head"><div><h4>📊 Biểu đồ điểm</h4><p>${esc(scopeTitle)} · các lớp không phát sinh biến động vẫn được hiển thị với Điểm = 0.</p></div></div><div class="vertical-score-chart">${chartRows}</div><div class="vertical-score-legend"><span><i class="legend-dot positive"></i>Điểm dương</span><span><i class="legend-dot negative"></i>Điểm âm</span></div></div><div class="score-table-shell"><div class="score-table-head"><span>Đối tượng</span><span>Cộng</span><span>Trừ</span><span>Điểm</span><span>ĐTB học tập</span></div><div class="score-detail-scroll">${rows.map(r=>`<button type="button" class="score-detail-row" data-detail-id="${esc(r.id)}"><span class="score-object"><b>${esc(r.name)}</b><small>${esc(r.sub)}</small></span><strong class="plus-text">+${fmt(r.stats.plus)}</strong><strong class="minus-text">${fmt(r.stats.minus)}</strong><strong class="net-text">${r.stats.total>0?'+':''}${fmt(r.stats.total)}</strong><strong class="study-text">${r.study.total?fmt(r.study.avg):'—'}</strong></button>`).join('')}</div></div>`;
+      root.querySelector('#scoreChart').innerHTML=`<div class="score-chart-card vertical-score-card"><div class="score-chart-head"><div><h4>📊 Biểu đồ điểm</h4><p>${esc(scopeTitle)} · Tiêu chí: ${esc(criterionTitle)} · các lớp không phát sinh biến động vẫn được hiển thị với Điểm = 0.</p></div></div><div class="vertical-score-chart">${chartRows}</div><div class="vertical-score-legend"><span><i class="legend-dot positive"></i>Điểm dương</span><span><i class="legend-dot negative"></i>Điểm âm</span></div></div><div class="score-table-shell"><div class="score-table-head"><span>Đối tượng</span><span>Cộng</span><span>Trừ</span><span>Điểm</span><span>ĐTB học tập</span></div><div class="score-detail-scroll">${rows.map(r=>`<button type="button" class="score-detail-row" data-detail-id="${esc(r.id)}"><span class="score-object"><b>${esc(r.name)}</b><small>${esc(r.sub)}</small></span><strong class="plus-text">+${fmt(r.stats.plus)}</strong><strong class="minus-text">${fmt(r.stats.minus)}</strong><strong class="net-text">${r.stats.total>0?'+':''}${fmt(r.stats.total)}</strong><strong class="study-text">${r.study.total?fmt(r.study.avg):'—'}</strong></button>`).join('')}</div></div>`;
       root.querySelectorAll('.score-detail-row').forEach(btn=>btn.onclick=()=>showDetail(btn.dataset.detailId,rows));
     }
     function showDetail(id,rows){
