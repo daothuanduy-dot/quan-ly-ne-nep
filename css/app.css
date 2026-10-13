@@ -665,3 +665,40 @@ main{max-width:1540px;padding:20px clamp(12px,2.4vw,32px) 38px}.page{animation:p
   #userBox { max-width: 46vw; overflow-wrap: anywhere; }
   .topbar { padding-top: max(8px, env(safe-area-inset-top)); }
 }
+
+
+/* V3.0.5.25.40: compact score charts and export controls */
+.vertical-score-chart{
+  height:245px;
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(42px,1fr));
+  align-items:stretch;
+  gap:clamp(3px,.55vw,9px);
+  padding:10px 5px 0;
+  overflow-x:hidden;
+  border-top:1px solid #edf3f7;
+}
+.vertical-score-col{
+  min-width:0;
+  width:100%;
+  flex:none;
+  grid-template-rows:24px 1fr 42px;
+  font-size:11px;
+}
+.vertical-score-stage{height:155px}
+.vertical-score-label{overflow:hidden;min-width:0}
+.vertical-score-label b{display:block;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vertical-score-label small{display:block;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vertical-score-value{font-size:11px}
+.score-export-toolbar{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin:10px 0 14px}
+.score-export-toolbar .btn{font-size:13px;padding:8px 12px}
+@media(max-width:900px){
+ .vertical-score-chart{grid-template-columns:repeat(auto-fit,minmax(38px,1fr));gap:3px;height:220px}
+ .vertical-score-stage{height:130px}
+ .vertical-score-label b{font-size:10px}
+ .vertical-score-label small{display:none}
+}
+@media(max-width:560px){
+ .vertical-score-chart{grid-template-columns:repeat(auto-fit,minmax(48px,1fr));height:210px;overflow-x:auto}
+ .score-export-toolbar{justify-content:flex-start}
+}
