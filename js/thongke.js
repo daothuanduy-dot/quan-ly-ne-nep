@@ -1,5 +1,5 @@
-import {supabase,managedClasses,canViewAllStats,roleOf,appConfig} from './config.js?v=3.0.5.25.33';
-import {esc} from './ui.js?v=3.0.5.25.33';
+import {supabase,managedClasses,canViewAllStats,roleOf,appConfig} from './config.js?v=3.0.5.25.40';
+import {esc} from './ui.js?v=3.0.5.25.40';
 
 async function fetchAll(factory,chunk=1000){
   const all=[]; let from=0;
@@ -15,6 +15,48 @@ async function fetchAll(factory,chunk=1000){
 function norm(v){return String(v??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();}
 function activeStudent(v){const x=norm(v);return !x||['active','dang hoc','hoc','hoat dong','true','1'].includes(x);}
 function fmt(n){const x=Number(n||0);return Number.isInteger(x)?String(x):x.toFixed(1).replace(/\.0$/,'');}
+
+function exportScoreRows(rows,title){
+  const data=(rows||[]).map((r,i)=>({
+    'STT':i+1,
+    'Họ tên / Lớp':r.name||'',
+    'Mã học sinh / Số học sinh':r.id||'',
+    'Lớp':r.cls||r.name||'',
+    'Điểm cộng':Number(r.stats?.plus||0),
+    'Điểm trừ':Number(r.stats?.minus||0),
+    'Điểm':Number(r.stats?.total||0),
+    'Số lần cập nhật':Number(r.stats?.count||0),
+    'Số lần điểm học tập':Number(r.study?.total||0),
+    'Điểm TB học tập':r.study?.total?Number(r.study.avg||0):''
+  }));
+  const stamp=new Date().toLocaleDateString('vi-VN').replace(/\//g,'-');
+  const safe=String(title||'Danh_sach_diem').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-zA-Z0-9_-]+/g,'_').slice(0,50)||'Danh_sach_diem';
+  return {data,stamp,safe,title:title||'Danh sách điểm'};
+}
+function attachScoreExports(summaryEl,rows,title){
+  if(!summaryEl)return;
+  const bar=document.createElement('div');
+  bar.className='score-export-toolbar';
+  bar.innerHTML='<button type="button" class="btn light" data-export="xlsx">⬇️ Xuất Excel</button><button type="button" class="btn light" data-export="pdf">🖨️ Xuất PDF / In</button>';
+  summaryEl.appendChild(bar);
+  bar.querySelector('[data-export="xlsx"]').onclick=()=>{
+    if(!window.XLSX)return alert('Thư viện Excel chưa tải xong. Hãy tải lại trang.');
+    const pack=exportScoreRows(rows,title);
+    const ws=XLSX.utils.json_to_sheet(pack.data);
+    ws['!cols']=[{wch:7},{wch:28},{wch:22},{wch:16},{wch:14},{wch:14},{wch:12},{wch:18},{wch:20},{wch:18}];
+    const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Danh sach diem');
+    XLSX.writeFile(wb,`${pack.safe}_${pack.stamp}.xlsx`);
+  };
+  bar.querySelector('[data-export="pdf"]').onclick=()=>{
+    const pack=exportScoreRows(rows,title);
+    const escHtml=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const body=pack.data.map(r=>`<tr>${Object.values(r).map(v=>`<td>${escHtml(v)}</td>`).join('')}</tr>`).join('');
+    const headers=Object.keys(pack.data[0]||{'Thông báo':'Không có dữ liệu'});
+    const html=`<!doctype html><html lang="vi"><head><meta charset="utf-8"><title>${escHtml(pack.title)}</title><style>
+      @page{size:A4 landscape;margin:12mm}body{font:12px Arial,sans-serif;color:#172b4d}h1{font-size:18px;text-align:center;margin:0 0 6px}p{font-size:11px;text-align:center;margin:0 0 16px;color:#52657c}table{width:100%;border-collapse:collapse}th,td{border:1px solid #9aaabd;padding:6px;text-align:left;vertical-align:top}th{background:#edf3f8;font-weight:bold}tr{break-inside:avoid}footer{margin-top:14px;text-align:right;font-size:10px;color:#52657c}@media print{button{display:none}}</style></head><body><h1>${escHtml(pack.title)}</h1><p>Ngày xuất: ${pack.stamp}</p><table><thead><tr>${headers.map(h=>`<th>${escHtml(h)}</th>`).join('')}</tr></thead><tbody>${body||'<tr><td>Không có dữ liệu</td></tr>'}</tbody></table><footer>Xuất từ hệ thống Quản lý nề nếp & thi đua</footer><script>window.onload=()=>setTimeout(()=>window.print(),250)<\/script></body></html>`;
+    const w=window.open('','_blank');if(!w){alert('Trình duyệt đang chặn cửa sổ bật lên. Hãy cho phép mở cửa sổ để xuất PDF.');return;}w.document.open();w.document.write(html);w.document.close();
+  };
+}
 function scoreOf(rows){return rows.reduce((a,r)=>a+Number(r.diem||0),0);}
 function statsFor(rows){
   const plus=rows.filter(r=>Number(r.diem)>0).reduce((a,r)=>a+Number(r.diem||0),0);
@@ -247,6 +289,7 @@ async function load(root){
         }).sort((a,b)=>(b.stats.total-a.stats.total)||(b.study.avg-a.study.avg)||String(a.name).localeCompare(String(b.name),'vi'));
         const sumPlus=rows.reduce((a,r)=>a+r.stats.plus,0),sumMinus=rows.reduce((a,r)=>a+r.stats.minus,0);
         root.querySelector('#scoreSummary').innerHTML=`<div class="score-mini-grid"><div><span>Điểm cộng</span><b>+${fmt(sumPlus)}</b></div><div><span>Điểm trừ</span><b>${fmt(sumMinus)}</b></div><div><span>Điểm</span><b>${sumPlus+sumMinus>0?'+':''}${fmt(sumPlus+sumMinus)}</b></div><div><span>Học sinh</span><b>${rows.length}</b></div></div>`;
+         attachScoreExports(root.querySelector('#scoreSummary'),rows,`Bảng điểm học sinh lớp ${state.cls}`);
         root.querySelector('#scoreChart').innerHTML=`<div class="class-student-ranking"><div class="score-table-shell"><div class="score-table-head"><span>Học sinh</span><span>Cộng</span><span>Trừ</span><span>Điểm</span><span>ĐTB học tập</span></div><div class="score-detail-scroll">${rows.length?rows.map((r,i)=>`<button type="button" class="score-detail-row" data-detail-id="${esc(r.id)}"><span class="score-object"><b><i>${i+1}</i>${esc(r.name)}</b><small>${esc(r.sub)}</small></span><strong class="plus-text">+${fmt(r.stats.plus)}</strong><strong class="minus-text">${fmt(r.stats.minus)}</strong><strong class="net-text">${r.stats.total>0?'+':''}${fmt(r.stats.total)}</strong><strong class="study-text">${r.study.total?fmt(r.study.avg):'—'}</strong></button>`).join(''):'<div class="empty">Lớp chưa có học sinh.</div>'}</div></div>`;
         root.querySelectorAll('.score-detail-row').forEach(btn=>btn.onclick=()=>showDetail(btn.dataset.detailId,rows));
         return;
@@ -255,6 +298,7 @@ async function load(root){
       // Toàn trường / Theo khối: biểu đồ cột đứng theo lớp. Không loại bỏ lớp có Điểm = 0.
       const sumPlus=rows.reduce((a,r)=>a+r.stats.plus,0),sumMinus=rows.reduce((a,r)=>a+r.stats.minus,0),sumStudy=rows.filter(r=>r.study.total).reduce((a,r)=>a+r.study.avg,0),nStudy=rows.filter(r=>r.study.total).length;
       root.querySelector('#scoreSummary').innerHTML=`<div class="score-mini-grid"><div><span>Điểm cộng</span><b>+${fmt(sumPlus)}</b></div><div><span>Điểm trừ</span><b>${fmt(sumMinus)}</b></div><div><span>Điểm</span><b>${sumPlus+sumMinus>0?'+':''}${fmt(sumPlus+sumMinus)}</b></div><div><span>Số lớp</span><b>${rows.length}</b></div></div>`;
+       attachScoreExports(root.querySelector('#scoreSummary'),rows,scopeTitle);
 
       const maxAbs=Math.max(1,...rows.map(r=>Math.abs(r.stats.total)));
       const chartRows=rows.map(r=>{
