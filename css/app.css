@@ -702,3 +702,8 @@ main{max-width:1540px;padding:20px clamp(12px,2.4vw,32px) 38px}.page{animation:p
  .vertical-score-chart{grid-template-columns:repeat(auto-fit,minmax(48px,1fr));height:210px;overflow-x:auto}
  .score-export-toolbar{justify-content:flex-start}
 }
+
+/* V3.0.5.25.41: filter criterion in competition results */
+.stats-criterion-filter{min-width:min(320px,100%);flex:1 1 300px}
+.stats-criterion-filter select{width:100%}
+#statsFilters{align-items:end}
