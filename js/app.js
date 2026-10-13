@@ -1,8 +1,8 @@
-import {APP_VERSION,appConfig,supabase,managedClasses,canManageAbsence,canMonitorAbsence} from './config.js?v=3.0.5.25.41';import {Auth} from './auth.js?v=3.0.5.25.33';import {toast,esc} from './ui.js?v=3.0.5.25.33';
+import {APP_VERSION,appConfig,supabase,managedClasses,canManageAbsence,canMonitorAbsence} from './config.js?v=3.0.5.25.42';import {Auth} from './auth.js?v=3.0.5.25.33';import {toast,esc} from './ui.js?v=3.0.5.25.33';
 const modules={};
 async function loadFeature(k){
  if(modules[k]) return modules[k];
- const map={qr:'./qr.js',baovang:'./baovang-v25.js',chamdiem:'./chamdiem.js',thongke:'./thongke.js',xeploai:'./xeploai.js',quantri:'./admin.js',resetpw:'./reset-parent.js',notices:'./thongbao.js'};
+ const map={qr:'./qr.js',baovang:'./baovang-v25.js',chamdiem:'./chamdiem.js',thongke:'./thongke.js?v=3.0.5.25.42',xeploai:'./xeploai.js',quantri:'./admin.js',resetpw:'./reset-parent.js',notices:'./thongbao.js'};
  if(!map[k]) throw new Error('Không tìm thấy module '+k);
  modules[k]=await import(map[k]+'?v='+APP_VERSION);
  return modules[k];
