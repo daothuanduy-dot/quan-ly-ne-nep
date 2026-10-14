@@ -1,5 +1,5 @@
 /* PWA shell cache only. Never cache Supabase/API responses or private student data. */
-const CACHE_NAME = 'qlnn-shell-v3.0.5.25.42';
+const CACHE_NAME = 'qlnn-shell-v3.0.5.25.43';
 const BASE = '/quan-ly-ne-nep/';
 const SHELL = [
   BASE,
