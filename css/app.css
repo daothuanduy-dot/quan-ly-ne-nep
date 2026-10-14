@@ -741,6 +741,9 @@ body{
 button,input,select,textarea{font:inherit}
 button{-webkit-tap-highlight-color:transparent}
 :focus-visible{outline:3px solid #39a99e;outline-offset:2px}
+.admin-row-actions{display:flex;align-items:center;gap:6px;white-space:nowrap}
+.admin-row-actions .btn{padding:8px 10px}
+.admin-row-actions .btn:disabled{cursor:not-allowed;opacity:.55}
 .topbar{
   min-height:64px;
   padding:9px clamp(14px,3vw,36px);
