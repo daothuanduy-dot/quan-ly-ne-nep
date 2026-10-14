@@ -1,4 +1,4 @@
-import {supabase,PERMISSION_TABS,isAdminStaff,normalizeTabs,STAFF_ROLES,CLASS_MANAGEMENT_TYPES} from './config.js?v=3.0.5.25.45';
+import {supabase,PERMISSION_TABS,isAdminStaff,normalizeTabs,STAFF_ROLES,CLASS_MANAGEMENT_TYPES} from './config.js?v=3.0.5.25.46';
 import {esc,toast,modal,closeModal} from './ui.js?v=3.0.5.25.33';
 import {notifyStudents} from './push-events.js';
 let root,sub='students';
@@ -6,7 +6,34 @@ function isActiveStudent(r){const s=String(r&&r.trang_thai==null?'':r.trang_thai
 export async function init(r){root=r;renderTabs();await open('students')}
 function renderTabs(){root.innerHTML=`<div class="page-head"><div><h2>Quản Trị Hệ Thống</h2><p>Các chức năng quản trị được tổ chức thành các tab phụ.</p></div></div><div class="subtabs">${[['students','👨‍🎓 Quản lý học sinh'],['import','📥 Nhập Excel'],['staff','👥 Quản lý người dùng'],['schedule','🕒 TKB & TG học'],['transfer','🔄 Kết chuyển & TN'],['criteria','📝 Quản lý tiêu chí'],['permissions','🔐 Phân quyền'],['examResults','📊 Kết quả kiểm tra'],['appeals','✍️ Phúc khảo']].map(x=>`<button data-a="${x[0]}">${x[1]}</button>`).join('')}</div><div id="adminBody"></div>`;root.querySelectorAll('[data-a]').forEach(b=>b.onclick=()=>open(b.dataset.a))}
 async function open(k){sub=k;root.querySelectorAll('[data-a]').forEach(b=>b.classList.toggle('active',b.dataset.a===k));const b=root.querySelector('#adminBody');b.innerHTML='<div class="empty">Đang tải...</div>';if(k==='students')return students(b);if(k==='import')return imports(b);if(k==='staff')return staff(b);if(k==='schedule')return schedule(b);if(k==='transfer')return transfer(b);if(k==='criteria')return criteria(b);if(k==='permissions')return permissions(b);if(k==='examResults')return examResults(b);if(k==='appeals')return appealAdmin(b)}
-async function students(b){const {data,error}=await supabase.from('danh_sach').select('id,ma_hs,ho_ten,khoi,lop,ngay_sinh,ma_qr,trang_thai,nam_hoc,mat_khau').order('lop').order('ho_ten').limit(1000);if(error)return b.innerHTML=`<div class="danger-box">${esc(error.message)}</div>`;b.innerHTML=`<div class="toolbar"><input id="stSearch" placeholder="Tìm mã HS, họ tên, lớp"><button id="stAdd" class="btn primary">+ Thêm học sinh</button><span class="badge">${data.length} bản ghi hiển thị</span></div><div class="table-wrap"><table class="table"><thead><tr><th>Mã HS</th><th>Họ tên</th><th>Khối</th><th>Lớp</th><th>Mật khẩu</th><th>QR</th><th>Trạng thái</th><th></th></tr></thead><tbody>${data.map(x=>`<tr><td>${esc(x.ma_hs)}</td><td>${esc(x.ho_ten)}</td><td>${esc(x.khoi)}</td><td>${esc(x.lop)}</td><td><code>${esc(x.mat_khau||'123456')}</code></td><td>${esc(x.ma_qr||'')}</td><td>${esc(x.trang_thai||'')}</td><td><button class="btn light st-edit" data-id="${x.id}">Sửa</button></td></tr>`).join('')}</tbody></table></div>`;const filter=()=>b.querySelectorAll('tbody tr').forEach(tr=>tr.style.display=tr.textContent.toLowerCase().includes((b.querySelector('#stSearch').value||'').toLowerCase())?'':'none');b.querySelector('#stSearch').oninput=filter;b.querySelector('#stAdd').onclick=()=>studentForm(null);b.querySelectorAll('.st-edit').forEach(btn=>btn.onclick=()=>studentForm(data.find(x=>String(x.id)===btn.dataset.id)));}
+async function students(b){const {data,error}=await supabase.from('danh_sach').select('id,ma_hs,ho_ten,khoi,lop,ngay_sinh,ma_qr,trang_thai,nam_hoc,mat_khau').order('lop').order('ho_ten').limit(1000);if(error)return b.innerHTML=`<div class="danger-box">${esc(error.message)}</div>`;b.innerHTML=`<div class="toolbar"><input id="stSearch" placeholder="Tìm mã HS, họ tên, lớp"><button id="stAdd" class="btn primary">+ Thêm học sinh</button><span class="badge">${data.length} bản ghi hiển thị</span></div><div class="table-wrap"><table class="table"><thead><tr><th>Mã HS</th><th>Họ tên</th><th>Khối</th><th>Lớp</th><th>Mật khẩu</th><th>QR</th><th>Trạng thái</th><th></th></tr></thead><tbody>${data.map(x=>`<tr><td>${esc(x.ma_hs)}</td><td>${esc(x.ho_ten)}</td><td>${esc(x.khoi)}</td><td>${esc(x.lop)}</td><td><code>${esc(x.mat_khau||'123456')}</code></td><td>${esc(x.ma_qr||'')}</td><td>${esc(x.trang_thai||'')}</td><td><div class="admin-row-actions"><button class="btn light st-edit" data-id="${x.id}">Sửa</button><button class="btn danger st-delete" data-id="${x.id}" ${isActiveStudent(x)?'':'disabled'}>Xóa</button></div></td></tr>`).join('')}</tbody></table></div>`;const filter=()=>b.querySelectorAll('tbody tr').forEach(tr=>tr.style.display=tr.textContent.toLowerCase().includes((b.querySelector('#stSearch').value||'').toLowerCase())?'':'none');b.querySelector('#stSearch').oninput=filter;b.querySelector('#stAdd').onclick=()=>studentForm(null);b.querySelectorAll('.st-edit').forEach(btn=>btn.onclick=()=>studentForm(data.find(x=>String(x.id)===btn.dataset.id)));b.querySelectorAll('.st-delete').forEach(btn=>btn.onclick=()=>deactivateStudent(data.find(x=>String(x.id)===btn.dataset.id)));}
+function deactivateStudent(s){
+ if(!s||!isActiveStudent(s))return;
+ const m=modal('Ngừng hoạt động học sinh',`<div class="notice warning">Học sinh <b>${esc(s.ho_ten)}</b> (${esc(s.ma_hs)}) sẽ được chuyển sang trạng thái <b>Inactive</b>. Lịch sử điểm danh, thi đua và kết quả được giữ nguyên. Tài khoản Cán bộ lớp liên kết (nếu có) cũng sẽ bị khóa.</div>`,`<button id="stDeleteCancel" class="btn light">Hủy</button><button id="stDeleteConfirm" class="btn danger">Xác nhận ngừng</button>`);
+ m.querySelector('#stDeleteCancel').onclick=closeModal;
+ m.querySelector('#stDeleteConfirm').onclick=async()=>{
+  const confirmButton=m.querySelector('#stDeleteConfirm');confirmButton.disabled=true;
+  const studentQuery=await supabase.from('danh_sach').select('trang_thai').eq('id',s.id).maybeSingle();
+  if(studentQuery.error||!studentQuery.data){confirmButton.disabled=false;return toast(studentQuery.error?.message||'Không tìm thấy hồ sơ học sinh.','err');}
+  if(!isActiveStudent(studentQuery.data)){closeModal();toast('Học sinh đã ngừng hoạt động.','err');return students(root.querySelector('#adminBody'));}
+  const linked=await supabase.from('can_bo').select('ma_cb,trang_thai').eq('ma_hs',s.ma_hs).eq('vai_tro','Cán bộ lớp');
+  if(linked.error){confirmButton.disabled=false;return toast('Không kiểm tra được tài khoản Cán bộ lớp liên kết: '+linked.error.message,'err');}
+  const updatedStudent=await supabase.from('danh_sach').update({trang_thai:'Inactive'}).eq('id',s.id).select('id');
+  if(updatedStudent.error){confirmButton.disabled=false;return toast('Không thể ngừng hoạt động học sinh: '+updatedStudent.error.message,'err');}
+  if(!updatedStudent.data?.length){confirmButton.disabled=false;return toast('Không có hồ sơ học sinh nào được cập nhật. Có thể tài khoản không có quyền hoặc hồ sơ đã thay đổi.','err');}
+  const activeLinked=(linked.data||[]).filter(x=>x.trang_thai!==false);
+  if(activeLinked.length){
+   const locked=await supabase.from('can_bo').update({trang_thai:false}).eq('ma_hs',s.ma_hs).eq('vai_tro','Cán bộ lớp').eq('trang_thai',true).select('ma_cb');
+   if(locked.error||locked.data?.length!==activeLinked.length){
+    const restored=await supabase.from('danh_sach').update({trang_thai:studentQuery.data.trang_thai}).eq('id',s.id).select('id');
+    confirmButton.disabled=false;
+    if(restored.error||!restored.data?.length)return toast(`Không khóa được tài khoản Cán bộ lớp (${locked.error?.message||'số tài khoản cập nhật không khớp'}) và không xác nhận được việc khôi phục trạng thái học sinh (${restored.error?.message||'không có hồ sơ nào được cập nhật'}). Cần kiểm tra và xử lý thủ công.`,'err');
+    return toast('Không khóa được đầy đủ tài khoản Cán bộ lớp liên kết; trạng thái học sinh đã được khôi phục. '+(locked.error?.message||'Một số tài khoản không được cập nhật.'),'err');
+   }
+  }
+  closeModal();toast('Đã ngừng hoạt động học sinh và giữ nguyên lịch sử.','ok');await students(root.querySelector('#adminBody'));
+ };
+}
 async function studentForm(s){
  const x=s||{};
  const existing=s?await getStudentStaff(x.ma_hs):null;
@@ -47,10 +74,26 @@ async function staff(b){
   b.innerHTML=`<div class="page-head"><div><h3 style="margin:0">Quản lý người dùng</h3><p>Quản lý tài khoản, vai trò và phạm vi lớp được phép thao tác.</p></div><span class="badge">${data.length} tài khoản</span></div>
   <div class="notice"><b>Phạm vi sử dụng:</b> GVCN quản lý lớp chủ nhiệm; Giáo viên quản lý các lớp giảng dạy; Cán bộ lớp là tài khoản học sinh và chỉ được chấm điểm cá nhân trong lớp được phân công.</div>
   <div class="toolbar"><button id="cbAdd" class="btn primary">+ Thêm tài khoản</button></div>
-  <div class="table-wrap"><table class="table"><thead><tr><th>Mã CB</th><th>Họ tên</th><th>Vai trò</th><th>Phạm vi lớp</th><th>Tài khoản học sinh</th><th>Trạng thái</th><th></th></tr></thead><tbody>${data.map(x=>`<tr><td>${esc(x.ma_cb)}</td><td>${esc(x.ho_ten)}</td><td>${esc(roleLabel(x.vai_tro))} ${isAdminStaff(x)?'<span class="badge admin">Admin</span>':''}</td><td>${esc(scopeLabel(x))}</td><td>${x.ma_hs?`<span class="badge blue">${esc(x.ma_hs)}</span>`:'—'}</td><td>${x.trang_thai?'<span class="badge ok">Hoạt động</span>':'<span class="badge">Khóa</span>'}</td><td><button class="btn light cb-edit" data-ma="${esc(x.ma_cb)}">Sửa</button></td></tr>`).join('')}</tbody></table></div>`;
+  <div class="table-wrap"><table class="table"><thead><tr><th>Mã CB</th><th>Họ tên</th><th>Vai trò</th><th>Phạm vi lớp</th><th>Tài khoản học sinh</th><th>Trạng thái</th><th></th></tr></thead><tbody>${data.map(x=>`<tr><td>${esc(x.ma_cb)}</td><td>${esc(x.ho_ten)}</td><td>${esc(roleLabel(x.vai_tro))} ${isAdminStaff(x)?'<span class="badge admin">Admin</span>':''}</td><td>${esc(scopeLabel(x))}</td><td>${x.ma_hs?`<span class="badge blue">${esc(x.ma_hs)}</span>`:'—'}</td><td>${x.trang_thai?'<span class="badge ok">Hoạt động</span>':'<span class="badge">Khóa</span>'}</td><td><div class="admin-row-actions"><button class="btn light cb-edit" data-ma="${esc(x.ma_cb)}">Sửa</button><button class="btn danger cb-delete" data-ma="${esc(x.ma_cb)}" ${x.trang_thai?'':'disabled'}>Xóa</button></div></td></tr>`).join('')}</tbody></table></div>`;
   b.querySelector('#cbAdd').onclick=()=>staffForm(null,classes);
   b.querySelectorAll('.cb-edit').forEach(btn=>btn.onclick=()=>staffForm(data.find(x=>x.ma_cb===btn.dataset.ma),classes));
+  b.querySelectorAll('.cb-delete').forEach(btn=>btn.onclick=()=>deactivateStaff(data.find(x=>x.ma_cb===btn.dataset.ma),data));
  }catch(e){b.innerHTML=`<div class="danger-box">${esc(e.message)}<br><small>Nếu lỗi liên quan <code>ma_hs</code> hoặc <code>loai_quan_ly_lop</code>, hãy chạy SQL migration 012 của V3.0.5.9.</small></div>`}
+}
+function deactivateStaff(user,allUsers){
+ if(!user||!user.trang_thai)return;
+ const current=window.App?.Auth?.currentUser;
+ if(String(current?.ma_cb||'')===String(user.ma_cb))return toast('Không thể khóa tài khoản đang đăng nhập.','err');
+ if(isAdminStaff(user)&&allUsers.filter(x=>x.trang_thai&&isAdminStaff(x)).length<=1)return toast('Không thể khóa tài khoản Admin đang hoạt động cuối cùng.','err');
+ const m=modal('Khóa tài khoản người dùng',`<div class="notice warning">Tài khoản <b>${esc(user.ho_ten)}</b> (${esc(user.ma_cb)}) sẽ bị khóa và không thể đăng nhập. Hồ sơ cùng dữ liệu lịch sử vẫn được giữ lại; có thể mở lại bằng chức năng Sửa.</div>`,`<button id="cbDeleteCancel" class="btn light">Hủy</button><button id="cbDeleteConfirm" class="btn danger">Xác nhận khóa</button>`);
+ m.querySelector('#cbDeleteCancel').onclick=closeModal;
+ m.querySelector('#cbDeleteConfirm').onclick=async()=>{
+  const button=m.querySelector('#cbDeleteConfirm');button.disabled=true;
+  const {data,error}=await supabase.from('can_bo').update({trang_thai:false}).eq('ma_cb',user.ma_cb).eq('trang_thai',true).select('ma_cb');
+  if(error){button.disabled=false;return toast('Không thể khóa tài khoản: '+error.message,'err');}
+  if(!data?.length){button.disabled=false;return toast('Không có tài khoản nào được khóa. Có thể trạng thái đã thay đổi hoặc tài khoản không có quyền cập nhật.','err');}
+  closeModal();toast('Đã khóa tài khoản người dùng.','ok');await staff(root.querySelector('#adminBody'));
+ };
 }
 async function loadClassList(){
  const data=await fetchAll(()=>supabase.from('danh_sach').select('lop,trang_thai').not('lop','is',null).order('lop'));
