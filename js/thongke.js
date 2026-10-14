@@ -308,15 +308,15 @@ async function load(root){
       const maxAbs=Math.max(1,...rows.map(r=>Math.abs(r.stats.total)));
       const chartRows=rows.map(r=>{
         const net=Number(r.stats.total||0);
-        const h=net===0?2:Math.max(3,Math.round(Math.abs(net)/maxAbs*100));
-        const dir=net>=0?'positive':'negative';
+        const h=net===0?2:Math.max(3,Math.round(Math.abs(net)/maxAbs*46));
+        const dir=net>0?'positive':net<0?'negative':'zero';
         return `<div class="vertical-score-col" title="${esc(r.name)}: ${net>0?'+':''}${fmt(net)} điểm (cộng ${fmt(r.stats.plus)}, trừ ${fmt(r.stats.minus)})">
-          <div class="vertical-score-value ${dir}">${net>0?'+':''}${fmt(net)}</div>
+          <div class="vertical-score-value ${dir}"><span>${net>0?'+':''}${fmt(net)}</span></div>
           <div class="vertical-score-stage"><div class="vertical-zero-line"></div><div class="vertical-score-bar ${dir}" style="height:${h}%"></div></div>
           <div class="vertical-score-label"><b>${esc(r.name)}</b><small>${esc(r.sub)}</small></div>
         </div>`;
       }).join('');
-      root.querySelector('#scoreChart').innerHTML=`<div class="score-chart-card vertical-score-card"><div class="score-chart-head"><div><h4>📊 Biểu đồ điểm</h4><p>${esc(scopeTitle)} · Mảng: ${esc(groupTitle)} · các lớp không phát sinh biến động vẫn được hiển thị với Điểm = 0.</p></div></div><div class="vertical-score-chart">${chartRows}</div><div class="vertical-score-legend"><span><i class="legend-dot positive"></i>Điểm dương</span><span><i class="legend-dot negative"></i>Điểm âm</span></div></div><div class="score-table-shell"><div class="score-table-head"><span>Đối tượng</span><span>Cộng</span><span>Trừ</span><span>Điểm</span><span>ĐTB học tập</span></div><div class="score-detail-scroll">${rows.map(r=>`<button type="button" class="score-detail-row" data-detail-id="${esc(r.id)}"><span class="score-object"><b>${esc(r.name)}</b><small>${esc(r.sub)}</small></span><strong class="plus-text">+${fmt(r.stats.plus)}</strong><strong class="minus-text">${fmt(r.stats.minus)}</strong><strong class="net-text">${r.stats.total>0?'+':''}${fmt(r.stats.total)}</strong><strong class="study-text">${r.study.total?fmt(r.study.avg):'—'}</strong></button>`).join('')}</div></div>`;
+      root.querySelector('#scoreChart').innerHTML=`<div class="score-chart-card vertical-score-card"><div class="score-chart-head"><div><h4>📊 Biểu đồ điểm</h4><p>${esc(scopeTitle)} · Mảng: ${esc(groupTitle)} · Điểm ròng theo lớp; số trên mỗi cột là điểm, lớp không phát sinh có giá trị 0.</p></div></div><div class="vertical-score-chart">${chartRows}</div><div class="vertical-score-legend"><span><i class="legend-dot positive"></i>Điểm dương</span><span><i class="legend-dot negative"></i>Điểm âm</span><span><i class="legend-dot zero"></i>Không phát sinh</span></div></div><div class="score-table-shell"><div class="score-table-head"><span>Đối tượng</span><span>Cộng</span><span>Trừ</span><span>Điểm</span><span>ĐTB học tập</span></div><div class="score-detail-scroll">${rows.map(r=>`<button type="button" class="score-detail-row" data-detail-id="${esc(r.id)}"><span class="score-object"><b>${esc(r.name)}</b><small>${esc(r.sub)}</small></span><strong class="plus-text">+${fmt(r.stats.plus)}</strong><strong class="minus-text">${fmt(r.stats.minus)}</strong><strong class="net-text">${r.stats.total>0?'+':''}${fmt(r.stats.total)}</strong><strong class="study-text">${r.study.total?fmt(r.study.avg):'—'}</strong></button>`).join('')}</div></div>`;
       root.querySelectorAll('.score-detail-row').forEach(btn=>btn.onclick=()=>showDetail(btn.dataset.detailId,rows));
     }
     function showDetail(id,rows){
