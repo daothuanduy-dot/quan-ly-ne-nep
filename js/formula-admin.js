@@ -19,6 +19,7 @@ export async function showFormulaAdmin(root){
  function renderCriteria(){const list=subset();q('fmCriteria').innerHTML=list.length?list.map(r=>`<button type="button" draggable="true" class="formula-chip" data-code="${esc(r.ma_hd)}" title="Kéo vào ô công thức"><b>${esc(r.ten_hd)}</b><small>[${esc(r.ma_hd)}] · ${Number(r.diem)>0?'+':''}${esc(r.diem)} điểm</small></button>`).join(''):'<p class="muted">Chưa có tiêu chí cho đối tượng và mảng này.</p>';
  q('fmValues').innerHTML=list.map(r=>`<label class="formula-value-item"><span>${esc(r.ten_hd)} <small>[${esc(r.ma_hd)}]</small></span><input type="number" step="any" data-value="${esc(r.ma_hd)}" value="0"></label>`).join('');
  q('fmCriteria').querySelectorAll('[data-code]').forEach(btn=>{btn.onclick=()=>insert('['+btn.dataset.code+']');btn.ondragstart=e=>{e.dataTransfer.setData('text/plain','['+btn.dataset.code+']');e.dataTransfer.effectAllowed='copy'}})}
+ }
  async function load(){renderCriteria();status('');editor.value='';const {data,error}=await supabase.from('qlnn_cong_thuc_thi_dua').select('cong_thuc').eq('doi_tuong',q('fmTarget').value).eq('mang',q('fmArea').value).maybeSingle();if(error){status('Chưa đọc được bảng công thức. Cần chạy SQL migration trước khi lưu: '+error.message,true);return}editor.value=data?.cong_thuc||'';saved=editor.value;}
  q('fmTarget').onchange=load;q('fmArea').onchange=load;
  q('fmOps').querySelectorAll('[data-op]').forEach(b=>b.onclick=()=>insert(b.dataset.op));
