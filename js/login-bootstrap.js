@@ -14,7 +14,7 @@
     syncRole();
     $('loginRole')?.addEventListener('change',syncRole);
     $('togglePassword')?.addEventListener('click',function(){const i=$('password');if(!i)return;const show=i.type==='password';i.type=show?'text':'password';this.textContent=show?'🙈':'👁';});
-    try{await import('./app.js?v=3.0.5.25.48');}
+    try{await import('./app.js?v=3.0.5.25.50');}
     catch(err){console.error('[QLNN APP LOAD]',err);const el=$('loginError');if(el)el.textContent='Không tải được ứng dụng: '+(err?.message||String(err));}
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();

@@ -1,5 +1,5 @@
 /* PWA shell cache only. Never cache Supabase/API responses or private student data. */
-const CACHE_NAME = 'qlnn-shell-v3.0.5.25.48';
+const CACHE_NAME = 'qlnn-shell-v3.0.5.25.50';
 const BASE = '/quan-ly-ne-nep/';
 const SHELL = [
   BASE,
@@ -22,14 +22,13 @@ self.addEventListener('fetch', event => {
   if (url.origin !== self.location.origin || !url.pathname.startsWith(BASE)) return;
   // Do not cache JavaScript modules: always revalidate them to avoid mixed-version bugs.
   if (/\.(m?js)$/.test(url.pathname) || url.pathname.includes('/rest/')) return;
+  // Navigation: network-first, offline fallback; do not clone or cache a consumed response.
   if (req.mode === 'navigate') {
-    event.respondWith(fetch(req).then(res => { if (res.ok) { const copy = res.clone(); caches.open(CACHE_NAME).then(c => c.put(BASE + 'index.html', copy)).catch(console.warn); } return res; }).catch(() => caches.match(BASE + 'index.html')));
+    event.respondWith(fetch(req).catch(() => caches.match(BASE + 'index.html')));
     return;
   }
-  event.respondWith(caches.match(req).then(cached => cached || fetch(req).then(res => {
-    if (res.ok && ['style','image','font'].includes(req.destination)) { const copy = res.clone(); caches.open(CACHE_NAME).then(c => c.put(req, copy)).catch(console.warn); }
-    return res;
-  })));
+  // Other same-origin resources: use shell cache when available, otherwise network.
+  event.respondWith(caches.match(req).then(cached => cached || fetch(req)));
 });
 self.addEventListener('push', event => {
   let data = {title:'THPT Lê Hồng Phong', body:'Bạn có thông báo mới.', url:BASE};
